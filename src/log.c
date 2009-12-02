@@ -35,9 +35,11 @@ static char *trace_level[LOG_LEVELS] = {"DIE", "MESSAGE", "ERROR", "WARNING", "I
 static int dftlv = ALOG_ERROR;
 static int logfd = -1;
 
-int ape_log_init(acetables *g_ape)
+void ape_log_init(acetables *g_ape)
 {
-	int ret;
+	if (CONFIG_VAL(Log, loglevel, g_ape->srv) != NULL) {
+		ape_log_setlv(atoi(CONFIG_VAL(Log, loglevel, g_ape->srv)));
+	}
 	
 	if (CONFIG_VAL(Log, logfile, g_ape->srv) != NULL) {
 		if (ape_log_open(CONFIG_VAL(Log, logfile, g_ape->srv)) != 1) {
@@ -46,13 +48,8 @@ int ape_log_init(acetables *g_ape)
 			exit(1);
 		}
 	} else {
-		ret = ape_log_open("-");
+		ape_log_open("-");
 	}
-	if (CONFIG_VAL(Log, loglevel, g_ape->srv) != NULL) {
-		ape_log_setlv(atoi(CONFIG_VAL(Log, loglevel, g_ape->srv)));
-	}
-	
-	return ret;
 }
 
 int ape_log_open(char *logfname)

@@ -38,7 +38,7 @@ typedef enum {
 	ALOG_NOISE
 } ape_log_lvl_t;
 
-int ape_log_init(acetables *g_ape);
+void ape_log_init(acetables *g_ape);
 int ape_log_open(char *logfname);
 int ape_log_reopen(char *logfname);
 void ape_log_setlv(int lv);
