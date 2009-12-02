@@ -80,6 +80,7 @@ static void ape_daemon()
 		exit(0);
 	}
 	printf("Starting daemon.... pid : %i\n\n", getpid());
+	alog_foo("Starting daemon.... pid : %i\n\n", getpid());
 }
 
 
@@ -177,41 +178,35 @@ int main(int argc, char **argv)
 	
 	servers_init(g_ape);
 	
-	ape_log(APE_INFO, __FILE__, __LINE__, g_ape, 
-		"APE starting up - pid : %i", getpid());
+	alog_foo("APE starting up - pid : %i", getpid());
 	
 	if (im_r00t) {
 		struct group *grp = NULL;
 		struct passwd *pwd = NULL;
 		
 		if (inc_rlimit(atoi(CONFIG_VAL(Server, rlimit_nofile, srv))) == -1) {
-			ape_log(APE_WARN, __FILE__, __LINE__, g_ape, 
-				"Cannot set the max filedescriptos limit (setrlimit) %s", strerror(errno));
+			alog_errlog("Cannot set the max filedescriptos limit (setrlimit)");
 		}
 		
 		/* Get the user information (uid section) */
 		if ((pwd = getpwnam(CONFIG_VAL(uid, user, srv))) == NULL) {
-			ape_log(APE_ERR, __FILE__, __LINE__, g_ape, 
-				"Can\'t find username %s", CONFIG_VAL(uid, user, srv));
+			alog_err("Can\'t find username %s", CONFIG_VAL(uid, user, srv));
 			return -1;
 		}
 		if (pwd->pw_uid == 0) {
-			ape_log(APE_ERR, __FILE__, __LINE__, g_ape, 
-				"%s uid can\'t be 0", CONFIG_VAL(uid, user, srv));
+			alog_err("%s uid can\'t be 0", CONFIG_VAL(uid, user, srv));
 			return -1;			
 		}
 		
 		/* Get the group information (uid section) */
 		if ((grp = getgrnam(CONFIG_VAL(uid, group, srv))) == NULL) {
 			printf("[ERR] Can\'t find group %s\n", CONFIG_VAL(uid, group, srv));
-			ape_log(APE_ERR, __FILE__, __LINE__, g_ape, 
-				"Can\'t find group %s", CONFIG_VAL(uid, group, srv));
+			alog_err("Can\'t find group %s", CONFIG_VAL(uid, group, srv));
 			return -1;
 		}
 		
 		if (grp->gr_gid == 0) {
-			ape_log(APE_ERR, __FILE__, __LINE__, g_ape, 
-				"%s gid can\'t be 0", CONFIG_VAL(uid, group, srv));
+			alog_err("%s gid can\'t be 0", CONFIG_VAL(uid, group, srv));
 			return -1;
 		}
 		
@@ -223,13 +218,11 @@ int main(int argc, char **argv)
 		setuid(pwd->pw_uid);
 	} else {
 		printf("[WARN] You have to run \'aped\' as root to increase r_limit\n");
-		ape_log(APE_WARN, __FILE__, __LINE__, g_ape, 
-			"You have to run \'aped\' as root to increase r_limit");
+		alog_warn("You have to run \'aped\' as root to increase r_limit");
 	}
 	
 	if (strcmp(CONFIG_VAL(Server, daemon, srv), "yes") == 0) {
-		ape_log(APE_INFO, __FILE__, __LINE__, g_ape, 
-			"Starting daemon");
+		alog_foo("Starting daemon");
 		ape_daemon();
 	}
 	signal(SIGPIPE, SIG_IGN);

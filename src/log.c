@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2006, 2007, 2008, 2009  Anthony Catel <a.catel@weelya.com>
+  Copyright (C) 2006, 2007, 2008, 2009	Anthony Catel <a.catel@weelya.com>
 
   This file is part of APE Server.
   APE is free software; you can redistribute it and/or modify
@@ -9,7 +9,7 @@
 
   APE is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	See the
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
@@ -31,50 +31,93 @@
 #include "config.h"
 
 
-void ape_log_init(acetables *g_ape)
+static char *trace_level[LOG_LEVELS] = {"DIE", "MESSAGE", "ERROR", "WARNING", "INFO", "DEBUG", "NOISE"};
+static int dftlv = ALOG_ERROR;
+static int logfd = -1;
+
+int ape_log_init(acetables *g_ape)
 {
-	int debug = atoi(CONFIG_VAL(Log, debug, g_ape->srv));
+	int ret;
 	
-	g_ape->logs.fd = STDERR_FILENO;
-	g_ape->logs.lvl = (debug ? APE_DEBUG : 0);
-	g_ape->logs.lvl |= APE_ERR | APE_WARN;
-	if (!(g_ape->logs.use_syslog = atoi(CONFIG_VAL(Log, use_syslog, g_ape->srv)))) {
-		if ((g_ape->logs.fd = open(CONFIG_VAL(Log, logfile, g_ape->srv), O_APPEND | O_WRONLY | O_CREAT, 0644)) == -1) {
-			g_ape->logs.fd = STDERR_FILENO;
+	if (CONFIG_VAL(Log, logfile, g_ape->srv) != NULL) {
+		if (ape_log_open(CONFIG_VAL(Log, logfile, g_ape->srv)) != 1) {
+			printf("\nOpen log file %s failure\n",
+				   CONFIG_VAL(Log, logfile, g_ape->srv));
+			exit(1);
 		}
+	} else {
+		ret = ape_log_open("-");
 	}
+	if (CONFIG_VAL(Log, loglevel, g_ape->srv) != NULL) {
+		ape_log_setlv(atoi(CONFIG_VAL(Log, loglevel, g_ape->srv)));
+	}
+	
+	return ret;
 }
 
-void ape_log(ape_log_lvl_t lvl, const char *file, unsigned long int line, acetables *g_ape, char *buf, ...)
+int ape_log_open(char *logfname)
 {
-	if (lvl == APE_DEBUG && !g_ape->logs.lvl&APE_DEBUG) {
-		return;
-	} else {
-		time_t log_ts;
-		char *buff;
-		char date[32];
-		
-		int len, datelen;
-		va_list val;
-		log_ts = time(NULL);
-		
-		va_start(val, buf);
-		len = vasprintf(&buff, buf, val);
-		va_end(val);
-		
-		datelen = strftime(date, 32, "%Y-%m-%d %H:%M:%S - ", localtime(&log_ts));
-		
-		write(g_ape->logs.fd, date, datelen);
-		if (g_ape->logs.lvl&APE_DEBUG) {
-			char *debug_file;
-			int dlen;
-			dlen = asprintf(&debug_file, "%s:%i - ", file, line);
-			write(g_ape->logs.fd, debug_file, dlen);
-			free(debug_file);
-		}
-		write(g_ape->logs.fd, buff, len);
-		write(g_ape->logs.fd, "\n", 1);
-		
-		free(buff);
+	if (logfname == NULL) {
+		logfd = -1;
+		return 1;
 	}
+
+	if (strcmp(logfname, "-") == 0) {
+		logfd = 1;
+		return 1;
+	}
+
+	logfd = open(logfname, O_WRONLY | O_APPEND | O_CREAT, 0660);
+	if (logfd < 0)
+		return 0;
+
+	return 1;
+}
+
+int ape_log_reopen(char *logfname)
+{
+	ape_log_done();
+	return ape_log_open(logfname);
+}
+
+void ape_log_setlv(int lv)
+{
+	if (lv < 0 || lv > LOG_LEVELS)
+		return;
+	dftlv = lv;
+}
+
+void ape_log_done()
+{
+	if (logfd != 1 && logfd != -1)
+		close(logfd);
+}
+
+void ape_log(const char *func, const char *file, long line,
+			 ape_log_lvl_t level, const char *fmt, ...)
+{
+	int r, tr, ir;
+	va_list ap;
+	char timestr[32];
+	char infostr[128];
+	char logstr[MAX_LOG_STR];
+	time_t t;
+	struct tm *tmp;
+
+	if (logfd == -1 || level > dftlv)
+		return;
+
+	t = time(NULL);
+	tmp = localtime(&t);
+	tr = strftime(timestr, 32, "[%F %H:%M:%S]", tmp);
+	ir = snprintf(infostr, 128, "[%s][%s:%li %s]", trace_level[level], file, line, func);
+
+	va_start(ap, fmt);
+	r = vsnprintf(logstr, MAX_LOG_STR, fmt, ap);
+	va_end(ap);
+
+	write(logfd, timestr, tr);
+	write(logfd, infostr, ir);
+	write(logfd, logstr, r);
+	write(logfd, "\n", 1);
 }
