@@ -442,7 +442,8 @@ subuser *addsubuser(ape_socket *client, const char *channel, USERS *user, acetab
 	
 	sub->nraw = 0;
 	sub->wait_for_free = 0;
-	
+
+	sub->properties = NULL;
 	sub->headers.sent = 0;
 	sub->headers.content = NULL;
 	
@@ -562,9 +563,13 @@ void delsubuser(subuser **current)
 	((*current)->user->nsub)--;
 	
 	*current = (*current)->next;
-	
+
+	clear_properties(&del->properties);
 	destroy_raw_pool(del->raw_pools.low.rawhead);
 	destroy_raw_pool(del->raw_pools.high.rawhead);
+	del->raw_pools.low.rawhead = del->raw_pools.low.rawfoot = NULL;
+	del->raw_pools.high.rawhead = del->raw_pools.high.rawfoot = NULL;
+	del->raw_pools.nraw = 0;
 
 	if (del->state == ALIVE) {
 		del->wait_for_free = 1;

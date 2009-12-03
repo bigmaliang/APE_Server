@@ -109,6 +109,7 @@ struct _subuser
 		int sent;
 	} headers;
 	
+	struct _extend *properties;
 	struct _subuser *next;
 	ape_socket *client;
 	USERS *user;
