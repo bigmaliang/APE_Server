@@ -51,7 +51,6 @@ struct _ace_callbacks
 {		
 	USERS *(*c_adduser)(USERS *, acetables *);
 	void (*c_deluser)(USERS *, int istmp, acetables *);
-	void (*c_delsubuser)(subuser *, acetables *);
 	CHANNEL *(*c_mkchan)(char *, int, acetables *);
 	void (*c_rmchan)(CHANNEL *, acetables *);
 	void (*c_join)(USERS *, CHANNEL *, acetables *);

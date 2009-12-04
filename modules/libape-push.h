@@ -7,6 +7,12 @@ typedef struct {
     unsigned long msg_limited;
 } st_push;
 
+enum {
+    ST_ONLINE = 0,
+    ST_NOTICE,
+    ST_FEED
+} stastic_type;
+
 #define SET_USER_FOR_APE(ape, uin, user)								\
 	do {																\
 		hashtbl_append(get_property(ape->properties, "userlist")->val,	\
@@ -31,8 +37,12 @@ typedef struct {
 	(get_property(user->properties, "friend") != NULL ?				\
 	 (HTBL*)get_property(user->properties, "friend")->val: NULL)
 
-#define GET_USER_LIST													\
-	(get_property(callbacki->g_ape->properties, "userlist") != NULL ?	\
-	 (HTBL*)get_property(callbacki->g_ape->properties, "userlist")->val: NULL)
+#define GET_USER_LIST(g_ape)											\
+	(get_property(g_ape->properties, "userlist") != NULL ?				\
+	 (HTBL*)get_property(g_ape->properties, "userlist")->val: NULL)
+
+#define GET_STAT_LIST(g_ape)											\
+	(get_property(g_ape->properties, "msgstatic") != NULL ?				\
+	 (st_push*)get_property(g_ape->properties, "msgstatic")->val: NULL)
 
 #endif

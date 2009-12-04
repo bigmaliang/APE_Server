@@ -12,6 +12,7 @@
 #include "mevent.h"
 #include "data.h"
 #include "mevent_uic.h"
+#include "mevent_db_community.h"
 
 #define MODULE_NAME "push"
 
@@ -134,6 +135,62 @@ static void get_user_info(char *uin, USERS *user, acetables *g_ape)
  done:
 	mevent_free(evt);
 	return;
+}
+
+static void tick_static(acetables *g_ape, int lastcall)
+{
+    HTBL *ulist = GET_USER_LIST(g_ape);
+    st_push *st = GET_STAT_LIST(g_ape);
+    HTBL_ITEM *item;
+    USERS *user;
+    char *uin;
+    int num = 0, ret;
+    char sql[1024], usrlist[512];
+
+	if (ulist == NULL || st == NULL) {
+		alog_err("list table null");
+		return;
+	}
+
+    mevent_t *evt;
+    evt = mevent_init_plugin("db_community", REQ_CMD_STAT, FLAGS_NONE);
+    if (evt == NULL) {
+        alog_err("init mevent db_community failure");
+        return;
+    }
+    mevent_add_array(evt, NULL, "sqls");
+    
+    memset(sql, 0x0, sizeof(sql));
+    memset(usrlist, 0x0, sizeof(usrlist));
+	for (item = ulist->first; item != NULL; item = item->lnext) {
+		user = (USERS*) item->addrs;
+		uin = (char*)get_property(user->properties, "uin")->val;
+		num++;
+		strcat(usrlist, uin);
+		strcat(usrlist, " ");
+		if (num > 20) {
+			break;
+		}
+	}
+    snprintf(sql, sizeof(sql), "INSERT INTO mps (type, count, remark) "
+             " VALUES (%d, %u, '%s');", ST_ONLINE, g_ape->nConnected, usrlist);
+    mevent_add_str(evt, "sqls", "1", sql);
+
+    sprintf(sql, "INSERT INTO mps (type, count) VALUES (%d, %lu);",
+            ST_NOTICE, st->msg_notice);
+    mevent_add_str(evt, "sqls", "2", sql);
+    st->msg_notice = 0;
+
+    sprintf(sql, "INSERT INTO mps (type, count) VALUES (%d, %lu);",
+            ST_FEED, st->msg_feed);
+    mevent_add_str(evt, "sqls", "3", sql);
+    st->msg_feed = 0;
+
+    ret = mevent_trigger(evt);
+    if (PROCESS_NOK(ret)) {
+        alog_err("trigger statistic event failure %d", ret);
+    }
+	mevent_free(evt);
 }
 
 /*
@@ -302,7 +359,7 @@ static unsigned int push_userlist(callbackp *callbacki)
 	RAW *newraw;
 	json_item *jlist = json_new_object();
 	HTBL_ITEM *item;
-	HTBL *ulist = GET_USER_LIST;
+	HTBL *ulist = GET_USER_LIST(callbacki->g_ape);
 	USERS *user;
 	int num;
 
@@ -509,7 +566,7 @@ static void push_deluser(USERS *user, int istmp, acetables *g_ape)
 	free(user);
 }
 
-static void push_tickuser(subuser *sub, acetables *g_ape)
+static void push_ticksubuser(subuser *sub, acetables *g_ape)
 {
 	alog_noise("%s %s", GET_UIN_FROM_USER(sub->user), sub->channel);
 }
@@ -666,6 +723,8 @@ static void init_module(acetables *g_ape)
 	add_property(&g_ape->properties, "msgstatic", stdata,
 				 EXTEND_POINTER, EXTEND_ISPRIVATE);
 	
+    add_periodical((1000*60*30), 0, tick_static, g_ape, g_ape);
+	
 	register_cmd("CONNECT",	push_connect, NEED_NOTHING, g_ape);
 	register_cmd("SEND", push_send, NEED_SESSID, g_ape);
 	register_cmd("REGCLASS", push_regpageclass, NEED_SESSID, g_ape);
@@ -679,14 +738,15 @@ static void init_module(acetables *g_ape)
 static ace_callbacks callbacks = {
 	NULL,				/* Called when new user is added */
 	push_deluser,		/* Called when a user is disconnected */
-	NULL,				/* Called when a subuser is disconnected */
 	NULL,				/* Called when new chan is created */
 	NULL,				/* Called when a chan removed */
 	NULL,				/* Called when a user join a channel */
 	NULL,				/* Called when a user leave a channel */
 	NULL,				/* Called at each tick, passing a subuser */
 	push_post_raw_sub,	/* Called when a subuser receiv a message */
-	NULL				/* Called when a user allocated */
+	NULL,				/* Called when a user allocated */
+	NULL,				/* Called when a subuser is added */
+	NULL				/* Called when a subuser is disconnected */
 };
 
 APE_INIT_PLUGIN(MODULE_NAME, init_module, callbacks)
