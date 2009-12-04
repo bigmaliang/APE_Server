@@ -442,8 +442,9 @@ subuser *addsubuser(ape_socket *client, const char *channel, USERS *user, acetab
 	
 	sub->nraw = 0;
 	sub->wait_for_free = 0;
-
+	
 	sub->properties = NULL;
+	
 	sub->headers.sent = 0;
 	sub->headers.content = NULL;
 	
@@ -481,7 +482,9 @@ subuser *addsubuser(ape_socket *client, const char *channel, USERS *user, acetab
 		}
 
 	}
-
+	
+	FIRE_EVENT_NONSTOP(addsubuser, sub, g_ape);
+	
 	return sub;
 }
 
@@ -560,18 +563,19 @@ void delsubuser(subuser **current, acetables *g_ape)
 {
 	subuser *del = *current;
 	
+	FIRE_EVENT_NONSTOP(delsubuser, del, g_ape);
 	((*current)->user->nsub)--;
 	
-	*current = (*current)->next;
-
-	FIRE_EVENT_NULL(delsubuser, del, g_ape);
-	clear_properties(&del->properties);
+	*current = (*current)->next;	
+	
 	destroy_raw_pool(del->raw_pools.low.rawhead);
 	destroy_raw_pool(del->raw_pools.high.rawhead);
 	del->raw_pools.low.rawhead = del->raw_pools.low.rawfoot = NULL;
 	del->raw_pools.high.rawhead = del->raw_pools.high.rawfoot = NULL;
 	del->raw_pools.nraw = 0;
-
+	
+	clear_properties(&del->properties);
+	
 	if (del->state == ALIVE) {
 		del->wait_for_free = 1;
 		do_died(del);
