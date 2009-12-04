@@ -59,6 +59,10 @@ static int inc_rlimit(int nofile)
 {
 	struct rlimit rl;
 	
+    rl.rlim_cur = 10240;
+    rl.rlim_max = 10240;
+    setrlimit(RLIMIT_CORE, &rl);
+	
 	rl.rlim_cur = nofile;
 	rl.rlim_max = nofile;
 	
