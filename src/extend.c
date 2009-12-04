@@ -24,6 +24,7 @@
 #include "extend.h"
 #include "utils.h"
 #include "json.h"
+#include "hash.h"
 
 /*
 	Add a property to an object (user, channel, proxy, acetables)
@@ -31,6 +32,9 @@
 	
 	EXTEND_STR : allocate memory for val and free it when the property is deleted
 	EXTEND_JSON : put the given "json" object on the properties. This object is free'ed using json_free when the property is deleted
+	EXTEND_HTBL : put the given "hashtbl" object on the properties.
+				  This object is free'ed using hashtbl_free when the property is deleted
+				  (must be private.)
 	EXTEND_POINTER : add a private pointer as property (must be private. see EXTEND_PUBLIC)
 	
 	EXTEND_ISPUBLIC : The property is added to the json tree sent with get_json_object_*
@@ -117,6 +121,9 @@ void del_property(extend **entry, const char *key)
 				case EXTEND_JSON:
 					free_json_item(pEntry->val);
 					break;
+				case EXTEND_HTBL:
+					hashtbl_free(pEntry->val);
+					break;
 				default:
 					break;
 			}
@@ -143,6 +150,9 @@ void clear_properties(extend **entry)
 				break;
 			case EXTEND_JSON:
 				free_json_item(pEntry->val);
+				break;
+			case EXTEND_HTBL:
+				hashtbl_free(pEntry->val);
 				break;
 			default:
 				break;

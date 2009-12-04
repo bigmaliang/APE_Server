@@ -163,5 +163,37 @@ void json_aff(json_item *cx, int depth);
 #define JGET_STR(head, key) \
 	json_lookup(head, #key)->jval.vu.str.value
 
+#define JNEED_STR(item, key, val, ret)						\
+	do {													\
+		if (item == NULL || json_lookup(item, key) == NULL) \
+			return (ret);									\
+		val = json_lookup(item, key)->jval.vu.str.value;	\
+	} while(0)
+#define JNEED_STR_COPY(item, key, val, ret)							\
+	do {															\
+		if (item == NULL || json_lookup(item, key) == NULL)			\
+			return (ret);											\
+		val = strdup(json_lookup(item, key)->jval.vu.str.value);	\
+	} while(0)
+
+#define JNEED_INT(item, key, val, ret)							\
+	do {														\
+		if (item == NULL || json_lookup(item, key) == NULL)		\
+			return (ret);										\
+		val = json_lookup(item, key)->jval.vu.integer_value;	\
+	} while(0)
+#define JNEED_FLOAT(item, key, val, ret)					\
+	do {													\
+		if (item == NULL || json_lookup(item, key) == NULL) \
+			return (ret);									\
+		val = json_lookup(item, key)->jval.vu.float_value;	\
+	} while(0)
+#define JNEED_OBJ(item, key, val, ret)						\
+	do {													\
+		if (item == NULL || json_lookup(item, key) == NULL) \
+			return (ret);									\
+		val = json_lookup(item, key);						\
+	} while(0)
+
 #endif
 

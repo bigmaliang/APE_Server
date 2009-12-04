@@ -78,6 +78,19 @@ CHANNEL *mkchan(char *chan, int flags, acetables *g_ape)
 	
 }
 
+CHANNEL *mkchanf(acetables *g_ape, int flags, const char*fmt, ...)
+{
+	char name[MAX_TOPIC_LEN];
+	va_list ap;
+	int r;
+
+	va_start(ap, fmt);
+	r = vsnprintf(name, MAX_TOPIC_LEN, fmt, ap);
+	va_end(ap);
+
+	return mkchan(name, flags, g_ape);
+}
+
 CHANNEL *getchan(const char *chan, acetables *g_ape)
 {
 	if (strlen(chan) > MAX_CHAN_LEN) {
@@ -98,6 +111,19 @@ CHANNEL *getchanbypubid(const char *pubid, acetables *g_ape)
 	
 	return gpipe->pipe;
 	
+}
+
+CHANNEL *getchanf(acetables *g_ape, const char *fmt, ...)
+{
+	char name[MAX_TOPIC_LEN];
+	va_list ap;
+	int r;
+
+	va_start(ap, fmt);
+	r = vsnprintf(name, MAX_TOPIC_LEN, fmt, ap);
+	va_end(ap);
+
+	return getchan(name, g_ape);
 }
 
 void rmchan(CHANNEL *chan, acetables *g_ape)

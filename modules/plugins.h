@@ -39,6 +39,7 @@
 #include "../src/base64.h"
 #include "../src/sha1.h"
 #include "../src/events.h"
+#include "../src/log.h"
 
 #include <stdarg.h>
 
