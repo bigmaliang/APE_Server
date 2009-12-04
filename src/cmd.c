@@ -214,7 +214,7 @@ int process_cmd(json_item *ijson, struct _cmd_process *pc, subuser **iuser, acet
 
 		}
 		
-		if (pc->guser != NULL && sub != NULL && (jchl = json_lookup(ijson->jchild.child, "chl")) != NULL && jchl->jval.vu.integer_value > sub->current_chl) {
+		if (pc->guser != NULL && sub != NULL && (jchl = json_lookup(ijson->jchild.child, "chl")) != NULL) {
 			sub->current_chl = jchl->jval.vu.integer_value;
 		} else if (pc->guser != NULL && sub != NULL) {
 			/* if a bad challenge is detected, we are stoping walking on cmds */
