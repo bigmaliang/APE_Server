@@ -285,7 +285,7 @@ void send_error(USERS *user, const char *msg, const char *code, acetables *g_ape
 	
 	newraw = forge_raw(RAW_ERR, jlist);
 	
-	post_raw(newraw, user, g_ape);	
+	post_raw(newraw, user, g_ape);
 }
 
 void send_msg(USERS *user, const char *msg, const char *type, acetables *g_ape)
@@ -417,7 +417,7 @@ void sendback_session(USERS *user, session *sess, acetables *g_ape)
 			newraw = forge_raw("SESSIONS", jlist);
 			newraw->priority = RAW_PRI_HI;
 			
-			post_raw_sub(copy_raw_z(newraw), current, g_ape);
+			post_raw_sub(newraw, current, g_ape);
 		}
 		current = current->next;
 	}	
@@ -478,7 +478,7 @@ subuser *addsubuser(ape_socket *client, const char *channel, USERS *user, acetab
 	if (sub->next != NULL && sub->next->raw_pools.low.nraw) {
 		struct _raw_pool *rTmp;
 		for (rTmp = sub->next->raw_pools.low.rawhead; rTmp->raw != NULL; rTmp = rTmp->next) {
-			post_raw_sub(copy_raw_z(rTmp->raw), sub, g_ape);
+			post_raw_sub(rTmp->raw, sub, g_ape);
 		}
 
 	}

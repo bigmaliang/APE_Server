@@ -61,13 +61,23 @@ RAW *forge_raw(const char *raw, json_item *jlist)
 
 int free_raw(RAW *fraw)
 {
-	if (--(fraw->refcount) <= 0) {
+	if (fraw->refcount == 1) {
+		fraw->refcount--;
 		free(fraw->data);
 		free(fraw);
 
 		return 0;
 	}
-	return fraw->refcount;
+	return --(fraw->refcount);
+}
+
+void delete_raw(RAW *fraw)
+{
+	if (fraw != NULL) {
+		if (fraw->data != NULL)
+			free(fraw->data);
+		free(fraw);
+	}
 }
 
 RAW *copy_raw(RAW *input)
@@ -113,7 +123,8 @@ void post_raw_sub(RAW *raw, subuser *sub, acetables *g_ape)
 	pool->rawfoot = pool->rawfoot->next;
 	
 	(sub->raw_pools.nraw)++;
-	
+
+	(raw->refcount)++;
 }
 
 /* Post raw to a user and propagate it to all of it's subuser */
@@ -121,7 +132,7 @@ void post_raw(RAW *raw, USERS *user, acetables *g_ape)
 {
 	subuser *sub = user->subuser;
 	while (sub != NULL) {
-		post_raw_sub(copy_raw_z(raw), sub, g_ape);
+		post_raw_sub(raw, sub, g_ape);
 		sub = sub->next;
 	}
 }
@@ -132,11 +143,12 @@ void post_raw_restricted(RAW *raw, USERS *user, subuser *sub, acetables *g_ape)
 	subuser *tSub = user->subuser;
 	
 	if (sub == NULL) {
+		delete_raw(raw);
 		return;
 	}
 	while (tSub != NULL) {
 		if (sub != tSub) {
-			post_raw_sub(copy_raw_z(raw), tSub, g_ape);
+			post_raw_sub(raw, tSub, g_ape);
 		}
 		tSub = tSub->next;
 	}
@@ -150,6 +162,7 @@ void post_raw_channel(RAW *raw, struct CHANNEL *chan, acetables *g_ape)
 	userslist *list;
 	
 	if (chan == NULL || raw == NULL || chan->head == NULL) {
+		delete_raw(raw);
 		return;
 	}
 	list = chan->head;
@@ -166,6 +179,7 @@ void post_raw_channel_restricted(RAW *raw, struct CHANNEL *chan, USERS *ruser, a
 	userslist *list;
 	
 	if (chan == NULL || raw == NULL || chan->head == NULL) {
+		delete_raw(raw);
 		return;
 	}
 	list = chan->head;
@@ -298,7 +312,7 @@ int send_raw_inline(ape_socket *client, transport_t transport, RAW *raw, acetabl
 		finish &= sendbin(client->fd, properties->padding.right.val, properties->padding.right.len, g_ape);
 	}
 	
-	free_raw(raw);
+	delete_raw(raw);
 	
 	return finish;
 }
@@ -420,6 +434,7 @@ void destroy_raw_pool(struct _raw_pool *ptr)
 	while (pool != NULL) {
 		if (pool->raw != NULL) {
 			free_raw(pool->raw);
+			pool->raw = NULL;
 		}
 		if (pool->start) {
 			if (tpool != NULL) {

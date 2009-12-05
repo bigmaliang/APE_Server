@@ -681,6 +681,7 @@ static void push_post_raw_sub(RAW *raw, subuser *sub, acetables *g_ape)
 	pool->rawfoot = pool->rawfoot->next;
 
 	(sub->raw_pools.nraw)++;
+	(raw->refcount)++;
 	alog_noise("%s done", raw->data);
 }
 
