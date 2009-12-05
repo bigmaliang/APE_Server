@@ -59,14 +59,20 @@ static int inc_rlimit(int nofile)
 {
 	struct rlimit rl;
 	
-    rl.rlim_cur = 10240;
-    rl.rlim_max = 10240;
-    setrlimit(RLIMIT_CORE, &rl);
-	
 	rl.rlim_cur = nofile;
 	rl.rlim_max = nofile;
 	
 	return setrlimit(RLIMIT_NOFILE, &rl);
+}
+
+static int set_corelimit(int limit)
+{
+	struct rlimit rl;
+	
+	rl.rlim_cur = limit;
+	rl.rlim_max = limit;
+	
+	return setrlimit(RLIMIT_CORE, &rl);
 }
 
 static void ape_daemon()
@@ -190,6 +196,12 @@ int main(int argc, char **argv)
 		
 		if (inc_rlimit(atoi(CONFIG_VAL(Server, rlimit_nofile, srv))) == -1) {
 			alog_errlog("Cannot set the max filedescriptos limit (setrlimit)");
+		}
+
+		if (atoi(CONFIG_VAL(Server, coredump_limit, srv)) > 0) {
+			if (set_corelimit(atoi(CONFIG_VAL(Server, coredump_limit, srv))) == -1) {
+				alog_errlog("Cannot set core dump limit");
+			}
 		}
 		
 		/* Get the user information (uid section) */
