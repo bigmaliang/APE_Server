@@ -290,6 +290,7 @@ void proxy_process_eol(ape_socket *co, acetables *g_ape)
 	newraw = forge_raw("PROXY_EVENT", jlist);
 	
 	proxy_post_raw(newraw, proxy, g_ape);
+	POSTRAW_DONE(newraw);
 	
 	free(b64);	
 }
@@ -352,6 +353,7 @@ void proxy_onevent(ape_proxy *proxy, char *event, acetables *g_ape)
 	newraw = forge_raw("PROXY_EVENT", jlist);
 	
 	proxy_post_raw(newraw, proxy, g_ape);
+	POSTRAW_DONE(newraw);
 }
 
 void proxy_write(ape_proxy *proxy, char *data, acetables *g_ape)

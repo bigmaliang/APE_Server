@@ -198,6 +198,7 @@ void join(USERS *user, CHANNEL *chan, acetables *g_ape)
 
 			newraw = forge_raw(RAW_JOIN, uinfo);
 			post_raw_channel_restricted(newraw, chan, user, g_ape);
+			POSTRAW_DONE(newraw);
 		}
 		
 		ulist = chan->head;
@@ -222,6 +223,7 @@ void join(USERS *user, CHANNEL *chan, acetables *g_ape)
 
 	newraw = forge_raw(RAW_CHANNEL, jlist);
 	post_raw(newraw, user, g_ape);
+	POSTRAW_DONE(newraw);
 	
 	#if 0
 	if (user->flags & FLG_AUTOOP) {
@@ -301,6 +303,7 @@ void left(USERS *user, CHANNEL *chan, acetables *g_ape) // Vider la liste chainé
 				
 				newraw = forge_raw(RAW_LEFT, jlist);
 				post_raw_channel(newraw, chan, g_ape);
+				POSTRAW_DONE(newraw);
 			} else if (chan->head == NULL && chan->flags & CHANNEL_AUTODESTROY) {
 				rmchan(chan, g_ape);
 			}
@@ -374,6 +377,7 @@ unsigned int setlevel(USERS *user_actif, USERS *user_passif, CHANNEL *chan, unsi
 		
 			newraw = forge_raw(RAW_SETLEVEL, jlist);
 			post_raw_channel(newraw, chan, g_ape);
+			POSTRAW_DONE(newraw);
 		}
 		return 1;
 	} else if (user_passif_chan != NULL && lvl > 0 && lvl < 32) {		
@@ -389,7 +393,7 @@ unsigned int setlevel(USERS *user_actif, USERS *user_passif, CHANNEL *chan, unsi
 
 			newraw = forge_raw(RAW_SETLEVEL, jlist);
 			post_raw_channel(newraw, chan, g_ape);
-			
+			POSTRAW_DONE(newraw);
 		}
 		return 1;
 	}
@@ -417,6 +421,7 @@ unsigned int setlevel(USERS *user_actif, USERS *user_passif, CHANNEL *chan, unsi
 		
 		newraw = forge_raw(RAW_SETTOPIC, jlist);
 		post_raw_channel(newraw, chan, g_ape);
+		POSTRAW_DONE(newraw);
 		
 		return 1;
 	}
@@ -453,6 +458,7 @@ void ban(CHANNEL *chan, USERS *banner, const char *ip, char *reason, unsigned in
 			newraw = forge_raw(RAW_BAN, jlist);
 			
 			post_raw(newraw, uTmp->userinfo, g_ape);
+			POSTRAW_DONE(newraw);
 			
 			if (isban == 0) {
 				blist = xmalloc(sizeof(*blist));

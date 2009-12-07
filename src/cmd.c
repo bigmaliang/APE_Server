@@ -266,6 +266,7 @@ int process_cmd(json_item *ijson, struct _cmd_process *pc, subuser **iuser, acet
 					sub = getsubuser(pc->guser, pc->host);	
 				}
 				post_raw_sub(newraw, sub, g_ape);
+				POSTRAW_DONE(newraw);
 			} else {
 				send_raw_inline(pc->client, pc->transport, newraw, g_ape);
 			}
@@ -288,6 +289,7 @@ int process_cmd(json_item *ijson, struct _cmd_process *pc, subuser **iuser, acet
 					sub = getsubuser(pc->guser, pc->host);	
 				}
 				post_raw_sub(newraw, sub, g_ape);
+				POSTRAW_DONE(newraw);
 			} else {
 				send_raw_inline(pc->client, pc->transport, newraw, g_ape);
 			}					
@@ -393,6 +395,7 @@ unsigned int cmd_connect(callbackp *callbacki)
 	newraw->priority = RAW_PRI_HI;
 	
 	post_raw(newraw, nuser, callbacki->g_ape);	
+	POSTRAW_DONE(newraw);
 	
 	return (RETURN_NOTHING);
 }
@@ -497,6 +500,7 @@ unsigned int cmd_join(callbackp *callbacki)
 				newraw = forge_raw(RAW_ERR, jlist);
 			
 				post_raw(newraw, callbacki->call_user, callbacki->g_ape);
+				POSTRAW_DONE(newraw);
 			} else {
 				join(callbacki->call_user, jchan, callbacki->g_ape);
 			}
@@ -602,6 +606,7 @@ unsigned int cmd_session(callbackp *callbacki)
 			newraw->priority = RAW_PRI_LO;
 			
 			post_raw_sub(newraw, callbacki->call_subuser, callbacki->g_ape);
+			POSTRAW_DONE(newraw);
 			
 		} else {
 			return (RETURN_BAD_PARAMS);
@@ -629,6 +634,7 @@ unsigned int cmd_pong(callbackp *callbacki)
 		newraw = forge_raw("UPDATE", jlist);
 	
 		post_raw_sub(newraw, getsubuser(callbacki->call_user, callbacki->host), callbacki->g_ape);
+		POSTRAW_DONE(newraw);
 	}
 	return (RETURN_NOTHING);
 }

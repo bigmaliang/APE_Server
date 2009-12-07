@@ -28,6 +28,7 @@
 #include "proxy.h"
 #include "transports.h"
 #include "sock.h"
+#include "log.h"
 
 typedef enum {
 	RAW_PRI_LO,
@@ -67,5 +68,17 @@ int send_raws(subuser *user, acetables *g_ape);
 struct _raw_pool *init_raw_pool(int n);
 struct _raw_pool *expend_raw_pool(struct _raw_pool *ptr, int n);
 void destroy_raw_pool(struct _raw_pool *ptr);
+
+#ifdef POSTRAW_CHECK
+#define POSTRAW_DONE(raw)									\
+	do {													\
+		if (raw->refcount == 0) {							\
+			alog_warn("post %s for nothing", raw->data);	\
+			delete_raw(raw);								\
+		}													\
+	} while(0)
+#else
+#define POSTRAW_DONE(raw)
+#endif
 
 #endif

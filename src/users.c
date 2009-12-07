@@ -286,6 +286,7 @@ void send_error(USERS *user, const char *msg, const char *code, acetables *g_ape
 	newraw = forge_raw(RAW_ERR, jlist);
 	
 	post_raw(newraw, user, g_ape);
+	POSTRAW_DONE(newraw);
 }
 
 void send_msg(USERS *user, const char *msg, const char *type, acetables *g_ape)
@@ -298,6 +299,7 @@ void send_msg(USERS *user, const char *msg, const char *type, acetables *g_ape)
 	newraw = forge_raw(type, jlist);
 	
 	post_raw(newraw, user, g_ape);	
+	POSTRAW_DONE(newraw);
 }
 
 void send_msg_channel(CHANNEL *chan, const char *msg, const char *type, acetables *g_ape)
@@ -310,6 +312,7 @@ void send_msg_channel(CHANNEL *chan, const char *msg, const char *type, acetable
 	newraw = forge_raw(type, jlist);
 	
 	post_raw_channel(newraw, chan, g_ape);
+	POSTRAW_DONE(newraw);
 }
 
 void send_msg_sub(subuser *sub, const char *msg, const char *type, acetables *g_ape)
@@ -322,6 +325,7 @@ void send_msg_sub(subuser *sub, const char *msg, const char *type, acetables *g_
 	newraw = forge_raw(type, jlist);
 	
 	post_raw_sub(newraw, sub, g_ape);		
+	POSTRAW_DONE(newraw);
 }
 
 session *get_session(USERS *user, const char *key)
@@ -418,6 +422,7 @@ void sendback_session(USERS *user, session *sess, acetables *g_ape)
 			newraw->priority = RAW_PRI_HI;
 			
 			post_raw_sub(newraw, current, g_ape);
+			POSTRAW_DONE(newraw);
 		}
 		current = current->next;
 	}	
@@ -532,6 +537,7 @@ void subuser_restor(subuser *sub, acetables *g_ape)
 		newraw = forge_raw(RAW_CHANNEL, jlist);
 		newraw->priority = RAW_PRI_HI;
 		post_raw_sub(newraw, sub, g_ape);
+		POSTRAW_DONE(newraw);
 		chanl = chanl->next;
 	}
 
@@ -541,6 +547,7 @@ void subuser_restor(subuser *sub, acetables *g_ape)
 	newraw = forge_raw("IDENT", jlist);
 	newraw->priority = RAW_PRI_HI;
 	post_raw_sub(newraw, sub, g_ape);
+	POSTRAW_DONE(newraw);
 	
 }
 

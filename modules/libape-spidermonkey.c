@@ -611,6 +611,7 @@ static JSBool sm_send_raw(JSContext *cx, transpipe *to_pipe, int chl, uintN argc
 				
 					newraw = forge_raw(raw, jstr);
 					post_raw_channel_restricted(newraw, to_pipe->pipe, from_pipe->pipe, g_ape);
+					POSTRAW_DONE(newraw);
 				}
 				return JS_TRUE;
 			}
@@ -1697,6 +1698,7 @@ APE_JS_NATIVE(ape_sm_adduser)
 	newraw->priority = RAW_PRI_HI;
 	
 	post_raw(newraw, u, g_ape);
+	POSTRAW_DONE(newraw);
 		
 	if (u->cmdqueue != NULL) {
 		unsigned int ret;
@@ -2606,6 +2608,7 @@ static int process_cmd_return(JSContext *cx, jsval rval, callbackp *callbacki, a
 					RAW *newraw = forge_raw(JS_GetStringBytes(JSVAL_TO_STRING(rawname)), rawdata);
 					
 					send_raw_inline(callbacki->client, callbacki->transport, newraw, g_ape);
+					POSTRAW_DONE(newraw);
 
 					return RETURN_NULL;
 				}			
@@ -2633,6 +2636,7 @@ static int process_cmd_return(JSContext *cx, jsval rval, callbackp *callbacki, a
 					} else {
 						send_raw_inline(callbacki->client, callbacki->transport, newraw, g_ape);							
 					}
+					POSTRAW_DONE(newraw);
 					return RETURN_HANG;
 				}
 			}

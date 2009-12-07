@@ -250,6 +250,7 @@ static unsigned int push_connect(callbackp *callbacki)
 	newraw = forge_raw(RAW_LOGIN, jlist);
 	newraw->priority = RAW_PRI_HI;
 	post_raw(newraw, nuser, callbacki->g_ape);
+	POSTRAW_DONE(newraw);
 
 	return (RETURN_NOTHING);
 }
@@ -288,6 +289,7 @@ static unsigned int push_send(callbackp *callbacki)
 	json_set_property_objZ(jlist, "pipe", get_json_object_channel(chan));
 	newraw = forge_raw(RAW_DATA, jlist);
 	post_raw_channel_restricted(newraw, chan, user, callbacki->g_ape);
+	POSTRAW_DONE(newraw);
 
 	st_push *st = (st_push*)get_property(callbacki->g_ape->properties,
 										 "msgstatic")->val;
@@ -346,6 +348,7 @@ static unsigned int push_regpageclass(callbackp *callbacki)
 
 		RAW *newraw = forge_raw("REGCLASS", jlist);
 		post_raw_sub(newraw, sub, callbacki->g_ape);
+		POSTRAW_DONE(newraw);
 	} else {
 		alog_err("add property error");
 		hn_senderr(callbacki, "008", "ERR_REG_APP");
@@ -380,6 +383,7 @@ static unsigned int push_userlist(callbackp *callbacki)
 
 	newraw = forge_raw("USERLIST", jlist);
 	post_raw(newraw, callbacki->call_user, callbacki->g_ape);
+	POSTRAW_DONE(newraw);
 
 	return (RETURN_NOTHING);
 }
@@ -405,6 +409,7 @@ static unsigned int push_friendlist(callbackp *callbacki)
 	}
 	newraw = forge_raw("FRIENDLIST", jlist);
 	post_raw(newraw, callbacki->call_user, callbacki->g_ape);
+	POSTRAW_DONE(newraw);
 
 	return (RETURN_NOTHING);
 }
@@ -434,6 +439,7 @@ static unsigned int push_useronline(callbackp *callbacki)
 
 	newraw = forge_raw(RAW_DATA, jlist);
 	post_raw(newraw, callbacki->call_user, callbacki->g_ape);
+	POSTRAW_DONE(newraw);
 
 	return (RETURN_NULL);
 }
@@ -500,6 +506,7 @@ static unsigned int push_senduniq(callbackp *callbacki)
 
 	newraw = forge_raw(RAW_DATA, jlist);
 	post_raw(newraw, user, callbacki->g_ape);
+	POSTRAW_DONE(newraw);
 
 	json_item *ej = json_new_object();
 	json_set_property_strZ(ej, "code", "999");
@@ -531,6 +538,7 @@ static void push_deluser(USERS *user, int istmp, acetables *g_ape)
 					json_set_property_objZ(jlist, "user", get_json_object_user(user));
 					newraw = forge_raw(RAW_LEFT, jlist);
 					post_raw(newraw, friend, g_ape);
+					POSTRAW_DONE(newraw);
 
 					left(friend, chan, g_ape);
 				}
@@ -705,6 +713,7 @@ static unsigned int push_trustsend(callbackp *callbacki)
 	json_set_property_strZ(jlist, "msg", msg);
 	newraw = forge_raw(RAW_DATA, jlist);
 	post_raw(newraw, user, callbacki->g_ape);
+	POSTRAW_DONE(newraw);
 
 	json_item *ej = json_new_object();
 	json_set_property_strZ(ej, "code", "999");

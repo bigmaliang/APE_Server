@@ -143,7 +143,6 @@ void post_raw_restricted(RAW *raw, USERS *user, subuser *sub, acetables *g_ape)
 	subuser *tSub = user->subuser;
 	
 	if (sub == NULL) {
-		delete_raw(raw);
 		return;
 	}
 	while (tSub != NULL) {
@@ -162,15 +161,14 @@ void post_raw_channel(RAW *raw, struct CHANNEL *chan, acetables *g_ape)
 	userslist *list;
 	
 	if (chan == NULL || raw == NULL || chan->head == NULL) {
-		delete_raw(raw);
 		return;
 	}
 	list = chan->head;
+	
 	while (list) {
 		post_raw(raw, list->userinfo, g_ape);
 		list = list->next;
 	}
-
 }
 
 /* Post raw to a channel and propagate it to all of it's users with a *ruser exception */
@@ -179,7 +177,6 @@ void post_raw_channel_restricted(RAW *raw, struct CHANNEL *chan, USERS *ruser, a
 	userslist *list;
 	
 	if (chan == NULL || raw == NULL || chan->head == NULL) {
-		delete_raw(raw);
 		return;
 	}
 	list = chan->head;
@@ -210,7 +207,6 @@ void proxy_post_raw(RAW *raw, ape_proxy *proxy, acetables *g_ape)
 		}
 		to = to->next;
 	}
-
 }
 
 /* to manage subuser use post_to_pipe() instead */
@@ -228,6 +224,7 @@ int post_raw_pipe(RAW *raw, const char *pipe, acetables *g_ape)
 			return 1;
 		}
 	}
+
 	return 0;
 }
 
@@ -253,18 +250,21 @@ int post_to_pipe(json_item *jlist, const char *rawname, const char *pipe, subuse
 		json_set_property_objN(jlist_copy, "pipe", 4, get_json_object_pipe(recver));
 		newraw = forge_raw(rawname, jlist_copy);
 		post_raw_restricted(newraw, sender, from, g_ape);
+		POSTRAW_DONE(newraw);
 	}	
 	switch(recver->type) {
 		case USER_PIPE:
 			json_set_property_objN(jlist, "pipe", 4, get_json_object_user(sender));
 			newraw = forge_raw(rawname, jlist);
 			post_raw(newraw, recver->pipe, g_ape);
+			POSTRAW_DONE(newraw);
 			break;
 		case CHANNEL_PIPE:
 			if (((CHANNEL*)recver->pipe)->head != NULL && ((CHANNEL*)recver->pipe)->head->next != NULL) {
 				json_set_property_objN(jlist, "pipe", 4, get_json_object_channel(recver->pipe));
 				newraw = forge_raw(rawname, jlist);
 				post_raw_channel_restricted(newraw, recver->pipe, sender, g_ape);
+				POSTRAW_DONE(newraw);
 			}
 			break;
 		case CUSTOM_PIPE:

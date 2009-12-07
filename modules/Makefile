@@ -1,6 +1,6 @@
 include ./plateform.mk
 
-CC=gcc -D_GNU_SOURCE
+CC=gcc -D_GNU_SOURCE -DTCP_CORK -DPOSTRAW_CHECK
 
 ifdef DARWIN_BUILD
 

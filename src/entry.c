@@ -33,6 +33,7 @@
 #include <sys/resource.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/prctl.h>
 #include "utils.h"
 #include "ticks.h"
 #include "proxy.h"
@@ -198,12 +199,6 @@ int main(int argc, char **argv)
 			alog_errlog("Cannot set the max filedescriptos limit (setrlimit)");
 		}
 
-		if (atoi(CONFIG_VAL(Server, coredump_limit, srv)) > 0) {
-			if (set_corelimit(atoi(CONFIG_VAL(Server, coredump_limit, srv))) == -1) {
-				alog_errlog("Cannot set core dump limit");
-			}
-		}
-		
 		/* Get the user information (uid section) */
 		if ((pwd = getpwnam(CONFIG_VAL(uid, user, srv))) == NULL) {
 			alog_err("Can\'t find username %s", CONFIG_VAL(uid, user, srv));
@@ -232,6 +227,13 @@ int main(int argc, char **argv)
 		initgroups(CONFIG_VAL(uid, user, srv), grp->gr_gid);
 		
 		setuid(pwd->pw_uid);
+		
+		if (atoi(CONFIG_VAL(Server, coredump_limit, srv)) > 0) {
+			if (set_corelimit(atoi(CONFIG_VAL(Server, coredump_limit, srv))) == -1) {
+				alog_errlog("Cannot set core dump limit");
+			}
+			prctl(PR_SET_DUMPABLE, 1);
+		}
 	} else {
 		printf("[WARN] You have to run \'aped\' as root to increase r_limit\n");
 		alog_warn("You have to run \'aped\' as root to increase r_limit");
