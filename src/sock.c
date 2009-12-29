@@ -38,6 +38,7 @@
 #include "handle_http.h"
 #include "dns.h"
 #include "log.h"
+#include "parser.h"
 
 static int sendqueue(int sock, acetables *g_ape);
 
@@ -106,6 +107,7 @@ ape_socket *ape_listen(unsigned int port, char *listen_ip, acetables *g_ape)
 
 	co[sock].attach = NULL;
 	co[sock].idle = 0;
+	co[sock].burn_after_writing = 0;
 	co[sock].fd = sock;
 	
 	co[sock].stream_type = STREAM_SERVER;
@@ -163,6 +165,7 @@ ape_socket *ape_connect(char *ip, int port, acetables *g_ape)
 
 	co[sock].attach = NULL;
 	co[sock].idle = 0;
+	co[sock].burn_after_writing = 0;
 	co[sock].fd = sock;
 	
 	co[sock].stream_type = STREAM_OUT;
@@ -241,18 +244,13 @@ static void clear_buffer(ape_socket *co, int *tfd)
 	co->buffer_in.islot = 0;
 	
 	co->ip_client[0] = '\0';
+
+	parser_destroy(&co->parser);
 	
-	co->http.step = 0;
-	co->http.type = HTTP_NULL;
-	co->http.contentlength = -1;
-	co->http.pos = 0;
-	co->http.error = 0;
-	co->http.ready = 0;
-	co->http.read = 0;
-	free_header_line(co->http.hlines);
-	co->http.hlines = NULL;
 	co->attach = NULL;
 	co->data = NULL;
+	co->burn_after_writing = 0;
+	
 	(*tfd)--;
 }
 
@@ -291,13 +289,14 @@ unsigned int sockroutine(acetables *g_ape)
 	add_periodical(5, 0, check_idle, &sl, g_ape);
 	#endif
 	gettimeofday(&t_start, NULL);
-	while (1) {
+	while (server_is_running) {
 	//	int timeout_to_hang = MAX((1000/TICKS_RATE)-ticks, 1);
 		/* Linux 2.6.25 provides a fd-driven timer system. It could be usefull to implement */
-
 		nfds = events_poll(g_ape->events, 1);
 		
 		if (nfds < 0) {
+			ape_log(APE_ERR, __FILE__, __LINE__, g_ape, 
+				"events_poll() : %s", strerror(errno));
 			continue;
 		}
 		
@@ -310,16 +309,16 @@ unsigned int sockroutine(acetables *g_ape)
 				
 					while (1) {
 
-						http_state http = {NULL, 0, -1, 0, 0, HTTP_NULL, 0, 0};
+						//http_state http = {NULL, 0, -1, 0, 0, HTTP_NULL, 0, 0};
 					
 						new_fd = accept(active_fd, 
 							(struct sockaddr *)&their_addr,
 							(unsigned int *)&sin_size);
-					
+
 						if (new_fd == -1) {
 							break;
 						}
-
+						
 						if (new_fd + 4 >= g_ape->basemem) {
 							/* Increase connection & events size */
 							growup(&g_ape->basemem, &g_ape->co, g_ape->events, &g_ape->bufout);
@@ -333,10 +332,11 @@ unsigned int sockroutine(acetables *g_ape)
 						g_ape->co[new_fd].buffer_in.slot = NULL;
 						g_ape->co[new_fd].buffer_in.islot = 0;
 
-						g_ape->co[new_fd].http = http;
+						//g_ape->co[new_fd].http = http;
 						g_ape->co[new_fd].attach = NULL;
 						g_ape->co[new_fd].data = NULL;
 						g_ape->co[new_fd].idle = time(NULL);
+						g_ape->co[new_fd].burn_after_writing = 0;
 						g_ape->co[new_fd].fd = new_fd;
 
 						g_ape->co[new_fd].stream_type = STREAM_IN;
@@ -402,6 +402,11 @@ unsigned int sockroutine(acetables *g_ape)
 								if (g_ape->co[active_fd].callbacks.on_data_completly_sent != NULL) {
 									g_ape->co[active_fd].callbacks.on_data_completly_sent(&g_ape->co[active_fd], g_ape);
 								}
+								
+								if (g_ape->co[active_fd].burn_after_writing) {
+									shutdown(active_fd, 2);
+									g_ape->co[active_fd].burn_after_writing = 0;
+								}
 
 							}
 						} else if (g_ape->co[active_fd].stream_type == STREAM_DELEGATE) {
@@ -430,11 +435,7 @@ unsigned int sockroutine(acetables *g_ape)
 						
 						
 							if (readb == -1 && errno == EAGAIN) {
-							
-								/*
-									Nothing to read again
-								*/
-								
+
 								if (g_ape->co[active_fd].stream_type == STREAM_OUT) {
 									
 										//proxy_process_eol(&co[active_fd], g_ape);
@@ -450,29 +451,6 @@ unsigned int sockroutine(acetables *g_ape)
 										g_ape->co[active_fd].callbacks.on_disconnect(&g_ape->co[active_fd], g_ape);
 									}
 									
-									#if 0
-									if (co[active_fd].stream_type == STREAM_IN && co[active_fd].attach != NULL) {
-										
-										if (active_fd == ((subuser *)(co[active_fd].attach))->fd) {
-											((subuser *)(co[active_fd].attach))->headers_sent = 0;
-											((subuser *)(co[active_fd].attach))->state = ADIED;
-										}
-										if (((subuser *)(co[active_fd].attach))->wait_for_free == 1) {
-											free(co[active_fd].attach);
-											co[active_fd].attach = NULL;						
-										}
-									} else if (co[active_fd].stream_type == STREAM_OUT) {
-									
-										if (((ape_proxy *)(co[active_fd].attach))->state == PROXY_TOFREE) {
-											free(co[active_fd].attach);
-											co[active_fd].attach = NULL;								
-										} else {
-									
-											((ape_proxy *)(co[active_fd].attach))->state = PROXY_THROTTLED;
-											proxy_onevent((ape_proxy *)(co[active_fd].attach), "DISCONNECT", g_ape);
-										}
-									}
-									#endif
 									clear_buffer(&g_ape->co[active_fd], &tfd);
 								
 									if (g_ape->bufout[active_fd].buf != NULL) {
@@ -559,7 +537,7 @@ int sendf(int sock, acetables *g_ape, char *buf, ...)
 	len = vasprintf(&buff, buf, val);
 	va_end(val);
 
-	finish = sendbin(sock, buff, len, g_ape);
+	finish = sendbin(sock, buff, len, 0, g_ape);
 
 	free(buff);
 
@@ -602,18 +580,21 @@ static int sendqueue(int sock, acetables *g_ape)
 }
 
 /* TODO : add "nowrite" flag to avoid write syscall when calling several time sendbin() */
-int sendbin(int sock, char *bin, int len, acetables *g_ape)
+int sendbin(int sock, const char *bin, unsigned int len, unsigned int burn_after_writing, acetables *g_ape)
 {
 	int t_bytes = 0, r_bytes, n = 0;
 
 	r_bytes = len;
-	
+
 	if (sock != 0) {
 		while(t_bytes < len) {
-			n = write(sock, bin + t_bytes, r_bytes);
-
-			if (n == -1) {
-				if (errno == EAGAIN && r_bytes > 0) {
+			if (g_ape->bufout[sock].buf == NULL) {
+				n = write(sock, bin + t_bytes, r_bytes);
+			} else {
+				n = -2;
+			}
+			if (n < 0) {
+				if ((errno == EAGAIN && r_bytes > 0) || (n == -2)) {
 					if (g_ape->bufout[sock].buf == NULL) {
 						g_ape->bufout[sock].allocsize = r_bytes + 128; /* add padding to prevent extra data to be reallocated */
 						g_ape->bufout[sock].buf = xmalloc(sizeof(char) * g_ape->bufout[sock].allocsize);
@@ -628,6 +609,10 @@ int sendbin(int sock, char *bin, int len, acetables *g_ape)
 					
 					memcpy(g_ape->bufout[sock].buf + (g_ape->bufout[sock].buflen - r_bytes), bin + t_bytes, r_bytes);
 					
+					if (burn_after_writing) {
+						g_ape->co[sock].burn_after_writing = 1;
+					}
+					
 					return 0;
 				}
 				
@@ -637,7 +622,19 @@ int sendbin(int sock, char *bin, int len, acetables *g_ape)
 			r_bytes -= n;
 		}
 	}
-
+	
+	if (burn_after_writing) {
+		shutdown(sock, 2);
+	}
+	
 	return 1;
 }
 
+void safe_shutdown(int sock, acetables *g_ape)
+{
+	if (g_ape->bufout[sock].buf == NULL) {
+		shutdown(sock, 2);
+	} else {
+		g_ape->co[sock].burn_after_writing = 1;
+	}
+}

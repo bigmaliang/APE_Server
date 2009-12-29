@@ -71,12 +71,13 @@ struct _callbackp
 {
 	ape_socket *client;
 	json_item *param;
-
+	struct _http_header_line *hlines;
+	
 	struct USERS *call_user;
 	
-	char *ip;
-	char *host;
-	char *cmd;
+	const char *ip;
+	const char *host;
+	const char *cmd;
 	void *data;
 	
 	subuser *call_subuser;
@@ -108,11 +109,12 @@ enum {
 };
 
 struct _cmd_process {
+	struct _http_header_line *hlines;
 	USERS *guser;
 	subuser *sub;
 	ape_socket *client;
-	char *host;
-	char *ip;
+	const char *host;
+	const char *ip;
 	transport_t transport;
 };
 

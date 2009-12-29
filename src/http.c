@@ -76,16 +76,85 @@ static struct _http_header_line *parse_header_line(const char *line)
 	return hline;
 }
 
-/* Just a lightweight http request processor */
-void process_http(ape_buffer *buffer, http_state *http)
+char *get_header_line(struct _http_header_line *lines, const char *key)
 {
-	char *data = buffer->data;
-	int pos, read;
+	while (lines != NULL) {
+		if (strcasecmp(lines->key.val, key) == 0) {
+			return lines->value.val;
+		}
+		
+		lines = lines->next;
+	}
 	
-	if (buffer->length == 0 || http->ready == 1 || http->error == 1) {
+	return NULL;
+}
+
+void process_websocket(ape_socket *co, acetables *g_ape)
+{
+	char *pData;
+	ape_buffer *buffer = &co->buffer_in;
+	websocket_state *websocket = co->parser.data;
+	ape_parser *parser = &co->parser;
+	
+	char *data = pData = &buffer->data[websocket->offset];
+	
+	if (buffer->length == 0 || parser->ready == 1) {
 		return;
 	}
 	
+	if (buffer->length > 502400) {
+		shutdown(co->fd, 2);
+		return;
+	}
+
+	data[buffer->length] = '\0';
+	
+	if (*data == '\0') {
+		data = &data[1];
+	}
+
+	while(data++ != &buffer->data[buffer->length]) {
+	
+		if ((unsigned char)*data == 0xFF) {
+			*data = '\0';
+			
+			websocket->data = &pData[1];
+			
+			parser->onready(parser, g_ape);
+
+			websocket->offset += (data - pData)+1;
+			
+			if (websocket->offset == buffer->length) {
+				parser->ready = -1;
+				buffer->length = 0;
+				websocket->offset = 0;
+				
+				return;
+			}
+			
+			break;
+		}
+	}
+	
+	if (websocket->offset != buffer->length && data != &buffer->data[buffer->length+1]) {
+		process_websocket(co, g_ape);
+	}
+}
+
+/* Just a lightweight http request processor */
+void process_http(ape_socket *co, acetables *g_ape)
+{
+	ape_buffer *buffer = &co->buffer_in;
+	http_state *http = co->parser.data;
+	ape_parser *parser = &co->parser;
+	
+	char *data = buffer->data;
+	int pos, read, p = 0;
+	
+	if (buffer->length == 0 || parser->ready == 1 || http->error == 1) {
+		return;
+	}
+
 	/* 0 will be erased by the next read()'ing loop */
 	data[buffer->length] = '\0';
 	
@@ -97,30 +166,59 @@ void process_http(ape_buffer *buffer, http_state *http)
 	
 	switch(http->step) {
 		case 0:
-			pos = seof(data);
+			pos = seof(data, '\n');
 			if (pos == -1) {
 				return;
 			}
-
-			switch(*(int *)data) {
+			
+			/* TODO : endieness */
+			switch(*(unsigned int *)data) {
 				case 542393671: /* GET + space */
 					http->type = HTTP_GET;
+					p = 4;
 					break;
 				case 1414745936: /* POST */
 					http->type = HTTP_POST;
+					p = 5;
 					break;
 				default:
 					http->error = 1;
+					shutdown(co->fd, 2);
 					return;
 			}
-
-			http->pos = pos;
-			http->step = 1;
 			
-			process_http(buffer, http);
+			if (data[p] != '/') {
+				http->error = 1;
+				shutdown(co->fd, 2);
+				return;
+			} else {
+				int i = p;
+				while (p++) {
+					switch(data[p]) {
+						case ' ':
+							http->pos = pos;
+							http->step = 1;
+							http->uri = &data[i];
+							data[p] = '\0';
+							process_http(co, g_ape);
+							return;
+						case '?':
+							if (data[p+1] != ' ' && data[p+1] != '\r' && data[p+1] != '\n') {
+								http->data = &data[p+1];
+							}
+							break;
+						case '\r':
+						case '\n':
+						case '\0':
+							http->error = 1;
+							shutdown(co->fd, 2);
+							return;
+					}
+				}
+			}
 			break;
 		case 1:
-			pos = seof(data);
+			pos = seof(data, '\n');
 			if (pos == -1) {
 
 				return;
@@ -130,44 +228,53 @@ void process_http(ape_buffer *buffer, http_state *http)
 
 				if (http->type == HTTP_GET) {
 					/* Ok, at this point we have a blank line. Ready for GET */
-					http->ready = 1;
 					buffer->data[http->pos] = '\0';
-
+					urldecode(http->uri);
+					
+					parser->onready(parser, g_ape);
+					parser->ready = -1;
+					buffer->length = 0;
 					return;
 				} else {
 					/* Content-Length is mandatory in case of POST */
 					if (http->contentlength == 0) {
 						http->error = 1;
-									
+						shutdown(co->fd, 2);
 						return;
 					} else {
+						http->data = &buffer->data[http->pos+(pos)];
 						http->step = 2;
 					}
 				}
-			} else if (http->type == HTTP_POST) {
-				/* looking for content-length instruction */
-				if (pos <= 25 && strncasecmp("content-length: ", data, 16) == 0) {
-					int cl = atoi(&data[16]);
-					
-					/* Content-length can't be negative... */
-					if (cl < 1 || cl > MAX_CONTENT_LENGTH) {
-						http->error = 1;
-						return;
-					}
-					/* At this time we are ready to read "cl" bytes contents */
-					http->contentlength = cl;
-					
-				}
 			} else {
 				struct _http_header_line *hl;
-				
+
 				if ((hl = parse_header_line(data)) != NULL) {
 					hl->next = http->hlines;
 					http->hlines = hl;
+					if (strcasecmp(hl->key.val, "host") == 0) {
+						http->host = hl->value.val;
+					}
+				}
+				else if (http->type == HTTP_POST) {
+					/* looking for content-length instruction */
+					if (pos <= 25 && strncasecmp("content-length: ", data, 16) == 0) {
+						int cl = atoi(&data[16]);
+
+						/* Content-length can't be negative... */
+						if (cl < 1 || cl > MAX_CONTENT_LENGTH) {
+							http->error = 1;
+							shutdown(co->fd, 2);
+							return;
+						}
+						/* At this time we are ready to read "cl" bytes contents */
+						http->contentlength = cl;
+
+					}
 				}
 			}
 			http->pos += pos;
-			process_http(buffer, http);
+			process_http(co, g_ape);
 			break;
 		case 2:
 			read = buffer->length - http->pos; // data length
@@ -176,10 +283,14 @@ void process_http(ape_buffer *buffer, http_state *http)
 			http->read += read;
 
 			if (http->read >= http->contentlength) {
-				http->ready = 1;
-				
+				parser->ready = 1;
+				urldecode(http->uri);
 				/* no more than content-length */
 				buffer->data[http->pos - (http->read - http->contentlength)] = '\0';
+				
+				parser->onready(parser, g_ape);
+				parser->ready = -1;
+				buffer->length = 0;
 			}
 			break;
 		default:
@@ -312,26 +423,26 @@ int http_send_headers(http_headers_response *headers, const char *default_h, uns
 	//HTTP/1.1 200 OK\r\n
 	
 	if (headers == NULL) {
-		finish &= sendbin(client->fd, (char *)default_h, default_len, g_ape);
+		finish &= sendbin(client->fd, (char *)default_h, default_len, 0, g_ape);
 	} else {
 		/* We have a lot of write syscall here. TODO : use of writev */
 		itos(headers->code, code, 4);
-		finish &= sendbin(client->fd, "HTTP/1.1 ", 9, g_ape);
-		finish &= sendbin(client->fd, code, 3, g_ape);
-		finish &= sendbin(client->fd, " ", 1, g_ape);
-		finish &= sendbin(client->fd, headers->detail.val, headers->detail.len, g_ape);
-		finish &= sendbin(client->fd, "\r\n", 2, g_ape);
+		finish &= sendbin(client->fd, "HTTP/1.1 ", 9, 0, g_ape);
+		finish &= sendbin(client->fd, code, 3, 0, g_ape);
+		finish &= sendbin(client->fd, " ", 1, 0, g_ape);
+		finish &= sendbin(client->fd, headers->detail.val, headers->detail.len, 0, g_ape);
+		finish &= sendbin(client->fd, "\r\n", 2, 0, g_ape);
 	
 		for (fields = headers->fields; fields != NULL; fields = fields->next) {
-			finish &= sendbin(client->fd, fields->key.val, fields->key.len, g_ape);
-			finish &= sendbin(client->fd, ": ", 2, g_ape);
-			finish &= sendbin(client->fd, fields->value.val, fields->value.len, g_ape);
-			finish &= sendbin(client->fd, "\r\n", 2, g_ape);
+			finish &= sendbin(client->fd, fields->key.val, fields->key.len, 0, g_ape);
+			finish &= sendbin(client->fd, ": ", 2, 0, g_ape);
+			finish &= sendbin(client->fd, fields->value.val, fields->value.len, 0, g_ape);
+			finish &= sendbin(client->fd, "\r\n", 2, 0, g_ape);
 		
 			fields = fields->next;
 		}
 	
-		finish &= sendbin(client->fd, "\r\n", 2, g_ape);
+		finish &= sendbin(client->fd, "\r\n", 2, 0, g_ape);
 	}
 	
 	return finish;
@@ -369,57 +480,3 @@ void free_header_line(struct _http_header_line *line)
 	}
 }
 
-static void ape_http_connect(ape_socket *client, acetables *g_ape)
-{
-	struct _http_attach *ha = client->attach;
-	char *method = (ha->post != NULL ? "POST" : "GET");
-	
-	sendf(client->fd, g_ape, "%s %s HTTP/1.1\r\nHost: %s\r\n", method, ha->file, ha->host);
-	
-	if (ha->post != NULL) {
-		int plen = strlen(ha->post);
-		sendf(client->fd, g_ape, "Content-Type: application/x-www-form-urlencoded\r\n");
-		sendf(client->fd, g_ape, "Content-Length: %i\r\n\r\n", plen);
-		sendbin(client->fd, (char *)ha->post, plen, g_ape);
-	} else {
-		sendbin(client->fd, "\r\n", 2, g_ape);
-	}
-	printf("Data posted\n");
-}
-
-static void ape_http_disconnect(ape_socket *client, acetables *g_ape)
-{
-	free(client->attach);
-}
-
-/*static void ape_http_read()
-{
-	
-}*/
-
-void ape_http_request(char *url, const char *post, acetables *g_ape)
-{
-	ape_socket *pattern;
-	
-	struct _http_attach *ha = xmalloc(sizeof(*ha));
-	
-	if (parse_uri(url, ha->host, &ha->port, ha->file) == -1) {
-		free(ha);
-		return;
-	}
-	ha->post = post;
-	
-	pattern = xmalloc(sizeof(*pattern));
-	pattern->callbacks.on_accept = NULL;
-	pattern->callbacks.on_connect = ape_http_connect;
-	pattern->callbacks.on_disconnect = ape_http_disconnect;
-	pattern->callbacks.on_read = NULL;
-	pattern->callbacks.on_read_lf = NULL;
-	pattern->callbacks.on_data_completly_sent = NULL;
-	pattern->callbacks.on_write = NULL;
-	pattern->attach = (void *)ha;
-	
-	ape_connect_name(ha->host, ha->port, pattern, g_ape);
-	
-	
-}

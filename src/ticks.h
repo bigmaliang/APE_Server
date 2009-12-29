@@ -25,7 +25,6 @@
 #include "main.h"
 
 /* Ticks/secondes */
-#define TICKS_RATE 100 // ~1ms
 #define VTICKS_RATE 50 // 50 ms
 
 struct _ticks_callback
@@ -34,6 +33,7 @@ struct _ticks_callback
 	int ticks_left;
 	int times;
 	unsigned int identifier;
+	unsigned int protect;
 
 	void *func;
 	void *params;

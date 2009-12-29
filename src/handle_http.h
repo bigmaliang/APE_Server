@@ -25,15 +25,16 @@
 #include "main.h"
 #include "users.h"
 
-subuser *checkrecv(char *pSock, ape_socket *client, acetables *g_ape, char *ip_client);
-
+subuser *checkrecv(ape_socket *co, acetables *g_ape);
+subuser *checkrecv_websocket(ape_socket *co, acetables *g_ape);
 
 typedef struct clientget
 {
+	struct _http_header_line *hlines;
 	ape_socket *client;
-	char *get;
-	char ip_get[16];
-	char host[MAX_HOST_LENGTH];
+	const char *ip_get;
+	const char *get;
+	const char *host;
 } clientget ;
 
 enum {

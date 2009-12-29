@@ -292,24 +292,26 @@ int send_raw_inline(ape_socket *client, transport_t transport, RAW *raw, acetabl
 			break;
 		case TRANSPORT_SSE_LONGPOLLING:
 			finish &= http_send_headers(NULL, HEADER_SSE, HEADER_SSE_LEN, client, g_ape);
-			break;	
+			break;
+		case TRANSPORT_WEBSOCKET:
+			break;
 		default:
 			finish &= http_send_headers(NULL, HEADER_DEFAULT, HEADER_DEFAULT_LEN, client, g_ape);
 			break;
 	}
 	
 	if (properties != NULL && properties->padding.left.val != NULL) {
-		finish &= sendbin(client->fd, properties->padding.left.val, properties->padding.left.len, g_ape);
+		finish &= sendbin(client->fd, properties->padding.left.val, properties->padding.left.len, 0, g_ape);
 	}	
 	
-	finish &= sendbin(client->fd, "[", 1, g_ape);
+	finish &= sendbin(client->fd, "[", 1, 0, g_ape);
 	
-	finish &= sendbin(client->fd, raw->data, raw->len, g_ape);
+	finish &= sendbin(client->fd, raw->data, raw->len, 0, g_ape);
 	
-	finish &= sendbin(client->fd, "]", 1, g_ape);
+	finish &= sendbin(client->fd, "]", 1, 0, g_ape);
 	
 	if (properties != NULL && properties->padding.right.val != NULL) {
-		finish &= sendbin(client->fd, properties->padding.right.val, properties->padding.right.len, g_ape);
+		finish &= sendbin(client->fd, properties->padding.right.val, properties->padding.right.len, 0, g_ape);
 	}
 	
 	delete_raw(raw);
@@ -343,7 +345,9 @@ int send_raws(subuser *user, acetables *g_ape)
 				break;
 			case TRANSPORT_SSE_LONGPOLLING:
 				finish &= http_send_headers(user->headers.content, HEADER_SSE, HEADER_SSE_LEN, user->client, g_ape);
-				break;	
+				break;
+			case TRANSPORT_WEBSOCKET:
+				break;
 			default:
 				finish &= http_send_headers(user->headers.content, HEADER_DEFAULT, HEADER_DEFAULT_LEN, user->client, g_ape);
 				break;
@@ -352,10 +356,10 @@ int send_raws(subuser *user, acetables *g_ape)
 	}
 	
 	if (properties != NULL && properties->padding.left.val != NULL) {
-		finish &= sendbin(user->client->fd, properties->padding.left.val, properties->padding.left.len, g_ape);
+		finish &= sendbin(user->client->fd, properties->padding.left.val, properties->padding.left.len, 0, g_ape);
 	}
 	
-	finish &= sendbin(user->client->fd, "[", 1, g_ape);
+	finish &= sendbin(user->client->fd, "[", 1, 0, g_ape);
 	
 	if (user->raw_pools.high.nraw) {
 		pool = user->raw_pools.high.rawfoot->prev;
@@ -367,15 +371,15 @@ int send_raws(subuser *user, acetables *g_ape)
 	while (pool->raw != NULL) {
 		struct _raw_pool *pool_next = (state ? pool->next : pool->prev);
 		
-		finish &= sendbin(user->client->fd, pool->raw->data, pool->raw->len, g_ape);
+		finish &= sendbin(user->client->fd, pool->raw->data, pool->raw->len, 0, g_ape);
 		
 		if ((pool_next != NULL && pool_next->raw != NULL) || (!state && user->raw_pools.low.nraw)) {
-			finish &= sendbin(user->client->fd, ",", 1, g_ape);
+			finish &= sendbin(user->client->fd, ",", 1, 0, g_ape);
 		} else {
-			finish &= sendbin(user->client->fd, "]", 1, g_ape);
+			finish &= sendbin(user->client->fd, "]", 1, 0, g_ape);
 			
 			if (properties != NULL && properties->padding.right.val != NULL) {
-				finish &= sendbin(user->client->fd, properties->padding.right.val, properties->padding.right.len, g_ape);
+				finish &= sendbin(user->client->fd, properties->padding.right.val, properties->padding.right.len, 0, g_ape);
 			}
 		}
 		

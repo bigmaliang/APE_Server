@@ -48,12 +48,11 @@
 
 #include <errno.h>
 
-#define _VERSION "1.0-BETA5"
 
 static void signal_handler(int sign)
 {
-	printf("\nShutdown...!\n\n");
-	exit(1);
+	server_is_running = 0;
+
 }
 
 static int inc_rlimit(int nofile)
@@ -76,13 +75,13 @@ static int set_corelimit(int limit)
 	return setrlimit(RLIMIT_CORE, &rl);
 }
 
-static void ape_daemon()
+static void ape_daemon(int pidfile, acetables *g_ape)
 {
+	
 	if (0 != fork()) { 
 		exit(0);
 	}
 	if (-1 == setsid()) {
-		
 		exit(0);
 	}
 	signal(SIGHUP, SIG_IGN);
@@ -90,8 +89,16 @@ static void ape_daemon()
 	if (0 != fork()) {
 		exit(0);
 	}
-	printf("Starting daemon.... pid : %i\n\n", getpid());
-	alog_foo("Starting daemon.... pid : %i\n\n", getpid());
+	
+	g_ape->is_daemon = 1;
+	
+	if (pidfile > 0) {
+		char pidstring[32];
+		int len;
+		len = sprintf(pidstring, "%i", getpid());
+		write(pidfile, pidstring, len);
+		close(pidfile);
+	}
 }
 
 
@@ -99,12 +106,14 @@ int main(int argc, char **argv)
 {
 	apeconfig *srv;
 	
-	int random, im_r00t = 0;
+	int random, im_r00t = 0, pidfd = 0, serverfd;
 	unsigned int getrandom = 0;
+	const char *pidfile = NULL;
+	char *confs_path = NULL;
 	
 	struct _fdevent fdev;
 	
-	char cfgfile[512] = APE_CONFIG_FILE;
+	char cfgfile[513] = APE_CONFIG_FILE;
 	
 	acetables *g_ape;
 	
@@ -118,13 +127,13 @@ int main(int argc, char **argv)
 		printf("   Options:\n     --help             : Display this help\n     --version          : Show version number\n     --cfg <config path>: Load a specific config file (default is %s)\n\n", cfgfile);
 		return 0;
 	} else if (argc > 2 && strcmp(argv[1], "--cfg") == 0) {
+		memset(cfgfile, 0, 513);
 		strncpy(cfgfile, argv[2], 512);
-		cfgfile[strlen(argv[2])] = '\0';
-		
+		confs_path = get_path(cfgfile);
 	} else if (argc > 1) {
 		printf("\n   AJAX Push Engine Server %s - (C) Anthony Catel <a.catel@weelya.com>\n   http://www.ape-project.org/\n\n", _VERSION);
 		printf("   Unknown parameters - check \"aped --help\"\n\n");
-		return 0;		
+		return 0;
 	}
 	if (NULL == (srv = ape_config_load(cfgfile))) {
 		printf("\nExited...\n\n");
@@ -134,20 +143,12 @@ int main(int argc, char **argv)
 	if (getuid() == 0) {
 		im_r00t = 1;
 	}
-	
-	printf("   _   ___ ___ \n");
-	printf("  /_\\ | _ \\ __|\n");
-	printf(" / _ \\|  _/ _| \n");
-	printf("/_/ \\_\\_| |___|\nAJAX Push Engine\n\n");
-
-	printf("Bind on port %i\n\n", atoi(CONFIG_VAL(Server, port, srv)));
-	printf("Version : %s\n", _VERSION);
-	printf("Build   : %s %s\n", __DATE__, __TIME__);
-	printf("Author  : Weelya (contact@weelya.com)\n\n");
 
 	signal(SIGINT, &signal_handler);
+	signal(SIGTERM, &signal_handler);
+	signal(SIGKILL, &signal_handler);
 	
-	if (TICKS_RATE < 1) {
+	if (VTICKS_RATE < 1) {
 		printf("[ERR] TICKS_RATE cant be less than 1\n");
 		return 0;
 	}
@@ -162,8 +163,10 @@ int main(int argc, char **argv)
 	close(random);
 
 	g_ape = xmalloc(sizeof(*g_ape));
-	g_ape->basemem = 512000;
+	g_ape->basemem = 256000;
 	g_ape->srv = srv;
+	g_ape->confs_path = confs_path;
+	g_ape->is_daemon = 0;
 	
 	ape_log_init(g_ape);
 	
@@ -185,11 +188,16 @@ int main(int argc, char **argv)
 	g_ape->events = &fdev;
 	events_init(g_ape, &g_ape->basemem);
 	
-	ape_dns_init(g_ape);
-	
-	servers_init(g_ape);
+	serverfd = servers_init(g_ape);
 	
 	alog_foo("APE starting up - pid : %i", getpid());
+	
+	if (strcmp(CONFIG_VAL(Server, daemon, srv), "yes") == 0 && (pidfile = CONFIG_VAL(Server, pid_file, srv)) != NULL) {
+		if ((pidfd = open(pidfile, O_TRUNC | O_WRONLY | O_CREAT, 0655)) == -1) {
+			ape_log(APE_WARN, __FILE__, __LINE__, g_ape, 
+				"Cant open pid file : %s", CONFIG_VAL(Server, pid_file, srv));
+		}
+	}
 	
 	if (im_r00t) {
 		struct group *grp = NULL;
@@ -240,10 +248,28 @@ int main(int argc, char **argv)
 	}
 	
 	if (strcmp(CONFIG_VAL(Server, daemon, srv), "yes") == 0) {
-		alog_foo("Starting daemon");
-		ape_daemon();
+		ape_log(APE_INFO, __FILE__, __LINE__, g_ape, 
+			"Starting daemon");
+		ape_daemon(pidfd, g_ape);
+
+		events_reload(g_ape->events);
+		events_add(g_ape->events, serverfd, EVENT_READ);
+	}
+	
+	if (!g_ape->is_daemon) {	
+		printf("   _   ___ ___ \n");
+		printf("  /_\\ | _ \\ __|\n");
+		printf(" / _ \\|  _/ _| \n");
+		printf("/_/ \\_\\_| |___|\nAJAX Push Engine\n\n");
+
+		printf("Bind on port %i\n\n", atoi(CONFIG_VAL(Server, port, srv)));
+		printf("Version : %s\n", _VERSION);
+		printf("Build   : %s %s\n", __DATE__, __TIME__);
+		printf("Author  : Weelya (contact@weelya.com)\n\n");		
 	}
 	signal(SIGPIPE, SIG_IGN);
+
+	ape_dns_init(g_ape);
 	
 	g_ape->cmd_hook.head = NULL;
 	g_ape->cmd_hook.foot = NULL;
@@ -270,15 +296,19 @@ int main(int argc, char **argv)
 	
 	do_register(g_ape);
 	
-	//proxy_init_from_conf(g_ape);
-	
 	transport_start(g_ape);	
 	
 	findandloadplugin(g_ape);
 
+	server_is_running = 1;
+
 	/* Starting Up */
 	sockroutine(g_ape); /* loop */
 	/* Shutdown */	
+	
+	if (pidfile != NULL) {
+		unlink(pidfile);
+	}
 	
 	hashtbl_free(g_ape->hLogin);
 	hashtbl_free(g_ape->hSessid);

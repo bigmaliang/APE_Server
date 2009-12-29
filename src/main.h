@@ -45,6 +45,9 @@
 #define TIMEOUT_SEC 45
 
 #define SERVER_NAME "APE.Server"
+#define _VERSION "1.01dev"
+
+int server_is_running;
 
 struct _transport_properties {
 	struct {
@@ -71,12 +74,20 @@ struct _ape_transports {
 	struct {
 		struct _transport_properties properties;
 	} sse;
+	
+	struct {
+		struct _transport_properties properties;
+	} websocket;
 };
 
 typedef struct _http_state http_state;
 struct _http_state
 {
 	struct _http_header_line *hlines;
+	
+	char *uri;
+	const char *data;
+	const char *host;
 	
 	int pos;
 	int contentlength;
@@ -85,7 +96,15 @@ struct _http_state
 	unsigned short int step;
 	unsigned short int type; /* HTTP_GET or HTTP_POST */
 	unsigned short int error;
-	unsigned short int ready;
+};
+
+typedef struct _websocket_state websocket_state;
+struct _websocket_state
+{
+	struct _http_state *http;
+	const char *data;
+	unsigned short int offset;
+	unsigned short int error;
 };
 
 typedef enum {
@@ -151,9 +170,23 @@ typedef struct _acetables
 	struct _ape_socket *co;
 	struct _extend *properties;
 	
+	const char *confs_path;
+	
+	int is_daemon;
 	int basemem;
 	unsigned int nConnected;
 } acetables;
+
+
+typedef struct _ape_parser ape_parser;
+struct _ape_parser {
+	void (*parser_func)(struct _ape_socket *, acetables *);
+	void (*destroy)(struct _ape_parser *);
+	void (*onready)(struct _ape_parser *, acetables *);
+	void *data;
+	struct _ape_socket *socket;
+	short int ready;
+};
 
 typedef struct _ape_socket ape_socket;
 struct _ape_socket {
@@ -167,10 +200,11 @@ struct _ape_socket {
 		void (*on_write)(struct _ape_socket *client, acetables *g_ape);
 	} callbacks;
 
+	ape_parser parser;
+
 	ape_buffer buffer_in;
 	ape_buffer buffer_out;
-		
-	http_state http;
+
 	char ip_client[16];
 	long int idle;
 
@@ -178,6 +212,7 @@ struct _ape_socket {
 	void *data;
 	
 	int fd;
+	int burn_after_writing;
 	
 	ape_socket_state_t state;
 	ape_socket_t stream_type;
@@ -192,7 +227,10 @@ struct _ape_socket {
 #define HEADER_XHR "HTTP/1.1 200 OK\r\nPragma: no-cache\r\nCache-Control: no-cache, must-revalidate\r\nExpires: Thu, 27 Dec 1986 07:30:00 GMT\r\nContent-Type: application/x-ape-event-stream\r\n\r\n                                                                                                                                                                                                                                                                "
 #define HEADER_XHR_LEN 421
 
+#define CONTENT_NOTFOUND "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\"><html><head><title>APE Server</title></head><body><h1>APE Server</h1><p>No command given.</p><hr><address>http://www.ape-project.org/ - Server "_VERSION" (Build "__DATE__" "__TIME__")</address></body></html>"
 
+/* http://tools.ietf.org/html/draft-hixie-thewebsocketprotocol-55 : The first three lines in each case are hard-coded (the exact case and order matters); */
+#define WEBSOCKET_HARDCODED_HEADERS "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\n"
 
 #define FIRE_EVENT(event, ret, arg...) \
 	if (g_ape->plugins != NULL) { \

@@ -25,188 +25,107 @@
 #include "utils.h"
 #include "config.h"
 #include "cmd.h"
-
-static unsigned int fixpacket(char *pSock, int type)
-{
-	size_t i, pLen;
-	
-	pLen = strlen(pSock);
-	
-	for (i = 0; i < pLen; i++) {
-			if (type == 0 && (pSock[i] == '\n' || pSock[i] == '\r')) {
-				pSock[i] = '\0';
-			
-				return 1;
-			} else if (type == 1 && pSock[i] == ' ') {
-				pSock[i] = '\0';
-			
-				return 1;				
-			}
-		
-	}
-	return 0;
-}
-
-/* Reading the host http header */
-static int gethost(char *base, char *output) // Catch the host HTTP header
-{
-	char *pBase;
-	int i;
-	
-	output[0] = '\0';
-	
-	for (pBase = base; *pBase && strncasecmp(pBase, "Host:", 5) != 0; pBase++);
-	
-	if (!*pBase || !pBase[6]) {
-		return 0;
-	}
-	
-	pBase = &pBase[6];
-	
-	for (i = 0; pBase[i] && pBase[i] != '\n' && i < (MAX_HOST_LENGTH-1); i++) {
-		output[i] = pBase[i];
-	}
-	
-	output[i] = '\0';
-	
-	return 1;
-}
-
-/* Reading post data from the HTTP streaming incoming */
-static char *getpost(char *input)
-{
-	char *pInput;
-	
-	for (pInput = input; *pInput && strncmp(pInput, "\r\n\r\n", 4) != 0; pInput++);
-	
-	if (!*pInput || !pInput[4]) {
-		return NULL;
-	} else {
-		return &pInput[4];
-	}
-}
-
-static int getqueryip(char *base, char *output)
-{
-	int i, size = strlen(base), step, x = 0;
-	
-	if (size < 16) {
-		return 0;
-	}
-	
-	for (i = 0, step = 0; i < size; i++) {
-		if (base[i] == '\n') {
-			output[0] = '\0';
-			return 0;
-		}
-		if (step == 1 && (base[i] == '&' || base[i] == ' ') && x < 16) {
-			output[x] = '\0';
-			return 1;
-		} else if (step == 1 && x < 16) {
-			output[x] = base[i];
-			x++;
-		} else if (base[i] == '?') {
-			step = 1;
-		}
-	}
-	output[0] = '\0';
-	return 0;
-	
-}
-
-static char *getfirstparam(char *input, char sep)
-{
-
-	char *pInput;
-	/*
-		Should be replaced by a simple strchr
-	*/	
-	for (pInput = input; *pInput && *pInput != sep; pInput++);
-	
-	if (!*pInput || !pInput[1]) {
-		return NULL;
-	} else {
-		return &pInput[1];
-	}	
-}
+#include "main.h"
+#include "sock.h"
+#include "http.h"
+#include "parser.h"
 
 static int gettransport(char *input)
 {
 	char *start = strchr(input, '/');
 
-	if (start != NULL && start[1] >= 48 && start[1] <= 53 && start[2] == '/') {
+	if (start != NULL && start[1] >= 48 && start[1] <= 54 && start[2] == '/') {
 		return start[1]-48;
 	}
 	
 	return 0;
 }
 
-subuser *checkrecv(char *pSock, ape_socket *client, acetables *g_ape, char *ip_client)
+subuser *checkrecv_websocket(ape_socket *co, acetables *g_ape)
 {
-
 	unsigned int op;
-	unsigned int isget = 0;
-	
+	clientget cget;
+	websocket_state *websocket = co->parser.data;
 	subuser *user = NULL;
-	int local = /*(strcmp(ip_client, CONFIG_VAL(Server, ip_local, g_ape->srv)) == 0)*/ 0;
 	
-	clientget *cget = xmalloc(sizeof(*cget));
+	cget.client = co;
+	cget.ip_get = co->ip_client;
+	cget.get = websocket->data;
+	cget.host = websocket->http->host;
+	cget.hlines = websocket->http->hlines;
 
-	if (strlen(pSock) < 3 || (local && getqueryip(pSock, cget->ip_get) == 0)) {  // get query IP (from htaccess)
-		free(cget);
-		shutdown(client->fd, 2);
-		return NULL;		
-	}
-	if (!local) {
-		strncpy(cget->ip_get, ip_client, 16); // get real IP (from socket)
-	}
-	
-	cget->client = client;
-	
-	gethost(pSock, cget->host);
-	
-	if (strncasecmp(pSock, "GET", 3) == 0) {
-		if (!fixpacket(pSock, 0) || (cget->get = getfirstparam(pSock, (local ? '&' : '?'))) == NULL) {
-			free(cget);
-			
-			shutdown(client->fd, 2);
-			return NULL;			
-		} else {
-			isget = 1;
-		}
-	} else if (strncasecmp(pSock, "POST", 4) == 0) {
-		if ((cget->get = getpost(pSock)) == NULL) {
-			free(cget);
-			
-			shutdown(client->fd, 2);
-			return NULL;			
-		}
-	} else {
-		free(cget);
-
-		shutdown(client->fd, 2);
-		return NULL;		
-	}
-	
-	fixpacket(cget->get, 1);
-
-	if (isget) {
-		urldecode(cget->get);
-	}
-	
-	op = checkcmd(cget, gettransport(pSock), &user, g_ape);
+	op = checkcmd(&cget, TRANSPORT_WEBSOCKET, &user, g_ape);
 
 	switch (op) {
 		case CONNECT_SHUTDOWN:
-			shutdown(client->fd, 2);			
+		case CONNECT_KEEPALIVE:
+			break;
+	}	
+	
+	return user;
+}
+
+subuser *checkrecv(ape_socket *co, acetables *g_ape)
+{
+	unsigned int op;
+	http_state *http = co->parser.data;
+	subuser *user = NULL;
+	clientget cget;
+	
+	if (http->host == NULL) {
+		shutdown(co->fd, 2);
+		return NULL;
+	}
+	
+	if (gettransport(http->uri) == TRANSPORT_WEBSOCKET) {
+		char *origin = get_header_line(http->hlines, "Origin");
+		websocket_state *websocket;
+		if (origin == NULL) {
+			shutdown(co->fd, 2);
+			return NULL;
+		}
+		
+		PACK_TCP(co->fd);
+		sendbin(co->fd, CONST_STR_LEN(WEBSOCKET_HARDCODED_HEADERS), 0, g_ape);
+		sendbin(co->fd, CONST_STR_LEN("WebSocket-Origin: "), 0, g_ape);
+		sendbin(co->fd, origin, strlen(origin), 0, g_ape);
+		sendbin(co->fd, CONST_STR_LEN("\r\nWebSocket-Location: ws://"), 0, g_ape);
+		sendbin(co->fd, http->host, strlen(http->host), 0, g_ape);
+		sendbin(co->fd, http->uri, strlen(http->uri), 0, g_ape);
+		sendbin(co->fd, CONST_STR_LEN("\r\n\r\n"), 0, g_ape);
+		FLUSH_TCP(co->fd);
+		
+		co->parser = parser_init_stream(co);
+		websocket = co->parser.data;
+		websocket->http = http; /* keep http data */
+		
+		return NULL;
+	}
+	
+	if (http->data == NULL) {
+		sendbin(co->fd, HEADER_DEFAULT, HEADER_DEFAULT_LEN, 0, g_ape);
+		sendbin(co->fd, CONST_STR_LEN(CONTENT_NOTFOUND), 0, g_ape);
+		
+		safe_shutdown(co->fd, g_ape);
+		return NULL;
+	}
+	
+	cget.client = co;
+	cget.ip_get = co->ip_client;
+	cget.get = http->data;
+	cget.host = http->host;
+	cget.hlines = http->hlines;
+	
+	op = checkcmd(&cget, gettransport(http->uri), &user, g_ape);
+
+	switch (op) {
+		case CONNECT_SHUTDOWN:
+			safe_shutdown(co->fd, g_ape);			
 			break;
 		case CONNECT_KEEPALIVE:
 			break;
 	}
-
-	free(cget);
 	
 	return user;
-
 }
 

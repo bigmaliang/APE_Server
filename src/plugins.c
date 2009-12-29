@@ -24,6 +24,7 @@
 #include <dlfcn.h>
 #include <glob.h>
 #include "utils.h"
+#include "config.h"
 
 
 ace_plugins *loadplugin(char *file)
@@ -57,11 +58,14 @@ ace_plugins *loadplugin(char *file)
 void findandloadplugin(acetables *g_ape)
 {
 	int i;
+	char modules_path[1024];
+	
+	sprintf(modules_path, "%s*.so", CONFIG_VAL(Config, modules, g_ape->srv));
 	
 	void (*load)(ace_plugins *module);
 	
 	glob_t globbuf;
-	glob("../modules/lib/*.so", 0, NULL, &globbuf);
+	glob(modules_path, 0, NULL, &globbuf);
 
 	
 	for (i = 0; i < globbuf.gl_pathc; i++) {
@@ -83,9 +87,11 @@ void findandloadplugin(acetables *g_ape)
 			/* Calling entry point load function */
 			load(pcurrent);
 				
-			plugin_read_config(pcurrent);
-			printf("[Module] [%s] Loading module : %s (%s) - %s\n", pcurrent->modulename, pcurrent->infos->name, pcurrent->infos->version, pcurrent->infos->author);
-
+			plugin_read_config(pcurrent, CONFIG_VAL(Config, modules_conf, g_ape->srv));
+			
+			if (!g_ape->is_daemon) {
+				printf("[Module] [%s] Loading module : %s (%s) - %s\n", pcurrent->modulename, pcurrent->infos->name, pcurrent->infos->version, pcurrent->infos->author);
+			}
 			pcurrent->next = plist;
 			g_ape->plugins = pcurrent;
 			
@@ -125,14 +131,16 @@ plug_config *plugin_parse_conf(const char *file)
 			tmpconf = new_conf;
 		}
 	}
-	
+	fclose(fp);
 	return new_conf;
 }
 
-void plugin_read_config(ace_plugins *plug)
+void plugin_read_config(ace_plugins *plug, const char *path)
 {
+	char conf_file[1024];
 	if (plug->infos->conf_file != NULL) {
-		if ((plug->infos->conf = plugin_parse_conf(plug->infos->conf_file)) == NULL) {
+		sprintf(conf_file, "%s%s", path, plug->infos->conf_file);
+		if ((plug->infos->conf = plugin_parse_conf(conf_file)) == NULL) {
 			printf("[Module] [%s] [WARN] Cannot open configuration (%s)\n", plug->modulename, plug->infos->conf_file);
 			return;			
 		}

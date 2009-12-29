@@ -150,6 +150,8 @@ int process_cmd(json_item *ijson, struct _cmd_process *pc, subuser **iuser, acet
 		cp.client = NULL;
 		cp.cmd 	= rjson->jval.vu.str.value;
 		cp.data = NULL;
+		cp.hlines = NULL;
+		
 		json_item *jsid;
 		
 		if ((cmdback = (callback *)hashtbl_seek(g_ape->hCallback, rjson->jval.vu.str.value)) == NULL) {
@@ -234,6 +236,7 @@ int process_cmd(json_item *ijson, struct _cmd_process *pc, subuser **iuser, acet
 		cp.ip = pc->ip;
 		cp.chl = (sub != NULL ? sub->current_chl : 0);
 		cp.transport = pc->transport;
+		cp.hlines = pc->hlines;
 		
 		/* Little hack to access user object on connect hook callback (preallocate an user) */
 		if (strncasecmp(cp.cmd, "CONNECT", 7) == 0 && cp.cmd[7] == '\0') {
@@ -309,9 +312,10 @@ int process_cmd(json_item *ijson, struct _cmd_process *pc, subuser **iuser, acet
 				return (CONNECT_KEEPALIVE);
 			}
 			
-		} else {
+		} else if (flag & RETURN_HANG) {
 			/* Doesn't need sessid */
-
+			return (CONNECT_KEEPALIVE);
+		} else {
 			return (CONNECT_SHUTDOWN);
 		}
 	} else {
@@ -335,14 +339,13 @@ int process_cmd(json_item *ijson, struct _cmd_process *pc, subuser **iuser, acet
 
 unsigned int checkcmd(clientget *cget, transport_t transport, subuser **iuser, acetables *g_ape)
 {	
-	struct _cmd_process pc = {NULL, NULL, cget->client, cget->host, cget->ip_get, transport};
+	struct _cmd_process pc = {cget->hlines, NULL, NULL, cget->client, cget->host, cget->ip_get, transport};
 	
 	json_item *ijson, *ojson;
 	
 	unsigned int ret;
 
 	ijson = ojson = init_json_parser(cget->get);
-	
 	if (ijson == NULL || ijson->jchild.child == NULL) {
 		RAW *newraw;
 		json_item *jlist = json_new_object();
@@ -453,7 +456,7 @@ unsigned int cmd_script(callbackp *callbacki)
 		JFOREACH(scripts, script) {
 			sendf(callbacki->client->fd, callbacki->g_ape, "\t<script type=\"text/javascript\" src=\"%s\"></script>\n", script);
 		}
-		sendbin(callbacki->client->fd, "</head>\n<body>\n</body>\n</html>", 30, callbacki->g_ape);
+		sendbin(callbacki->client->fd, "</head>\n<body>\n</body>\n</html>", 30, 0, callbacki->g_ape);
 	}
 	
 	return (RETURN_NOTHING);
@@ -538,7 +541,15 @@ unsigned int cmd_send(callbackp *callbacki)
 }
 unsigned int cmd_quit(callbackp *callbacki)
 {
-	QUIT(callbacki->client->fd, callbacki->g_ape);
+	RAW *newraw;
+	json_item *jlist = json_new_object();
+
+	json_set_property_strZ(jlist, "value", "null");
+
+	newraw = forge_raw("QUIT", jlist);
+	
+	send_raw_inline(callbacki->client, callbacki->transport, newraw, callbacki->g_ape);
+		
 	deluser(callbacki->call_user, callbacki->g_ape); // After that callbacki->call_user is free'd
 	
 	return (RETURN_NULL);
