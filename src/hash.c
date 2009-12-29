@@ -62,6 +62,8 @@ void hashtbl_free(HTBL *htbl)
 	HTBL_ITEM *hTmp;
 	HTBL_ITEM *hNext;
 	
+	if (htbl == NULL) return;
+	
 	for (i = 0; i < (HACH_TABLE_MAX + 1); i++) {
 		hTmp = htbl->table[i];
 		while (hTmp != 0) {
@@ -75,6 +77,29 @@ void hashtbl_free(HTBL *htbl)
 	
 	free(htbl->table);
 	free(htbl);	
+}
+
+void hashtbl_empty(HTBL *htbl)
+{
+	size_t i;
+	HTBL_ITEM *hTmp;
+	HTBL_ITEM *hNext;
+
+	if (htbl == NULL) return;
+	
+	for (i = 0; i < (HACH_TABLE_MAX + 1); i++) {
+		hTmp = htbl->table[i];
+		while (hTmp != 0) {
+			hNext = hTmp->next;
+			free(hTmp->key);
+			hTmp->key = NULL;
+			free(hTmp);
+			hTmp = hNext;
+		}
+	}
+
+	memset(htbl->table, 0, sizeof(hTmp) * (HACH_TABLE_MAX + 1));
+	htbl->first = NULL;
 }
 
 void hashtbl_append(HTBL *htbl, const char *key, void *structaddr)
