@@ -16,8 +16,6 @@
 
 #define MODULE_NAME "push"
 
-#define FRIEND_PIP_NAME	"*FriendPipe"
-
 static ace_plugin_infos infos_module = {
 	"\"Push\" system", // Module Name
 	"1.0",			   // Module Version
@@ -186,6 +184,17 @@ static void tick_static(acetables *g_ape, int lastcall)
     mevent_add_str(evt, "sqls", "3", sql);
     st->msg_feed = 0;
 
+    sprintf(sql, "INSERT INTO mps (type, count) VALUES (%d, %lu);",
+            ST_NUM_LOGIN, st->num_login);
+    mevent_add_str(evt, "sqls", "4", sql);
+    st->num_login = 0;
+
+    sprintf(sql, "INSERT INTO mps (type, count) VALUES (%d, %lu);",
+            ST_NUM_USER, st->num_user);
+    mevent_add_str(evt, "sqls", "5", sql);
+    st->num_user = 0;
+	hashtbl_empty(GET_ONLINE_TBL(g_ape));
+
     ret = mevent_trigger(evt);
     if (PROCESS_NOK(ret)) {
         alog_err("trigger statistic event failure %d", ret);
@@ -203,6 +212,7 @@ static unsigned int push_connect(callbackp *callbacki)
 	json_item *jlist = NULL;
 	CHANNEL *chan;
 	char *uin;
+	st_push *st = GET_STAT_LIST(callbacki->g_ape);
 
 	JNEED_STR(callbacki->param, "uin", uin, RETURN_BAD_PARAMS);
 
@@ -221,7 +231,15 @@ static unsigned int push_connect(callbackp *callbacki)
 	}
 	
 	nuser = adduser(NULL, NULL, NULL, callbacki->call_user, callbacki->g_ape);
+
+	st->num_login++;
 	
+	USERS *tuser = GET_USER_FROM_ONLINE(callbacki->g_ape, uin);
+	if (tuser == NULL) {
+		st->num_user++;
+		SET_USER_FOR_ONLINE(callbacki->g_ape, uin, nuser);
+	}
+
 	SET_UIN_FOR_USER(nuser, uin);
 	SET_USER_FOR_APE(callbacki->g_ape, uin, nuser);
 	get_user_info(uin, nuser, callbacki->g_ape);
@@ -230,7 +248,7 @@ static unsigned int push_connect(callbackp *callbacki)
 	 * make own channel
 	 */
 	if ((chan = getchanf(callbacki->g_ape, FRIEND_PIP_NAME"%s", uin)) == NULL) {
-		chan = mkchanf(callbacki->g_ape, CHANNEL_NONINTERACTIVE,
+		chan = mkchanf(callbacki->g_ape, CHANNEL_NONINTERACTIVE | CHANNEL_AUTODESTROY,
 					   FRIEND_PIP_NAME"%s", uin);
 		if (chan == NULL) {
 			alog_err("make channel %s failure", uin);
@@ -419,10 +437,10 @@ static unsigned int push_useronline(callbackp *callbacki)
 	RAW *newraw;
 	json_item *jlist = json_new_object();
 	char *users;
-	char *uin[100];
-	size_t num = explode(',', users, uin, 99);
+	char *uin[MAX_CLIENT_PERPUSH];
 
 	JNEED_STR_COPY(callbacki->param, "users", users, RETURN_BAD_PARAMS);
+	size_t num = explode(',', users, uin, MAX_CLIENT_PERPUSH-1);
 
 	int loopi;
 	for (loopi = 0; loopi <= num; loopi++) {
@@ -501,20 +519,65 @@ static unsigned int push_senduniq(callbackp *callbacki)
 	/* TODO why should i copy msg->father rather than msg????? */
 	json_item *jcopy = json_item_copy(msg->father, NULL);
 	RAW *newraw;
-
 	json_set_property_objZ(jlist, "msg", jcopy);
-
 	newraw = forge_raw(RAW_DATA, jlist);
 	post_raw(newraw, user, callbacki->g_ape);
 	POSTRAW_DONE(newraw);
 
-	json_item *ej = json_new_object();
-	json_set_property_strZ(ej, "code", "999");
-	json_set_property_strZ(ej, "value", "OPERATION_SUCESS");
-	newraw = forge_raw(RAW_DATA, ej);
-	send_raw_inline(callbacki->client, callbacki->transport,
-					newraw, callbacki->g_ape);
+	hn_senddata(callbacki, "999", "OPERATION_SUCESS");
 	
+	return (RETURN_NULL);
+}
+
+static unsigned int push_sendmulti(callbackp *callbacki)
+{
+	char *pass, *uins, *sender;
+	json_item *msg;
+	USERS *dst;
+
+	st_push *st = (st_push*)get_property(callbacki->g_ape->properties,
+										 "msgstatic")->val;
+	sender = GET_UIN_FROM_USER(callbacki->call_user);
+	
+	JNEED_STR(callbacki->param, "pass", pass, RETURN_BAD_PARAMS);
+	JNEED_OBJ(callbacki->param, "msg", msg, RETURN_BAD_PARAMS);
+	JNEED_STR(callbacki->param, "uins", uins, RETURN_BAD_PARAMS);
+
+	alog_foo("%s %s SEND %s TO %s", callbacki->ip, sender,
+			 json_to_string(msg, NULL, 0)->jstring, uins);
+	
+	if (strcmp(pass, READ_CONF("push_multi_pass"))) {
+		hn_senderr(callbacki, "020", "ERR_REFUSE");
+		return (RETURN_NULL);
+	}
+
+	json_item *jlist = json_new_object();
+	json_set_property_objZ(jlist, "msg", json_item_copy(msg->father, NULL));
+	RAW *newraw = forge_raw(RAW_DATA, jlist);
+
+	if (!strcmp(uins, "ALL_ManGos")) {
+		HTBL *ulist = GET_USER_LIST(callbacki->g_ape);
+		HTBL_ITEM *item;
+		for (item = ulist->first; item != NULL; item = item->lnext) {
+			st->msg_notice++;
+			dst = (USERS*)item->addrs;
+			post_raw(newraw, dst, callbacki->g_ape);
+		}
+	} else {
+		char *uin[MAX_CLIENT_PERPUSH];
+		size_t num = explode(',', uins, uin, MAX_CLIENT_PERPUSH-1);
+		int loopi;
+		for (loopi = 0; loopi <= num; loopi++) {
+			dst = GET_USER_FROM_APE(callbacki->g_ape, uin[loopi]);
+			if (dst != NULL) {
+				post_raw(newraw, dst, callbacki->g_ape);
+				st->msg_notice++;
+			}
+		}
+	}
+	POSTRAW_DONE(newraw);
+
+	hn_senddata(callbacki, "999", "OPERATION_SUCESS");
 	return (RETURN_NULL);
 }
 
@@ -729,9 +792,11 @@ static void init_module(acetables *g_ape)
 {
 	st_push *stdata = calloc(1, sizeof(st_push));
 	add_property(&g_ape->properties, "userlist", hashtbl_init(),
-				 EXTEND_POINTER, EXTEND_ISPRIVATE);
+				 EXTEND_HTBL, EXTEND_ISPRIVATE);
 	add_property(&g_ape->properties, "msgstatic", stdata,
-				 EXTEND_POINTER, EXTEND_ISPRIVATE);
+				 EXTEND_HTBL, EXTEND_ISPRIVATE);
+	add_property(&g_ape->properties, "onlineuser", hashtbl_init(),
+				 EXTEND_HTBL, EXTEND_ISPRIVATE);
 	
     add_periodical((1000*60*30), 0, tick_static, g_ape, g_ape);
 	
@@ -742,6 +807,7 @@ static void init_module(acetables *g_ape)
 	register_cmd("FRIENDLIST", push_friendlist, NEED_SESSID, g_ape);
 	register_cmd("USERONLINE", push_useronline, NEED_SESSID, g_ape);
 	register_cmd("SENDUNIQ", push_senduniq, NEED_SESSID, g_ape);
+	register_cmd("SENDMULTI", push_sendmulti, NEED_SESSID, g_ape);
 	//register_cmd("TRUSTSEND", push_trustsend, NEED_NOTHING, g_ape);
 }
 

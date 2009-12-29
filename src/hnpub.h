@@ -8,6 +8,7 @@
 #include "channel.h"
 
 void hn_senderr(callbackp *callbacki, char *code, char *msg);
+void hn_senddata(callbackp *callbacki, char *code, char *msg);
 int hn_isvaliduin(char *uin);
 
 #endif

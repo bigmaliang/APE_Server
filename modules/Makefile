@@ -22,10 +22,11 @@ LIB_EVENT = -L $(EVENT_BASE)/api -lmevent -L $(EVENT_BASE)/daemon -lmevent_serve
 
 all: modules
 
-modules: libape-spidermonkey.c libape-push.c
+modules: libape-spidermonkey.c libape-push.c libape-fkq.c
 
-	$(CC) $(CFLAGS) -Wl,-soname,libmod_spidermonkey.so -o lib/libmod_spidermonkey.so libape-spidermonkey.c -I../deps/js/src/dist/include/ -L../deps/js/src/ -ljs_static -lstdc++ -L./deps/mysac/ -I./deps/mysac/ -lmysac -lmysqlclient_r
+#	$(CC) $(CFLAGS) -Wl,-soname,libmod_spidermonkey.so -o lib/libmod_spidermonkey.so libape-spidermonkey.c -I../deps/js/src/dist/include/ -L../deps/js/src/ -ljs_static -lstdc++ -L./deps/mysac/ -I./deps/mysac/ -lmysac -lmysqlclient_r
 
 #	$(CC) $(CFLAGS) -std=c99 -Wl,-soname,libmod_push.so -o lib/libmod_push.so libape-push.c -I../deps/js/src/dist/include/ -L../deps/js/src/ -ljs_static -lstdc++ -L./deps/mysac/ -I./deps/mysac/ -lmysac -lmysqlclient_r $(INC_EVENT) $(LIB_EVENT)
 	$(CC) $(CFLAGS) -std=c99 -Wl,-soname,libmod_push.so -o lib/libmod_push.so libape-push.c $(INC_EVENT) $(LIB_EVENT)
+	$(CC) $(CFLAGS) -std=c99 -Wl,-soname,libmod_fkq.so -o lib/libmod_fkq.so libape-fkq.c $(INC_EVENT) $(LIB_EVENT)
 endif

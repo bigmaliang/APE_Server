@@ -19,6 +19,19 @@ void hn_senderr(callbackp *callbacki, char *code, char *msg)
     send_raw_inline(callbacki->client, callbacki->transport, raw, callbacki->g_ape);
 }
 
+void hn_senddata(callbackp *callbacki, char *code, char *msg)
+{
+    if (callbacki == NULL || code == NULL || msg == NULL)
+        return;
+    
+    RAW *raw;
+    json_item *ej = json_new_object();
+    json_set_property_strZ(ej, "code", code);
+    json_set_property_strZ(ej, "value", msg);
+    raw = forge_raw(RAW_DATA, ej);
+    send_raw_inline(callbacki->client, callbacki->transport, raw, callbacki->g_ape);
+}
+
 int hn_isvaliduin(char *uin)
 {
 	if (uin == NULL)
