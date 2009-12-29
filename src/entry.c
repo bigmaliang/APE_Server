@@ -194,8 +194,7 @@ int main(int argc, char **argv)
 	
 	if (strcmp(CONFIG_VAL(Server, daemon, srv), "yes") == 0 && (pidfile = CONFIG_VAL(Server, pid_file, srv)) != NULL) {
 		if ((pidfd = open(pidfile, O_TRUNC | O_WRONLY | O_CREAT, 0655)) == -1) {
-			ape_log(APE_WARN, __FILE__, __LINE__, g_ape, 
-				"Cant open pid file : %s", CONFIG_VAL(Server, pid_file, srv));
+			alog_warn("Cant open pid file : %s", CONFIG_VAL(Server, pid_file, srv));
 		}
 	}
 	
@@ -248,8 +247,7 @@ int main(int argc, char **argv)
 	}
 	
 	if (strcmp(CONFIG_VAL(Server, daemon, srv), "yes") == 0) {
-		ape_log(APE_INFO, __FILE__, __LINE__, g_ape, 
-			"Starting daemon");
+		alog_foo("Starting daemon");
 		ape_daemon(pidfd, g_ape);
 
 		events_reload(g_ape->events);

@@ -295,8 +295,7 @@ unsigned int sockroutine(acetables *g_ape)
 		nfds = events_poll(g_ape->events, 1);
 		
 		if (nfds < 0) {
-			ape_log(APE_ERR, __FILE__, __LINE__, g_ape, 
-				"events_poll() : %s", strerror(errno));
+			alog_errlog("events_poll() : ");
 			continue;
 		}
 		

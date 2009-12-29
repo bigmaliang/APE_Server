@@ -2,7 +2,7 @@
 # Generated automatically by configure.
 # Run this file to recreate the current configuration.
 # This directory was configured as follows,
-# on host paramac.local:
+# on host localhost.localdomain:
 #
 # ./configure 
 #
@@ -45,13 +45,13 @@ sed 's/%@/@@/; s/@%/@@/; s/%g$/@g/; /@g$/s/[\\&%]/\\&/g;
 /^[ 	]*VPATH[ 	]*=[^:]*$/d
 
 s%@SHELL@%/bin/sh%g
-s%@CFLAGS@%-Wall -W -Wno-unused -Wpointer-arith -Wcast-align -W -Wno-long-long -fno-strict-aliasing -fpascal-strings -fno-common -pthread -pipe%g
+s%@CFLAGS@%-Wall -W -Wno-unused -Wpointer-arith -Wcast-align -W -Wno-long-long -pedantic -fno-strict-aliasing -pthread -pipe%g
 s%@CPPFLAGS@%%g
-s%@CXXFLAGS@%-fno-rtti -fno-exceptions -Wall -Wpointer-arith -Woverloaded-virtual -Wsynth -Wno-ctor-dtor-privacy -Wno-non-virtual-dtor -Wcast-align -Wno-invalid-offsetof -Wno-variadic-macros -Wno-long-long -fno-strict-aliasing -fpascal-strings -fno-common -pthread -pipe%g
+s%@CXXFLAGS@%-fno-rtti -fno-exceptions -Wall -Wpointer-arith -Woverloaded-virtual -Wsynth -Wno-ctor-dtor-privacy -Wno-non-virtual-dtor -Wcast-align -Wno-invalid-offsetof -Wno-variadic-macros -Wno-long-long -pedantic -fno-strict-aliasing -pthread -pipe%g
 s%@FFLAGS@%%g
 s%@DEFS@%-DHAVE_CONFIG_H%g
-s%@LDFLAGS@%  -framework Cocoa%g
-s%@LIBS@%%g
+s%@LDFLAGS@%-lpthread %g
+s%@LIBS@%-ldl -lm %g
 s%@exec_prefix@%${prefix}%g
 s%@prefix@%/usr/local%g
 s%@program_transform_name@%s,x,x,%g
@@ -67,40 +67,40 @@ s%@includedir@%${prefix}/include%g
 s%@oldincludedir@%/usr/include%g
 s%@infodir@%${prefix}/info%g
 s%@mandir@%${prefix}/man%g
-s%@host@%x86_64-apple-darwin10.2.0%g
-s%@host_alias@%x86_64-apple-darwin10.2.0%g
+s%@host@%x86_64-unknown-linux-gnu%g
+s%@host_alias@%x86_64-unknown-linux-gnu%g
 s%@host_cpu@%x86_64%g
-s%@host_vendor@%apple%g
-s%@host_os@%darwin10.2.0%g
-s%@target@%x86_64-apple-darwin10.2.0%g
-s%@target_alias@%x86_64-apple-darwin10.2.0%g
+s%@host_vendor@%unknown%g
+s%@host_os@%linux-gnu%g
+s%@target@%x86_64-unknown-linux-gnu%g
+s%@target_alias@%x86_64-unknown-linux-gnu%g
 s%@target_cpu@%x86_64%g
-s%@target_vendor@%apple%g
-s%@target_os@%darwin10.2.0%g
-s%@build@%x86_64-apple-darwin10.2.0%g
-s%@build_alias@%x86_64-apple-darwin10.2.0%g
+s%@target_vendor@%unknown%g
+s%@target_os@%linux-gnu%g
+s%@build@%x86_64-unknown-linux-gnu%g
+s%@build_alias@%x86_64-unknown-linux-gnu%g
 s%@build_cpu@%x86_64%g
-s%@build_vendor@%apple%g
-s%@build_os@%darwin10.2.0%g
+s%@build_vendor@%unknown%g
+s%@build_os@%linux-gnu%g
 s%@AWK@%gawk%g
 s%@TOP_DIST@%dist%g
-s%@HOST_CC@%gcc-4.2%g
-s%@HOST_CXX@%g++-4.2%g
+s%@HOST_CC@%gcc%g
+s%@HOST_CXX@%c++%g
 s%@HOST_RANLIB@%ranlib%g
 s%@HOST_AR@%$(AR)%g
-s%@CC@%gcc-4.2%g
-s%@CXX@%g++-4.2%g
+s%@CC@%gcc%g
+s%@CXX@%c++%g
 s%@RANLIB@%ranlib%g
 s%@AR@%ar%g
 s%@AS@%$(CC)%g
 s%@LD@%ld%g
-s%@STRIP@%strip -x -S%g
+s%@STRIP@%strip%g
 s%@WINDRES@%:%g
-s%@CPP@%gcc-4.2 -E%g
-s%@CXXCPP@%g++-4.2 -E%g
+s%@CPP@%gcc -E%g
+s%@CXXCPP@%c++ -E%g
 s%@_MSC_VER@%%g
 s%@GNU_AS@%1%g
-s%@GNU_LD@%%g
+s%@GNU_LD@%1%g
 s%@GNU_CC@%1%g
 s%@GNU_CXX@%1%g
 s%@INTEL_CC@%%g
@@ -109,24 +109,24 @@ s%@INSTALL_PROGRAM@%${INSTALL}%g
 s%@INSTALL_SCRIPT@%${INSTALL_PROGRAM}%g
 s%@INSTALL_DATA@%${INSTALL} -m 644%g
 s%@LN_S@%ln -s%g
-s%@PERL@%/opt/local/bin/perl5%g
+s%@PERL@%/usr/bin/perl%g
 s%@PYTHON@%/usr/bin/python%g
 s%@NSINSTALL_BIN@%%g
-s%@DOXYGEN@%:%g
+s%@DOXYGEN@%/usr/bin/doxygen%g
 s%@WHOAMI@%/usr/bin/whoami%g
-s%@AUTOCONF@%/sw/bin/autoconf%g
-s%@SYSTEM_MAKEDEPEND@%/usr/X11/bin/makedepend%g
+s%@AUTOCONF@%/usr/bin/autoconf%g
+s%@SYSTEM_MAKEDEPEND@%/usr/bin/makedepend%g
 s%@XARGS@%/usr/bin/xargs%g
-s%@PBBUILD@%/usr/bin/xcodebuild%g
-s%@SDP@%/usr/bin/sdp%g
-s%@GCC_VERSION@%4.2%g
-s%@XCODEBUILD_VERSION@%1614%g
-s%@HAS_XCODE_2_1@%1%g
+s%@PBBUILD@%%g
+s%@SDP@%%g
+s%@GCC_VERSION@%4.1.2%g
+s%@XCODEBUILD_VERSION@%%g
+s%@HAS_XCODE_2_1@%%g
 s%@UNIVERSAL_BINARY@%%g
-s%@MACOSX_DEPLOYMENT_TARGET@%10.4%g
+s%@MACOSX_DEPLOYMENT_TARGET@%%g
 s%@MACOS_SDK_DIR@%%g
 s%@NEXT_ROOT@%%g
-s%@MAKE@%/usr/bin/make%g
+s%@MAKE@%/usr/bin/gmake%g
 s%@X_CFLAGS@%%g
 s%@X_PRE_LIBS@%%g
 s%@X_LIBS@%%g
@@ -136,11 +136,11 @@ s%@SOLARIS_SUNPRO_CXX@%%g
 s%@HAVE_64BIT_OS@%1%g
 s%@MOZ_OS2_HIGH_MEMORY@%1%g
 s%@AIX_OBJMODEL@%%g
-s%@NO_LD_ARCHIVE_FLAGS@%1%g
+s%@NO_LD_ARCHIVE_FLAGS@%%g
 s%@ENABLE_JIT@%1%g
 s%@NANOJIT_ARCH@%X64%g
-s%@WRAP_SYSTEM_INCLUDES@%%g
-s%@VISIBILITY_FLAGS@%-fvisibility=hidden%g
+s%@WRAP_SYSTEM_INCLUDES@%1%g
+s%@VISIBILITY_FLAGS@%-I$(DIST)/system_wrappers_js -include $(topsrcdir)/config/gcc_hidden.h%g
 s%@HAVE_DTRACE@%%g
 s%@LIBOBJS@%%g
 s%@HAVE_GCC3_ABI@%1%g
@@ -149,9 +149,9 @@ s%@NSPR_LIBS@%%g
 s%@NSPR_CONFIG@%%g
 s%@MOZ_UI_LOCALE@%%g
 s%@MOZ_OPTIMIZE@%1%g
-s%@MOZ_OPTIMIZE_FLAGS@%-O3%g
-s%@MOZ_OPTIMIZE_LDFLAGS@%-Wl,-dead_strip%g
-s%@MOZ_OPTIMIZE_SIZE_TWEAK@%%g
+s%@MOZ_OPTIMIZE_FLAGS@%-Os -freorder-blocks -fno-reorder-functions -finline-limit=50%g
+s%@MOZ_OPTIMIZE_LDFLAGS@%%g
+s%@MOZ_OPTIMIZE_SIZE_TWEAK@%-finline-limit=50%g
 s%@NS_TRACE_MALLOC@%%g
 s%@MOZ_MEMORY@%%g
 s%@MOZ_MEMORY_LDFLAGS@%%g
@@ -189,8 +189,8 @@ s%@MOZ_DEBUG@%%g
 s%@MOZ_DEBUG_MODULES@%%g
 s%@MOZ_DEBUG_ENABLE_DEFS@%-DDEBUG -D_DEBUG -DDEBUG_root -DTRACING%g
 s%@MOZ_DEBUG_DISABLE_DEFS@%-DNDEBUG -DTRIMMED%g
-s%@MOZ_DEBUG_FLAGS@%-g%g
-s%@MOZ_DEBUG_LDFLAGS@% -framework ExceptionHandling%g
+s%@MOZ_DEBUG_FLAGS@%-g -fno-inline%g
+s%@MOZ_DEBUG_LDFLAGS@%%g
 s%@WARNINGS_AS_ERRORS@%-Werror%g
 s%@MOZ_DBGRINFO_MODULES@%%g
 s%@MOZ_LEAKY@%%g
@@ -211,11 +211,11 @@ s%@ENABLE_TESTS@%1%g
 s%@ENABLE_STRIP@%%g
 s%@PKG_SKIP_STRIP@%%g
 s%@INCREMENTAL_LINKER@%%g
-s%@MOZ_COMPONENTS_VERSION_SCRIPT_LDFLAGS@%-Wl,-exported_symbols_list -Wl,$(BUILD_TOOLS)/gnu-ld-scripts/components-export-list%g
+s%@MOZ_COMPONENTS_VERSION_SCRIPT_LDFLAGS@%-Wl,--version-script -Wl,$(BUILD_TOOLS)/gnu-ld-scripts/components-version-script%g
 s%@MOZ_COMPONENT_NSPR_LIBS@%-L$(LIBXUL_DIST)/bin $(NSPR_LIBS)%g
-s%@MOZ_FIX_LINK_PATHS@%-Wl,-executable_path,$(LIBXUL_DIST)/bin%g
+s%@MOZ_FIX_LINK_PATHS@%-Wl,-rpath-link,$(LIBXUL_DIST)/bin -Wl,-rpath-link,$(PREFIX)/lib%g
 s%@USE_DEPENDENT_LIBS@%1%g
-s%@MOZ_BUILD_ROOT@%/Users/para/dev/ape_1.0/APE_Server/deps/js/src%g
+s%@MOZ_BUILD_ROOT@%/usr/local/moon/deliver/APE_Server/deps/js/src%g
 s%@MOZ_OS2_TOOLS@%%g
 s%@MOZ_OS2_USE_DECLSPEC@%%g
 s%@MOZ_POST_DSO_LIB_COMMAND@%%g
@@ -239,51 +239,51 @@ s%@MOZ_NATIVE_NSPR@%%g
 s%@COMPILE_CFLAGS@%-include $(DEPTH)/js-confdefs.h -DMOZILLA_CLIENT $(filter-out %/.pp,-Wp,-MD,$(MDDEPDIR)/$(basename $(@F)).pp)%g
 s%@COMPILE_CXXFLAGS@%-DMOZILLA_CLIENT -include $(DEPTH)/js-confdefs.h $(filter-out %/.pp,-Wp,-MD,$(MDDEPDIR)/$(basename $(@F)).pp)%g
 s%@CROSS_COMPILE@%%g
-s%@HOST_CFLAGS@% -DXP_UNIX -DXP_MACOSX -DNO_X11%g
+s%@HOST_CFLAGS@% -DXP_UNIX%g
 s%@HOST_CXXFLAGS@%%g
 s%@HOST_OPTIMIZE_FLAGS@%-O3%g
 s%@HOST_AR_FLAGS@%$(AR_FLAGS)%g
 s%@HOST_LD@%%g
-s%@HOST_NSPR_MDCPUCFG@%\"md/_darwin.cfg\"%g
+s%@HOST_NSPR_MDCPUCFG@%\"md/_linux.cfg\"%g
 s%@HOST_BIN_SUFFIX@%%g
-s%@HOST_OS_ARCH@%darwin10.2.0%g
+s%@HOST_OS_ARCH@%Linux%g
 s%@TARGET_CPU@%x86_64%g
-s%@TARGET_VENDOR@%apple%g
-s%@TARGET_OS@%darwin10.2.0%g
-s%@TARGET_NSPR_MDCPUCFG@%\"md/_darwin.cfg\"%g
+s%@TARGET_VENDOR@%unknown%g
+s%@TARGET_OS@%linux-gnu%g
+s%@TARGET_NSPR_MDCPUCFG@%\"md/_linux.cfg\"%g
 s%@TARGET_MD_ARCH@%unix%g
 s%@TARGET_XPCOM_ABI@%x86_64-gcc3%g
-s%@OS_TARGET@%Darwin%g
-s%@OS_ARCH@%Darwin%g
-s%@OS_RELEASE@%10.2.0%g
+s%@OS_TARGET@%Linux%g
+s%@OS_ARCH@%Linux%g
+s%@OS_RELEASE@%2.6.18-92.el5%g
 s%@OS_TEST@%x86_64%g
 s%@WRAP_MALLOC_CFLAGS@%%g
 s%@WRAP_MALLOC_LIB@%%g
-s%@MKSHLIB@%$(CXX) $(CXXFLAGS) $(DSO_PIC_CFLAGS) $(DSO_LDOPTS) -o $@%g
-s%@MKCSHLIB@%$(CC) $(CFLAGS) $(DSO_PIC_CFLAGS) $(DSO_LDOPTS) -o $@%g
-s%@MKSHLIB_FORCE_ALL@%%g
-s%@MKSHLIB_UNFORCE_ALL@%%g
+s%@MKSHLIB@%$(CXX) $(CXXFLAGS) $(DSO_PIC_CFLAGS) $(DSO_LDOPTS) -Wl,-h,$@ -o $@%g
+s%@MKCSHLIB@%$(CC) $(CFLAGS) $(DSO_PIC_CFLAGS) $(DSO_LDOPTS) -Wl,-h,$@ -o $@%g
+s%@MKSHLIB_FORCE_ALL@%-Wl,--whole-archive%g
+s%@MKSHLIB_UNFORCE_ALL@%-Wl,--no-whole-archive%g
 s%@DSO_CFLAGS@%%g
 s%@DSO_PIC_CFLAGS@%-fPIC%g
-s%@DSO_LDOPTS@%%g
+s%@DSO_LDOPTS@%-shared -Wl,-z,defs%g
 s%@LIB_PREFIX@%lib%g
 s%@DLL_PREFIX@%lib%g
-s%@DLL_SUFFIX@%.dylib%g
+s%@DLL_SUFFIX@%.so%g
 s%@LIB_SUFFIX@%a%g
 s%@OBJ_SUFFIX@%o%g
 s%@BIN_SUFFIX@%%g
 s%@ASM_SUFFIX@%s%g
 s%@IMPORT_LIB_SUFFIX@%%g
 s%@USE_N32@%%g
-s%@CC_VERSION@%gcc version 4.2.1 (Apple Inc. build 5646) (dot 1)%g
-s%@CXX_VERSION@%gcc version 4.2.1 (Apple Inc. build 5646) (dot 1)%g
+s%@CC_VERSION@%gcc version 4.1.2 20071124 (Red Hat 4.1.2-42)%g
+s%@CXX_VERSION@%gcc version 4.1.2 20071124 (Red Hat 4.1.2-42)%g
 s%@MSMANIFEST_TOOL@%%g
 s%@MOZ_MOVEMAIL@%1%g
 s%@CYGDRIVE_MOUNT@%%g
 s%@WIN_TOP_SRC@%%g
 s%@MOZILLA_VERSION@%%g
 s%@ac_configure_args@%%g
-s%@MOZ_DEFINES@% -DX_DISPLAY_MISSING=1 -DHAVE_64BIT_OS=1 -DD_INO=d_ino -DFEATURE_NANOJIT=1 -DJS_TRACER=1 -DAVMPLUS_AMD64=1 -DAVMPLUS_64BIT=1 -DAVMPLUS_UNIX=1 -DSTDC_HEADERS=1 -DHAVE_ST_BLKSIZE=1 -DHAVE_SIGINFO_T=1 -DJS_HAVE_STDINT_H=1 -DJS_BYTES_PER_WORD=8 -DJS_BITS_PER_WORD_LOG2=6 -DJS_ALIGN_OF_POINTER=8 -DJS_BYTES_PER_DOUBLE=8 -DHAVE_INT16_T=1 -DHAVE_INT32_T=1 -DHAVE_INT64_T=1 -DHAVE_UINT=1 -DHAVE_VISIBILITY_HIDDEN_ATTRIBUTE=1 -DHAVE_VISIBILITY_ATTRIBUTE=1 -DHAVE_DIRENT_H=1 -DHAVE_GETOPT_H=1 -DHAVE_MEMORY_H=1 -DHAVE_UNISTD_H=1 -DHAVE_NL_TYPES_H=1 -DHAVE_X11_XKBLIB_H=1 -DHAVE_SYS_STATVFS_H=1 -DHAVE_SYS_MOUNT_H=1 -DHAVE_MMINTRIN_H=1 -DNEW_H=\<new\> -DHAVE_SYS_CDEFS_H=1 -DHAVE_DLADDR=1 -DHAVE_FCHMOD=1 -DHAVE_FLOCKFILE=1 -DHAVE_GETC_UNLOCKED=1 -DHAVE_GETPAGESIZE=1 -DHAVE_LCHOWN=1 -DHAVE_LOCALTIME_R=1 -DHAVE_LSTAT64=1 -DHAVE_MEMMOVE=1 -DHAVE_RANDOM=1 -DHAVE_RINT=1 -DHAVE_SBRK=1 -DHAVE_SNPRINTF=1 -DHAVE_STAT64=1 -DHAVE_STATVFS=1 -DHAVE_STRERROR=1 -DHAVE_STRTOK_R=1 -DHAVE_WCRTOMB=1 -DHAVE_MBRTOWC=1 -DVA_COPY=va_copy -DHAVE_VA_COPY=1 -DHAVE_VA_LIST_AS_ARRAY=1 -DHAVE_CPP_EXPLICIT=1 -DHAVE_CPP_TYPENAME=1 -DHAVE_CPP_MODERN_SPECIALIZE_TEMPLATE_SYNTAX=1 -DHAVE_CPP_PARTIAL_SPECIALIZATION=1 -DHAVE_CPP_ACCESS_CHANGING_USING=1 -DHAVE_CPP_AMBIGUITY_RESOLVING_USING=1 -DHAVE_CPP_NAMESPACE_STD=1 -DHAVE_CPP_UNAMBIGUOUS_STD_NOTEQUAL=1 -DHAVE_CPP_NEW_CASTS=1 -DHAVE_CPP_DYNAMIC_CAST_TO_VOID_PTR=1 -DNEED_CPP_UNUSED_IMPLEMENTATIONS=1 -DHAVE_I18N_LC_MESSAGES=1 -DHAVE___CXA_DEMANGLE=1 -DHAVE__UNWIND_BACKTRACE=1 -DHAVE_TM_ZONE_TM_GMTOFF=1 -DCPP_THROW_NEW=throw\(\) -DEDITLINE=1 -DMOZ_DLL_SUFFIX=\".dylib\" -DXP_UNIX=1 -DUNIX_ASYNC_DNS=1 -DHAVE_SETLOCALE=1 %g
+s%@MOZ_DEFINES@% -DX_DISPLAY_MISSING=1 -DHAVE_64BIT_OS=1 -DD_INO=d_ino -DFEATURE_NANOJIT=1 -DJS_TRACER=1 -DAVMPLUS_AMD64=1 -DAVMPLUS_64BIT=1 -DAVMPLUS_UNIX=1 -DAVMPLUS_LINUX=1 -DSTDC_HEADERS=1 -DHAVE_ST_BLKSIZE=1 -DHAVE_SIGINFO_T=1 -DJS_HAVE_STDINT_H=1 -DJS_BYTES_PER_WORD=8 -DJS_BITS_PER_WORD_LOG2=6 -DJS_ALIGN_OF_POINTER=8 -DJS_BYTES_PER_DOUBLE=8 -DHAVE_INT16_T=1 -DHAVE_INT32_T=1 -DHAVE_INT64_T=1 -DHAVE_UINT=1 -DHAVE_UNAME_DOMAINNAME_FIELD=1 -DHAVE_VISIBILITY_HIDDEN_ATTRIBUTE=1 -DHAVE_VISIBILITY_ATTRIBUTE=1 -DHAVE_DIRENT_H=1 -DHAVE_GETOPT_H=1 -DHAVE_SYS_BITYPES_H=1 -DHAVE_MEMORY_H=1 -DHAVE_UNISTD_H=1 -DHAVE_GNU_LIBC_VERSION_H=1 -DHAVE_NL_TYPES_H=1 -DHAVE_MALLOC_H=1 -DHAVE_SYS_STATVFS_H=1 -DHAVE_SYS_STATFS_H=1 -DHAVE_SYS_VFS_H=1 -DHAVE_SYS_MOUNT_H=1 -DHAVE_MMINTRIN_H=1 -DNEW_H=\<new\> -DHAVE_SYS_CDEFS_H=1 -DHAVE_LIBM=1 -DHAVE_LIBDL=1 -DHAVE_DLADDR=1 -D_REENTRANT=1 -DHAVE_FCHMOD=1 -DHAVE_FLOCKFILE=1 -DHAVE_GETC_UNLOCKED=1 -DHAVE_GETPAGESIZE=1 -DHAVE_LCHOWN=1 -DHAVE_LOCALTIME_R=1 -DHAVE_LSTAT64=1 -DHAVE_MEMMOVE=1 -DHAVE_RANDOM=1 -DHAVE_RINT=1 -DHAVE_SBRK=1 -DHAVE_SNPRINTF=1 -DHAVE_STAT64=1 -DHAVE_STATVFS=1 -DHAVE_STATVFS64=1 -DHAVE_STRERROR=1 -DHAVE_STRTOK_R=1 -DHAVE_TRUNCATE64=1 -DHAVE_WCRTOMB=1 -DHAVE_MBRTOWC=1 -DHAVE_RES_NINIT=1 -DHAVE_GNU_GET_LIBC_VERSION=1 -DVA_COPY=va_copy -DHAVE_VA_COPY=1 -DHAVE_VA_LIST_AS_ARRAY=1 -DHAVE_CPP_EXPLICIT=1 -DHAVE_CPP_TYPENAME=1 -DHAVE_CPP_MODERN_SPECIALIZE_TEMPLATE_SYNTAX=1 -DHAVE_CPP_PARTIAL_SPECIALIZATION=1 -DHAVE_CPP_ACCESS_CHANGING_USING=1 -DHAVE_CPP_AMBIGUITY_RESOLVING_USING=1 -DHAVE_CPP_NAMESPACE_STD=1 -DHAVE_CPP_UNAMBIGUOUS_STD_NOTEQUAL=1 -DHAVE_CPP_NEW_CASTS=1 -DHAVE_CPP_DYNAMIC_CAST_TO_VOID_PTR=1 -DNEED_CPP_UNUSED_IMPLEMENTATIONS=1 -DHAVE_I18N_LC_MESSAGES=1 -DHAVE___CXA_DEMANGLE=1 -DHAVE__UNWIND_BACKTRACE=1 -DHAVE_TM_ZONE_TM_GMTOFF=1 -DCPP_THROW_NEW=throw\(\) -DEDITLINE=1 -DMOZ_DLL_SUFFIX=\".so\" -DXP_UNIX=1 -DUNIX_ASYNC_DNS=1 -DHAVE_SETLOCALE=1 %g
 
 CEOF
 
@@ -459,6 +459,9 @@ CEOF
   mv conftest.out conftest.in
 
   cat > conftest.frag <<CEOF
+${ac_dA}AVMPLUS_LINUX${ac_dB}AVMPLUS_LINUX${ac_dC}1${ac_dD}
+${ac_uA}AVMPLUS_LINUX${ac_uB}AVMPLUS_LINUX${ac_uC}1${ac_uD}
+${ac_eA}AVMPLUS_LINUX${ac_eB}AVMPLUS_LINUX${ac_eC}1${ac_eD}
 ${ac_dA}STDC_HEADERS${ac_dB}STDC_HEADERS${ac_dC}1${ac_dD}
 ${ac_uA}STDC_HEADERS${ac_uB}STDC_HEADERS${ac_uC}1${ac_uD}
 ${ac_eA}STDC_HEADERS${ac_eB}STDC_HEADERS${ac_eC}1${ac_eD}
@@ -468,15 +471,15 @@ ${ac_eA}HAVE_ST_BLKSIZE${ac_eB}HAVE_ST_BLKSIZE${ac_eC}1${ac_eD}
 ${ac_dA}HAVE_SIGINFO_T${ac_dB}HAVE_SIGINFO_T${ac_dC}1${ac_dD}
 ${ac_uA}HAVE_SIGINFO_T${ac_uB}HAVE_SIGINFO_T${ac_uC}1${ac_uD}
 ${ac_eA}HAVE_SIGINFO_T${ac_eB}HAVE_SIGINFO_T${ac_eC}1${ac_eD}
-${ac_dA}JS_HAVE_STDINT_H${ac_dB}JS_HAVE_STDINT_H${ac_dC}1${ac_dD}
-${ac_uA}JS_HAVE_STDINT_H${ac_uB}JS_HAVE_STDINT_H${ac_uC}1${ac_uD}
-${ac_eA}JS_HAVE_STDINT_H${ac_eB}JS_HAVE_STDINT_H${ac_eC}1${ac_eD}
 CEOF
   sed -f conftest.frag conftest.in > conftest.out
   rm -f conftest.in
   mv conftest.out conftest.in
 
   cat > conftest.frag <<CEOF
+${ac_dA}JS_HAVE_STDINT_H${ac_dB}JS_HAVE_STDINT_H${ac_dC}1${ac_dD}
+${ac_uA}JS_HAVE_STDINT_H${ac_uB}JS_HAVE_STDINT_H${ac_uC}1${ac_uD}
+${ac_eA}JS_HAVE_STDINT_H${ac_eB}JS_HAVE_STDINT_H${ac_eC}1${ac_eD}
 ${ac_dA}JS_BYTES_PER_WORD${ac_dB}JS_BYTES_PER_WORD${ac_dC}8${ac_dD}
 ${ac_uA}JS_BYTES_PER_WORD${ac_uB}JS_BYTES_PER_WORD${ac_uC}8${ac_uD}
 ${ac_eA}JS_BYTES_PER_WORD${ac_eB}JS_BYTES_PER_WORD${ac_eC}8${ac_eD}
@@ -486,15 +489,15 @@ ${ac_eA}JS_BITS_PER_WORD_LOG2${ac_eB}JS_BITS_PER_WORD_LOG2${ac_eC}6${ac_eD}
 ${ac_dA}JS_ALIGN_OF_POINTER${ac_dB}JS_ALIGN_OF_POINTER${ac_dC}8${ac_dD}
 ${ac_uA}JS_ALIGN_OF_POINTER${ac_uB}JS_ALIGN_OF_POINTER${ac_uC}8${ac_uD}
 ${ac_eA}JS_ALIGN_OF_POINTER${ac_eB}JS_ALIGN_OF_POINTER${ac_eC}8${ac_eD}
-${ac_dA}JS_BYTES_PER_DOUBLE${ac_dB}JS_BYTES_PER_DOUBLE${ac_dC}8${ac_dD}
-${ac_uA}JS_BYTES_PER_DOUBLE${ac_uB}JS_BYTES_PER_DOUBLE${ac_uC}8${ac_uD}
-${ac_eA}JS_BYTES_PER_DOUBLE${ac_eB}JS_BYTES_PER_DOUBLE${ac_eC}8${ac_eD}
 CEOF
   sed -f conftest.frag conftest.in > conftest.out
   rm -f conftest.in
   mv conftest.out conftest.in
 
   cat > conftest.frag <<CEOF
+${ac_dA}JS_BYTES_PER_DOUBLE${ac_dB}JS_BYTES_PER_DOUBLE${ac_dC}8${ac_dD}
+${ac_uA}JS_BYTES_PER_DOUBLE${ac_uB}JS_BYTES_PER_DOUBLE${ac_uC}8${ac_uD}
+${ac_eA}JS_BYTES_PER_DOUBLE${ac_eB}JS_BYTES_PER_DOUBLE${ac_eC}8${ac_eD}
 ${ac_dA}HAVE_INT16_T${ac_dB}HAVE_INT16_T${ac_dC}1${ac_dD}
 ${ac_uA}HAVE_INT16_T${ac_uB}HAVE_INT16_T${ac_uC}1${ac_uD}
 ${ac_eA}HAVE_INT16_T${ac_eB}HAVE_INT16_T${ac_eC}1${ac_eD}
@@ -504,45 +507,60 @@ ${ac_eA}HAVE_INT32_T${ac_eB}HAVE_INT32_T${ac_eC}1${ac_eD}
 ${ac_dA}HAVE_INT64_T${ac_dB}HAVE_INT64_T${ac_dC}1${ac_dD}
 ${ac_uA}HAVE_INT64_T${ac_uB}HAVE_INT64_T${ac_uC}1${ac_uD}
 ${ac_eA}HAVE_INT64_T${ac_eB}HAVE_INT64_T${ac_eC}1${ac_eD}
-${ac_dA}HAVE_UINT${ac_dB}HAVE_UINT${ac_dC}1${ac_dD}
-${ac_uA}HAVE_UINT${ac_uB}HAVE_UINT${ac_uC}1${ac_uD}
-${ac_eA}HAVE_UINT${ac_eB}HAVE_UINT${ac_eC}1${ac_eD}
 CEOF
   sed -f conftest.frag conftest.in > conftest.out
   rm -f conftest.in
   mv conftest.out conftest.in
 
   cat > conftest.frag <<CEOF
+${ac_dA}HAVE_UINT${ac_dB}HAVE_UINT${ac_dC}1${ac_dD}
+${ac_uA}HAVE_UINT${ac_uB}HAVE_UINT${ac_uC}1${ac_uD}
+${ac_eA}HAVE_UINT${ac_eB}HAVE_UINT${ac_eC}1${ac_eD}
+${ac_dA}HAVE_UNAME_DOMAINNAME_FIELD${ac_dB}HAVE_UNAME_DOMAINNAME_FIELD${ac_dC}1${ac_dD}
+${ac_uA}HAVE_UNAME_DOMAINNAME_FIELD${ac_uB}HAVE_UNAME_DOMAINNAME_FIELD${ac_uC}1${ac_uD}
+${ac_eA}HAVE_UNAME_DOMAINNAME_FIELD${ac_eB}HAVE_UNAME_DOMAINNAME_FIELD${ac_eC}1${ac_eD}
 ${ac_dA}HAVE_VISIBILITY_HIDDEN_ATTRIBUTE${ac_dB}HAVE_VISIBILITY_HIDDEN_ATTRIBUTE${ac_dC}1${ac_dD}
 ${ac_uA}HAVE_VISIBILITY_HIDDEN_ATTRIBUTE${ac_uB}HAVE_VISIBILITY_HIDDEN_ATTRIBUTE${ac_uC}1${ac_uD}
 ${ac_eA}HAVE_VISIBILITY_HIDDEN_ATTRIBUTE${ac_eB}HAVE_VISIBILITY_HIDDEN_ATTRIBUTE${ac_eC}1${ac_eD}
 ${ac_dA}HAVE_VISIBILITY_ATTRIBUTE${ac_dB}HAVE_VISIBILITY_ATTRIBUTE${ac_dC}1${ac_dD}
 ${ac_uA}HAVE_VISIBILITY_ATTRIBUTE${ac_uB}HAVE_VISIBILITY_ATTRIBUTE${ac_uC}1${ac_uD}
 ${ac_eA}HAVE_VISIBILITY_ATTRIBUTE${ac_eB}HAVE_VISIBILITY_ATTRIBUTE${ac_eC}1${ac_eD}
-${ac_dA}HAVE_DIRENT_H${ac_dB}HAVE_DIRENT_H${ac_dC}1${ac_dD}
-${ac_uA}HAVE_DIRENT_H${ac_uB}HAVE_DIRENT_H${ac_uC}1${ac_uD}
-${ac_eA}HAVE_DIRENT_H${ac_eB}HAVE_DIRENT_H${ac_eC}1${ac_eD}
-${ac_dA}HAVE_GETOPT_H${ac_dB}HAVE_GETOPT_H${ac_dC}1${ac_dD}
-${ac_uA}HAVE_GETOPT_H${ac_uB}HAVE_GETOPT_H${ac_uC}1${ac_uD}
-${ac_eA}HAVE_GETOPT_H${ac_eB}HAVE_GETOPT_H${ac_eC}1${ac_eD}
 CEOF
   sed -f conftest.frag conftest.in > conftest.out
   rm -f conftest.in
   mv conftest.out conftest.in
 
   cat > conftest.frag <<CEOF
+${ac_dA}HAVE_DIRENT_H${ac_dB}HAVE_DIRENT_H${ac_dC}1${ac_dD}
+${ac_uA}HAVE_DIRENT_H${ac_uB}HAVE_DIRENT_H${ac_uC}1${ac_uD}
+${ac_eA}HAVE_DIRENT_H${ac_eB}HAVE_DIRENT_H${ac_eC}1${ac_eD}
+${ac_dA}HAVE_GETOPT_H${ac_dB}HAVE_GETOPT_H${ac_dC}1${ac_dD}
+${ac_uA}HAVE_GETOPT_H${ac_uB}HAVE_GETOPT_H${ac_uC}1${ac_uD}
+${ac_eA}HAVE_GETOPT_H${ac_eB}HAVE_GETOPT_H${ac_eC}1${ac_eD}
+${ac_dA}HAVE_SYS_BITYPES_H${ac_dB}HAVE_SYS_BITYPES_H${ac_dC}1${ac_dD}
+${ac_uA}HAVE_SYS_BITYPES_H${ac_uB}HAVE_SYS_BITYPES_H${ac_uC}1${ac_uD}
+${ac_eA}HAVE_SYS_BITYPES_H${ac_eB}HAVE_SYS_BITYPES_H${ac_eC}1${ac_eD}
 ${ac_dA}HAVE_MEMORY_H${ac_dB}HAVE_MEMORY_H${ac_dC}1${ac_dD}
 ${ac_uA}HAVE_MEMORY_H${ac_uB}HAVE_MEMORY_H${ac_uC}1${ac_uD}
 ${ac_eA}HAVE_MEMORY_H${ac_eB}HAVE_MEMORY_H${ac_eC}1${ac_eD}
+CEOF
+  sed -f conftest.frag conftest.in > conftest.out
+  rm -f conftest.in
+  mv conftest.out conftest.in
+
+  cat > conftest.frag <<CEOF
 ${ac_dA}HAVE_UNISTD_H${ac_dB}HAVE_UNISTD_H${ac_dC}1${ac_dD}
 ${ac_uA}HAVE_UNISTD_H${ac_uB}HAVE_UNISTD_H${ac_uC}1${ac_uD}
 ${ac_eA}HAVE_UNISTD_H${ac_eB}HAVE_UNISTD_H${ac_eC}1${ac_eD}
+${ac_dA}HAVE_GNU_LIBC_VERSION_H${ac_dB}HAVE_GNU_LIBC_VERSION_H${ac_dC}1${ac_dD}
+${ac_uA}HAVE_GNU_LIBC_VERSION_H${ac_uB}HAVE_GNU_LIBC_VERSION_H${ac_uC}1${ac_uD}
+${ac_eA}HAVE_GNU_LIBC_VERSION_H${ac_eB}HAVE_GNU_LIBC_VERSION_H${ac_eC}1${ac_eD}
 ${ac_dA}HAVE_NL_TYPES_H${ac_dB}HAVE_NL_TYPES_H${ac_dC}1${ac_dD}
 ${ac_uA}HAVE_NL_TYPES_H${ac_uB}HAVE_NL_TYPES_H${ac_uC}1${ac_uD}
 ${ac_eA}HAVE_NL_TYPES_H${ac_eB}HAVE_NL_TYPES_H${ac_eC}1${ac_eD}
-${ac_dA}HAVE_X11_XKBLIB_H${ac_dB}HAVE_X11_XKBLIB_H${ac_dC}1${ac_dD}
-${ac_uA}HAVE_X11_XKBLIB_H${ac_uB}HAVE_X11_XKBLIB_H${ac_uC}1${ac_uD}
-${ac_eA}HAVE_X11_XKBLIB_H${ac_eB}HAVE_X11_XKBLIB_H${ac_eC}1${ac_eD}
+${ac_dA}HAVE_MALLOC_H${ac_dB}HAVE_MALLOC_H${ac_dC}1${ac_dD}
+${ac_uA}HAVE_MALLOC_H${ac_uB}HAVE_MALLOC_H${ac_uC}1${ac_uD}
+${ac_eA}HAVE_MALLOC_H${ac_eB}HAVE_MALLOC_H${ac_eC}1${ac_eD}
 CEOF
   sed -f conftest.frag conftest.in > conftest.out
   rm -f conftest.in
@@ -552,39 +570,60 @@ CEOF
 ${ac_dA}HAVE_SYS_STATVFS_H${ac_dB}HAVE_SYS_STATVFS_H${ac_dC}1${ac_dD}
 ${ac_uA}HAVE_SYS_STATVFS_H${ac_uB}HAVE_SYS_STATVFS_H${ac_uC}1${ac_uD}
 ${ac_eA}HAVE_SYS_STATVFS_H${ac_eB}HAVE_SYS_STATVFS_H${ac_eC}1${ac_eD}
+${ac_dA}HAVE_SYS_STATFS_H${ac_dB}HAVE_SYS_STATFS_H${ac_dC}1${ac_dD}
+${ac_uA}HAVE_SYS_STATFS_H${ac_uB}HAVE_SYS_STATFS_H${ac_uC}1${ac_uD}
+${ac_eA}HAVE_SYS_STATFS_H${ac_eB}HAVE_SYS_STATFS_H${ac_eC}1${ac_eD}
+${ac_dA}HAVE_SYS_VFS_H${ac_dB}HAVE_SYS_VFS_H${ac_dC}1${ac_dD}
+${ac_uA}HAVE_SYS_VFS_H${ac_uB}HAVE_SYS_VFS_H${ac_uC}1${ac_uD}
+${ac_eA}HAVE_SYS_VFS_H${ac_eB}HAVE_SYS_VFS_H${ac_eC}1${ac_eD}
 ${ac_dA}HAVE_SYS_MOUNT_H${ac_dB}HAVE_SYS_MOUNT_H${ac_dC}1${ac_dD}
 ${ac_uA}HAVE_SYS_MOUNT_H${ac_uB}HAVE_SYS_MOUNT_H${ac_uC}1${ac_uD}
 ${ac_eA}HAVE_SYS_MOUNT_H${ac_eB}HAVE_SYS_MOUNT_H${ac_eC}1${ac_eD}
+CEOF
+  sed -f conftest.frag conftest.in > conftest.out
+  rm -f conftest.in
+  mv conftest.out conftest.in
+
+  cat > conftest.frag <<CEOF
 ${ac_dA}HAVE_MMINTRIN_H${ac_dB}HAVE_MMINTRIN_H${ac_dC}1${ac_dD}
 ${ac_uA}HAVE_MMINTRIN_H${ac_uB}HAVE_MMINTRIN_H${ac_uC}1${ac_uD}
 ${ac_eA}HAVE_MMINTRIN_H${ac_eB}HAVE_MMINTRIN_H${ac_eC}1${ac_eD}
 ${ac_dA}NEW_H${ac_dB}NEW_H${ac_dC}<new>${ac_dD}
 ${ac_uA}NEW_H${ac_uB}NEW_H${ac_uC}<new>${ac_uD}
 ${ac_eA}NEW_H${ac_eB}NEW_H${ac_eC}<new>${ac_eD}
-CEOF
-  sed -f conftest.frag conftest.in > conftest.out
-  rm -f conftest.in
-  mv conftest.out conftest.in
-
-  cat > conftest.frag <<CEOF
 ${ac_dA}HAVE_SYS_CDEFS_H${ac_dB}HAVE_SYS_CDEFS_H${ac_dC}1${ac_dD}
 ${ac_uA}HAVE_SYS_CDEFS_H${ac_uB}HAVE_SYS_CDEFS_H${ac_uC}1${ac_uD}
 ${ac_eA}HAVE_SYS_CDEFS_H${ac_eB}HAVE_SYS_CDEFS_H${ac_eC}1${ac_eD}
-${ac_dA}HAVE_DLADDR${ac_dB}HAVE_DLADDR${ac_dC}1${ac_dD}
-${ac_uA}HAVE_DLADDR${ac_uB}HAVE_DLADDR${ac_uC}1${ac_uD}
-${ac_eA}HAVE_DLADDR${ac_eB}HAVE_DLADDR${ac_eC}1${ac_eD}
-${ac_dA}HAVE_FCHMOD${ac_dB}HAVE_FCHMOD${ac_dC}1${ac_dD}
-${ac_uA}HAVE_FCHMOD${ac_uB}HAVE_FCHMOD${ac_uC}1${ac_uD}
-${ac_eA}HAVE_FCHMOD${ac_eB}HAVE_FCHMOD${ac_eC}1${ac_eD}
-${ac_dA}HAVE_FLOCKFILE${ac_dB}HAVE_FLOCKFILE${ac_dC}1${ac_dD}
-${ac_uA}HAVE_FLOCKFILE${ac_uB}HAVE_FLOCKFILE${ac_uC}1${ac_uD}
-${ac_eA}HAVE_FLOCKFILE${ac_eB}HAVE_FLOCKFILE${ac_eC}1${ac_eD}
+${ac_dA}HAVE_LIBM${ac_dB}HAVE_LIBM${ac_dC}1${ac_dD}
+${ac_uA}HAVE_LIBM${ac_uB}HAVE_LIBM${ac_uC}1${ac_uD}
+${ac_eA}HAVE_LIBM${ac_eB}HAVE_LIBM${ac_eC}1${ac_eD}
 CEOF
   sed -f conftest.frag conftest.in > conftest.out
   rm -f conftest.in
   mv conftest.out conftest.in
 
   cat > conftest.frag <<CEOF
+${ac_dA}HAVE_LIBDL${ac_dB}HAVE_LIBDL${ac_dC}1${ac_dD}
+${ac_uA}HAVE_LIBDL${ac_uB}HAVE_LIBDL${ac_uC}1${ac_uD}
+${ac_eA}HAVE_LIBDL${ac_eB}HAVE_LIBDL${ac_eC}1${ac_eD}
+${ac_dA}HAVE_DLADDR${ac_dB}HAVE_DLADDR${ac_dC}1${ac_dD}
+${ac_uA}HAVE_DLADDR${ac_uB}HAVE_DLADDR${ac_uC}1${ac_uD}
+${ac_eA}HAVE_DLADDR${ac_eB}HAVE_DLADDR${ac_eC}1${ac_eD}
+${ac_dA}_REENTRANT${ac_dB}_REENTRANT${ac_dC}1${ac_dD}
+${ac_uA}_REENTRANT${ac_uB}_REENTRANT${ac_uC}1${ac_uD}
+${ac_eA}_REENTRANT${ac_eB}_REENTRANT${ac_eC}1${ac_eD}
+${ac_dA}HAVE_FCHMOD${ac_dB}HAVE_FCHMOD${ac_dC}1${ac_dD}
+${ac_uA}HAVE_FCHMOD${ac_uB}HAVE_FCHMOD${ac_uC}1${ac_uD}
+${ac_eA}HAVE_FCHMOD${ac_eB}HAVE_FCHMOD${ac_eC}1${ac_eD}
+CEOF
+  sed -f conftest.frag conftest.in > conftest.out
+  rm -f conftest.in
+  mv conftest.out conftest.in
+
+  cat > conftest.frag <<CEOF
+${ac_dA}HAVE_FLOCKFILE${ac_dB}HAVE_FLOCKFILE${ac_dC}1${ac_dD}
+${ac_uA}HAVE_FLOCKFILE${ac_uB}HAVE_FLOCKFILE${ac_uC}1${ac_uD}
+${ac_eA}HAVE_FLOCKFILE${ac_eB}HAVE_FLOCKFILE${ac_eC}1${ac_eD}
 ${ac_dA}HAVE_GETC_UNLOCKED${ac_dB}HAVE_GETC_UNLOCKED${ac_dC}1${ac_dD}
 ${ac_uA}HAVE_GETC_UNLOCKED${ac_uB}HAVE_GETC_UNLOCKED${ac_uC}1${ac_uD}
 ${ac_eA}HAVE_GETC_UNLOCKED${ac_eB}HAVE_GETC_UNLOCKED${ac_eC}1${ac_eD}
@@ -594,15 +633,15 @@ ${ac_eA}HAVE_GETPAGESIZE${ac_eB}HAVE_GETPAGESIZE${ac_eC}1${ac_eD}
 ${ac_dA}HAVE_LCHOWN${ac_dB}HAVE_LCHOWN${ac_dC}1${ac_dD}
 ${ac_uA}HAVE_LCHOWN${ac_uB}HAVE_LCHOWN${ac_uC}1${ac_uD}
 ${ac_eA}HAVE_LCHOWN${ac_eB}HAVE_LCHOWN${ac_eC}1${ac_eD}
-${ac_dA}HAVE_LOCALTIME_R${ac_dB}HAVE_LOCALTIME_R${ac_dC}1${ac_dD}
-${ac_uA}HAVE_LOCALTIME_R${ac_uB}HAVE_LOCALTIME_R${ac_uC}1${ac_uD}
-${ac_eA}HAVE_LOCALTIME_R${ac_eB}HAVE_LOCALTIME_R${ac_eC}1${ac_eD}
 CEOF
   sed -f conftest.frag conftest.in > conftest.out
   rm -f conftest.in
   mv conftest.out conftest.in
 
   cat > conftest.frag <<CEOF
+${ac_dA}HAVE_LOCALTIME_R${ac_dB}HAVE_LOCALTIME_R${ac_dC}1${ac_dD}
+${ac_uA}HAVE_LOCALTIME_R${ac_uB}HAVE_LOCALTIME_R${ac_uC}1${ac_uD}
+${ac_eA}HAVE_LOCALTIME_R${ac_eB}HAVE_LOCALTIME_R${ac_eC}1${ac_eD}
 ${ac_dA}HAVE_LSTAT64${ac_dB}HAVE_LSTAT64${ac_dC}1${ac_dD}
 ${ac_uA}HAVE_LSTAT64${ac_uB}HAVE_LSTAT64${ac_uC}1${ac_uD}
 ${ac_eA}HAVE_LSTAT64${ac_eB}HAVE_LSTAT64${ac_eC}1${ac_eD}
@@ -612,15 +651,15 @@ ${ac_eA}HAVE_MEMMOVE${ac_eB}HAVE_MEMMOVE${ac_eC}1${ac_eD}
 ${ac_dA}HAVE_RANDOM${ac_dB}HAVE_RANDOM${ac_dC}1${ac_dD}
 ${ac_uA}HAVE_RANDOM${ac_uB}HAVE_RANDOM${ac_uC}1${ac_uD}
 ${ac_eA}HAVE_RANDOM${ac_eB}HAVE_RANDOM${ac_eC}1${ac_eD}
-${ac_dA}HAVE_RINT${ac_dB}HAVE_RINT${ac_dC}1${ac_dD}
-${ac_uA}HAVE_RINT${ac_uB}HAVE_RINT${ac_uC}1${ac_uD}
-${ac_eA}HAVE_RINT${ac_eB}HAVE_RINT${ac_eC}1${ac_eD}
 CEOF
   sed -f conftest.frag conftest.in > conftest.out
   rm -f conftest.in
   mv conftest.out conftest.in
 
   cat > conftest.frag <<CEOF
+${ac_dA}HAVE_RINT${ac_dB}HAVE_RINT${ac_dC}1${ac_dD}
+${ac_uA}HAVE_RINT${ac_uB}HAVE_RINT${ac_uC}1${ac_uD}
+${ac_eA}HAVE_RINT${ac_eB}HAVE_RINT${ac_eC}1${ac_eD}
 ${ac_dA}HAVE_SBRK${ac_dB}HAVE_SBRK${ac_dC}1${ac_dD}
 ${ac_uA}HAVE_SBRK${ac_uB}HAVE_SBRK${ac_uC}1${ac_uD}
 ${ac_eA}HAVE_SBRK${ac_eB}HAVE_SBRK${ac_eC}1${ac_eD}
@@ -630,33 +669,51 @@ ${ac_eA}HAVE_SNPRINTF${ac_eB}HAVE_SNPRINTF${ac_eC}1${ac_eD}
 ${ac_dA}HAVE_STAT64${ac_dB}HAVE_STAT64${ac_dC}1${ac_dD}
 ${ac_uA}HAVE_STAT64${ac_uB}HAVE_STAT64${ac_uC}1${ac_uD}
 ${ac_eA}HAVE_STAT64${ac_eB}HAVE_STAT64${ac_eC}1${ac_eD}
-${ac_dA}HAVE_STATVFS${ac_dB}HAVE_STATVFS${ac_dC}1${ac_dD}
-${ac_uA}HAVE_STATVFS${ac_uB}HAVE_STATVFS${ac_uC}1${ac_uD}
-${ac_eA}HAVE_STATVFS${ac_eB}HAVE_STATVFS${ac_eC}1${ac_eD}
 CEOF
   sed -f conftest.frag conftest.in > conftest.out
   rm -f conftest.in
   mv conftest.out conftest.in
 
   cat > conftest.frag <<CEOF
+${ac_dA}HAVE_STATVFS${ac_dB}HAVE_STATVFS${ac_dC}1${ac_dD}
+${ac_uA}HAVE_STATVFS${ac_uB}HAVE_STATVFS${ac_uC}1${ac_uD}
+${ac_eA}HAVE_STATVFS${ac_eB}HAVE_STATVFS${ac_eC}1${ac_eD}
+${ac_dA}HAVE_STATVFS64${ac_dB}HAVE_STATVFS64${ac_dC}1${ac_dD}
+${ac_uA}HAVE_STATVFS64${ac_uB}HAVE_STATVFS64${ac_uC}1${ac_uD}
+${ac_eA}HAVE_STATVFS64${ac_eB}HAVE_STATVFS64${ac_eC}1${ac_eD}
 ${ac_dA}HAVE_STRERROR${ac_dB}HAVE_STRERROR${ac_dC}1${ac_dD}
 ${ac_uA}HAVE_STRERROR${ac_uB}HAVE_STRERROR${ac_uC}1${ac_uD}
 ${ac_eA}HAVE_STRERROR${ac_eB}HAVE_STRERROR${ac_eC}1${ac_eD}
 ${ac_dA}HAVE_STRTOK_R${ac_dB}HAVE_STRTOK_R${ac_dC}1${ac_dD}
 ${ac_uA}HAVE_STRTOK_R${ac_uB}HAVE_STRTOK_R${ac_uC}1${ac_uD}
 ${ac_eA}HAVE_STRTOK_R${ac_eB}HAVE_STRTOK_R${ac_eC}1${ac_eD}
-${ac_dA}HAVE_WCRTOMB${ac_dB}HAVE_WCRTOMB${ac_dC}1${ac_dD}
-${ac_uA}HAVE_WCRTOMB${ac_uB}HAVE_WCRTOMB${ac_uC}1${ac_uD}
-${ac_eA}HAVE_WCRTOMB${ac_eB}HAVE_WCRTOMB${ac_eC}1${ac_eD}
-${ac_dA}HAVE_MBRTOWC${ac_dB}HAVE_MBRTOWC${ac_dC}1${ac_dD}
-${ac_uA}HAVE_MBRTOWC${ac_uB}HAVE_MBRTOWC${ac_uC}1${ac_uD}
-${ac_eA}HAVE_MBRTOWC${ac_eB}HAVE_MBRTOWC${ac_eC}1${ac_eD}
 CEOF
   sed -f conftest.frag conftest.in > conftest.out
   rm -f conftest.in
   mv conftest.out conftest.in
 
   cat > conftest.frag <<CEOF
+${ac_dA}HAVE_TRUNCATE64${ac_dB}HAVE_TRUNCATE64${ac_dC}1${ac_dD}
+${ac_uA}HAVE_TRUNCATE64${ac_uB}HAVE_TRUNCATE64${ac_uC}1${ac_uD}
+${ac_eA}HAVE_TRUNCATE64${ac_eB}HAVE_TRUNCATE64${ac_eC}1${ac_eD}
+${ac_dA}HAVE_WCRTOMB${ac_dB}HAVE_WCRTOMB${ac_dC}1${ac_dD}
+${ac_uA}HAVE_WCRTOMB${ac_uB}HAVE_WCRTOMB${ac_uC}1${ac_uD}
+${ac_eA}HAVE_WCRTOMB${ac_eB}HAVE_WCRTOMB${ac_eC}1${ac_eD}
+${ac_dA}HAVE_MBRTOWC${ac_dB}HAVE_MBRTOWC${ac_dC}1${ac_dD}
+${ac_uA}HAVE_MBRTOWC${ac_uB}HAVE_MBRTOWC${ac_uC}1${ac_uD}
+${ac_eA}HAVE_MBRTOWC${ac_eB}HAVE_MBRTOWC${ac_eC}1${ac_eD}
+${ac_dA}HAVE_RES_NINIT${ac_dB}HAVE_RES_NINIT${ac_dC}1${ac_dD}
+${ac_uA}HAVE_RES_NINIT${ac_uB}HAVE_RES_NINIT${ac_uC}1${ac_uD}
+${ac_eA}HAVE_RES_NINIT${ac_eB}HAVE_RES_NINIT${ac_eC}1${ac_eD}
+CEOF
+  sed -f conftest.frag conftest.in > conftest.out
+  rm -f conftest.in
+  mv conftest.out conftest.in
+
+  cat > conftest.frag <<CEOF
+${ac_dA}HAVE_GNU_GET_LIBC_VERSION${ac_dB}HAVE_GNU_GET_LIBC_VERSION${ac_dC}1${ac_dD}
+${ac_uA}HAVE_GNU_GET_LIBC_VERSION${ac_uB}HAVE_GNU_GET_LIBC_VERSION${ac_uC}1${ac_uD}
+${ac_eA}HAVE_GNU_GET_LIBC_VERSION${ac_eB}HAVE_GNU_GET_LIBC_VERSION${ac_eC}1${ac_eD}
 ${ac_dA}VA_COPY${ac_dB}VA_COPY${ac_dC}va_copy${ac_dD}
 ${ac_uA}VA_COPY${ac_uB}VA_COPY${ac_uC}va_copy${ac_uD}
 ${ac_eA}VA_COPY${ac_eB}VA_COPY${ac_eC}va_copy${ac_eD}
@@ -666,15 +723,15 @@ ${ac_eA}HAVE_VA_COPY${ac_eB}HAVE_VA_COPY${ac_eC}1${ac_eD}
 ${ac_dA}HAVE_VA_LIST_AS_ARRAY${ac_dB}HAVE_VA_LIST_AS_ARRAY${ac_dC}1${ac_dD}
 ${ac_uA}HAVE_VA_LIST_AS_ARRAY${ac_uB}HAVE_VA_LIST_AS_ARRAY${ac_uC}1${ac_uD}
 ${ac_eA}HAVE_VA_LIST_AS_ARRAY${ac_eB}HAVE_VA_LIST_AS_ARRAY${ac_eC}1${ac_eD}
-${ac_dA}HAVE_CPP_EXPLICIT${ac_dB}HAVE_CPP_EXPLICIT${ac_dC}1${ac_dD}
-${ac_uA}HAVE_CPP_EXPLICIT${ac_uB}HAVE_CPP_EXPLICIT${ac_uC}1${ac_uD}
-${ac_eA}HAVE_CPP_EXPLICIT${ac_eB}HAVE_CPP_EXPLICIT${ac_eC}1${ac_eD}
 CEOF
   sed -f conftest.frag conftest.in > conftest.out
   rm -f conftest.in
   mv conftest.out conftest.in
 
   cat > conftest.frag <<CEOF
+${ac_dA}HAVE_CPP_EXPLICIT${ac_dB}HAVE_CPP_EXPLICIT${ac_dC}1${ac_dD}
+${ac_uA}HAVE_CPP_EXPLICIT${ac_uB}HAVE_CPP_EXPLICIT${ac_uC}1${ac_uD}
+${ac_eA}HAVE_CPP_EXPLICIT${ac_eB}HAVE_CPP_EXPLICIT${ac_eC}1${ac_eD}
 ${ac_dA}HAVE_CPP_TYPENAME${ac_dB}HAVE_CPP_TYPENAME${ac_dC}1${ac_dD}
 ${ac_uA}HAVE_CPP_TYPENAME${ac_uB}HAVE_CPP_TYPENAME${ac_uC}1${ac_uD}
 ${ac_eA}HAVE_CPP_TYPENAME${ac_eB}HAVE_CPP_TYPENAME${ac_eC}1${ac_eD}
@@ -684,15 +741,15 @@ ${ac_eA}HAVE_CPP_MODERN_SPECIALIZE_TEMPLATE_SYNTAX${ac_eB}HAVE_CPP_MODERN_SPECIA
 ${ac_dA}HAVE_CPP_PARTIAL_SPECIALIZATION${ac_dB}HAVE_CPP_PARTIAL_SPECIALIZATION${ac_dC}1${ac_dD}
 ${ac_uA}HAVE_CPP_PARTIAL_SPECIALIZATION${ac_uB}HAVE_CPP_PARTIAL_SPECIALIZATION${ac_uC}1${ac_uD}
 ${ac_eA}HAVE_CPP_PARTIAL_SPECIALIZATION${ac_eB}HAVE_CPP_PARTIAL_SPECIALIZATION${ac_eC}1${ac_eD}
-${ac_dA}HAVE_CPP_ACCESS_CHANGING_USING${ac_dB}HAVE_CPP_ACCESS_CHANGING_USING${ac_dC}1${ac_dD}
-${ac_uA}HAVE_CPP_ACCESS_CHANGING_USING${ac_uB}HAVE_CPP_ACCESS_CHANGING_USING${ac_uC}1${ac_uD}
-${ac_eA}HAVE_CPP_ACCESS_CHANGING_USING${ac_eB}HAVE_CPP_ACCESS_CHANGING_USING${ac_eC}1${ac_eD}
 CEOF
   sed -f conftest.frag conftest.in > conftest.out
   rm -f conftest.in
   mv conftest.out conftest.in
 
   cat > conftest.frag <<CEOF
+${ac_dA}HAVE_CPP_ACCESS_CHANGING_USING${ac_dB}HAVE_CPP_ACCESS_CHANGING_USING${ac_dC}1${ac_dD}
+${ac_uA}HAVE_CPP_ACCESS_CHANGING_USING${ac_uB}HAVE_CPP_ACCESS_CHANGING_USING${ac_uC}1${ac_uD}
+${ac_eA}HAVE_CPP_ACCESS_CHANGING_USING${ac_eB}HAVE_CPP_ACCESS_CHANGING_USING${ac_eC}1${ac_eD}
 ${ac_dA}HAVE_CPP_AMBIGUITY_RESOLVING_USING${ac_dB}HAVE_CPP_AMBIGUITY_RESOLVING_USING${ac_dC}1${ac_dD}
 ${ac_uA}HAVE_CPP_AMBIGUITY_RESOLVING_USING${ac_uB}HAVE_CPP_AMBIGUITY_RESOLVING_USING${ac_uC}1${ac_uD}
 ${ac_eA}HAVE_CPP_AMBIGUITY_RESOLVING_USING${ac_eB}HAVE_CPP_AMBIGUITY_RESOLVING_USING${ac_eC}1${ac_eD}
@@ -702,15 +759,15 @@ ${ac_eA}HAVE_CPP_NAMESPACE_STD${ac_eB}HAVE_CPP_NAMESPACE_STD${ac_eC}1${ac_eD}
 ${ac_dA}HAVE_CPP_UNAMBIGUOUS_STD_NOTEQUAL${ac_dB}HAVE_CPP_UNAMBIGUOUS_STD_NOTEQUAL${ac_dC}1${ac_dD}
 ${ac_uA}HAVE_CPP_UNAMBIGUOUS_STD_NOTEQUAL${ac_uB}HAVE_CPP_UNAMBIGUOUS_STD_NOTEQUAL${ac_uC}1${ac_uD}
 ${ac_eA}HAVE_CPP_UNAMBIGUOUS_STD_NOTEQUAL${ac_eB}HAVE_CPP_UNAMBIGUOUS_STD_NOTEQUAL${ac_eC}1${ac_eD}
-${ac_dA}HAVE_CPP_NEW_CASTS${ac_dB}HAVE_CPP_NEW_CASTS${ac_dC}1${ac_dD}
-${ac_uA}HAVE_CPP_NEW_CASTS${ac_uB}HAVE_CPP_NEW_CASTS${ac_uC}1${ac_uD}
-${ac_eA}HAVE_CPP_NEW_CASTS${ac_eB}HAVE_CPP_NEW_CASTS${ac_eC}1${ac_eD}
 CEOF
   sed -f conftest.frag conftest.in > conftest.out
   rm -f conftest.in
   mv conftest.out conftest.in
 
   cat > conftest.frag <<CEOF
+${ac_dA}HAVE_CPP_NEW_CASTS${ac_dB}HAVE_CPP_NEW_CASTS${ac_dC}1${ac_dD}
+${ac_uA}HAVE_CPP_NEW_CASTS${ac_uB}HAVE_CPP_NEW_CASTS${ac_uC}1${ac_uD}
+${ac_eA}HAVE_CPP_NEW_CASTS${ac_eB}HAVE_CPP_NEW_CASTS${ac_eC}1${ac_eD}
 ${ac_dA}HAVE_CPP_DYNAMIC_CAST_TO_VOID_PTR${ac_dB}HAVE_CPP_DYNAMIC_CAST_TO_VOID_PTR${ac_dC}1${ac_dD}
 ${ac_uA}HAVE_CPP_DYNAMIC_CAST_TO_VOID_PTR${ac_uB}HAVE_CPP_DYNAMIC_CAST_TO_VOID_PTR${ac_uC}1${ac_uD}
 ${ac_eA}HAVE_CPP_DYNAMIC_CAST_TO_VOID_PTR${ac_eB}HAVE_CPP_DYNAMIC_CAST_TO_VOID_PTR${ac_eC}1${ac_eD}
@@ -720,15 +777,15 @@ ${ac_eA}NEED_CPP_UNUSED_IMPLEMENTATIONS${ac_eB}NEED_CPP_UNUSED_IMPLEMENTATIONS${
 ${ac_dA}HAVE_I18N_LC_MESSAGES${ac_dB}HAVE_I18N_LC_MESSAGES${ac_dC}1${ac_dD}
 ${ac_uA}HAVE_I18N_LC_MESSAGES${ac_uB}HAVE_I18N_LC_MESSAGES${ac_uC}1${ac_uD}
 ${ac_eA}HAVE_I18N_LC_MESSAGES${ac_eB}HAVE_I18N_LC_MESSAGES${ac_eC}1${ac_eD}
-${ac_dA}HAVE___CXA_DEMANGLE${ac_dB}HAVE___CXA_DEMANGLE${ac_dC}1${ac_dD}
-${ac_uA}HAVE___CXA_DEMANGLE${ac_uB}HAVE___CXA_DEMANGLE${ac_uC}1${ac_uD}
-${ac_eA}HAVE___CXA_DEMANGLE${ac_eB}HAVE___CXA_DEMANGLE${ac_eC}1${ac_eD}
 CEOF
   sed -f conftest.frag conftest.in > conftest.out
   rm -f conftest.in
   mv conftest.out conftest.in
 
   cat > conftest.frag <<CEOF
+${ac_dA}HAVE___CXA_DEMANGLE${ac_dB}HAVE___CXA_DEMANGLE${ac_dC}1${ac_dD}
+${ac_uA}HAVE___CXA_DEMANGLE${ac_uB}HAVE___CXA_DEMANGLE${ac_uC}1${ac_uD}
+${ac_eA}HAVE___CXA_DEMANGLE${ac_eB}HAVE___CXA_DEMANGLE${ac_eC}1${ac_eD}
 ${ac_dA}HAVE__UNWIND_BACKTRACE${ac_dB}HAVE__UNWIND_BACKTRACE${ac_dC}1${ac_dD}
 ${ac_uA}HAVE__UNWIND_BACKTRACE${ac_uB}HAVE__UNWIND_BACKTRACE${ac_uC}1${ac_uD}
 ${ac_eA}HAVE__UNWIND_BACKTRACE${ac_eB}HAVE__UNWIND_BACKTRACE${ac_eC}1${ac_eD}
@@ -738,33 +795,33 @@ ${ac_eA}HAVE_TM_ZONE_TM_GMTOFF${ac_eB}HAVE_TM_ZONE_TM_GMTOFF${ac_eC}1${ac_eD}
 ${ac_dA}CPP_THROW_NEW${ac_dB}CPP_THROW_NEW${ac_dC}throw()${ac_dD}
 ${ac_uA}CPP_THROW_NEW${ac_uB}CPP_THROW_NEW${ac_uC}throw()${ac_uD}
 ${ac_eA}CPP_THROW_NEW${ac_eB}CPP_THROW_NEW${ac_eC}throw()${ac_eD}
-${ac_dA}EDITLINE${ac_dB}EDITLINE${ac_dC}1${ac_dD}
-${ac_uA}EDITLINE${ac_uB}EDITLINE${ac_uC}1${ac_uD}
-${ac_eA}EDITLINE${ac_eB}EDITLINE${ac_eC}1${ac_eD}
 CEOF
   sed -f conftest.frag conftest.in > conftest.out
   rm -f conftest.in
   mv conftest.out conftest.in
 
   cat > conftest.frag <<CEOF
-${ac_dA}MOZ_DLL_SUFFIX${ac_dB}MOZ_DLL_SUFFIX${ac_dC}".dylib"${ac_dD}
-${ac_uA}MOZ_DLL_SUFFIX${ac_uB}MOZ_DLL_SUFFIX${ac_uC}".dylib"${ac_uD}
-${ac_eA}MOZ_DLL_SUFFIX${ac_eB}MOZ_DLL_SUFFIX${ac_eC}".dylib"${ac_eD}
+${ac_dA}EDITLINE${ac_dB}EDITLINE${ac_dC}1${ac_dD}
+${ac_uA}EDITLINE${ac_uB}EDITLINE${ac_uC}1${ac_uD}
+${ac_eA}EDITLINE${ac_eB}EDITLINE${ac_eC}1${ac_eD}
+${ac_dA}MOZ_DLL_SUFFIX${ac_dB}MOZ_DLL_SUFFIX${ac_dC}".so"${ac_dD}
+${ac_uA}MOZ_DLL_SUFFIX${ac_uB}MOZ_DLL_SUFFIX${ac_uC}".so"${ac_uD}
+${ac_eA}MOZ_DLL_SUFFIX${ac_eB}MOZ_DLL_SUFFIX${ac_eC}".so"${ac_eD}
 ${ac_dA}XP_UNIX${ac_dB}XP_UNIX${ac_dC}1${ac_dD}
 ${ac_uA}XP_UNIX${ac_uB}XP_UNIX${ac_uC}1${ac_uD}
 ${ac_eA}XP_UNIX${ac_eB}XP_UNIX${ac_eC}1${ac_eD}
 ${ac_dA}UNIX_ASYNC_DNS${ac_dB}UNIX_ASYNC_DNS${ac_dC}1${ac_dD}
 ${ac_uA}UNIX_ASYNC_DNS${ac_uB}UNIX_ASYNC_DNS${ac_uC}1${ac_uD}
 ${ac_eA}UNIX_ASYNC_DNS${ac_eB}UNIX_ASYNC_DNS${ac_eC}1${ac_eD}
-${ac_dA}HAVE_SETLOCALE${ac_dB}HAVE_SETLOCALE${ac_dC}1${ac_dD}
-${ac_uA}HAVE_SETLOCALE${ac_uB}HAVE_SETLOCALE${ac_uC}1${ac_uD}
-${ac_eA}HAVE_SETLOCALE${ac_eB}HAVE_SETLOCALE${ac_eC}1${ac_eD}
 CEOF
   sed -f conftest.frag conftest.in > conftest.out
   rm -f conftest.in
   mv conftest.out conftest.in
 
   cat > conftest.frag <<CEOF
+${ac_dA}HAVE_SETLOCALE${ac_dB}HAVE_SETLOCALE${ac_dC}1${ac_dD}
+${ac_uA}HAVE_SETLOCALE${ac_uB}HAVE_SETLOCALE${ac_uC}1${ac_uD}
+${ac_eA}HAVE_SETLOCALE${ac_eB}HAVE_SETLOCALE${ac_eC}1${ac_eD}
 s%^[ 	]*#[ 	]*undef[ 	][ 	]*[a-zA-Z_][a-zA-Z_0-9]*%/* & */%
 CEOF
   sed -f conftest.frag conftest.in > conftest.out
