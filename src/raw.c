@@ -264,6 +264,11 @@ int post_to_pipe(json_item *jlist, const char *rawname, const char *pipe, subuse
 				json_set_property_objN(jlist, "pipe", 4, get_json_object_channel(recver->pipe));
 				newraw = forge_raw(rawname, jlist);
 				post_raw_channel_restricted(newraw, recver->pipe, sender, g_ape);
+				
+				if (GET_CHANNEL_MAX_HISTORY_SIZE((CHANNEL*)recver->pipe) > 0) {
+					push_raw_to_channel_history((CHANNEL*)recver->pipe, newraw);
+				}
+				
 				POSTRAW_DONE(newraw);
 			}
 			break;

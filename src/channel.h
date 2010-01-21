@@ -40,6 +40,7 @@ typedef struct CHANNEL
 
 	struct _transpipe *pipe;
 	struct userslist *head;
+	struct CHANNEL_HISTORY_DEQUE *history;
 	
 	struct BANNED *banned;
 	

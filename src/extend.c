@@ -83,6 +83,31 @@ extend *add_property(extend **entry, const char *key, void *val, EXTEND_TYPE ety
 }
 
 
+void set_property(extend *entry, const char *key, void *val)
+{
+	if (strlen(key) > EXTEND_KEY_LENGTH) return;
+
+	while (entry != NULL) {
+		if (strcmp(entry->key, key) == 0) {
+			switch(entry->type) {
+			case EXTEND_STR:
+				free(entry->val);
+				entry->val = xstrdup(val);
+				break;
+			case EXTEND_JSON:
+				free_json_item(entry->val);
+			case EXTEND_HTBL:
+				hashtbl_free(entry->val);
+			default:
+				entry->val = val;
+				break;
+			}
+			return;
+		}
+		entry = entry->next;
+	}
+}
+
 extend *get_property(extend *entry, const char *key)
 {
 	while (entry != NULL) {

@@ -18,51 +18,17 @@ enum {
     ST_FEED,
 	ST_NUM_LOGIN,
 	ST_NUM_USER
-} stastic_type;
+} push_stastic;
 
-#define SET_USER_FOR_APE(ape, uin, user)								\
+#define MAKE_PUSH_STAT(g_ape, p)										\
 	do {																\
-		hashtbl_append(get_property(ape->properties, "userlist")->val,	\
-					   uin, user);										\
+		if (get_property(g_ape->properties, "pushstatic") == NULL) {	\
+			add_property(&g_ape->properties, "pushstatic", p,			\
+						 EXTEND_POINTER, EXTEND_ISPRIVATE);				\
+		}																\
 	} while (0)
-#define GET_USER_FROM_APE(ape, uin)										\
-	(get_property(ape->properties, "userlist") != NULL ?				\
-	 hashtbl_seek(get_property(ape->properties, "userlist")->val, uin): NULL)
-
-
-#define SET_USER_FOR_ONLINE(ape, uin, user)								\
-	do {																\
-		hashtbl_append(get_property(ape->properties, "onlineuser")->val, \
-					   uin, user);										\
-	} while (0)
-#define GET_USER_FROM_ONLINE(ape, uin)									\
-	(get_property(ape->properties, "onlineuser") != NULL ?				\
-	 hashtbl_seek(get_property(ape->properties, "onlineuser")->val, uin): NULL)
-#define GET_ONLINE_TBL(ape)											\
-	(get_property(ape->properties, "onlineuser") != NULL ?			\
-	 (HTBL*)get_property(ape->properties, "onlineuser")->val: NULL)
-
-
-#define SET_UIN_FOR_USER(user, uin)					\
-	do {											\
-		add_property(&user->properties, "uin", uin,	\
-					 EXTEND_STR, EXTEND_ISPUBLIC);	\
-	} while (0)
-#define GET_UIN_FROM_USER(user)									\
-	(get_property(user->properties, "uin") != NULL ?			\
-	 (char*)get_property(user->properties, "uin")->val: NULL)
-
-
-#define GET_USER_FRIEND_TBL(user)									\
-	(get_property(user->properties, "friend") != NULL ?				\
-	 (HTBL*)get_property(user->properties, "friend")->val: NULL)
-
-#define GET_USER_LIST(g_ape)											\
-	(get_property(g_ape->properties, "userlist") != NULL ?				\
-	 (HTBL*)get_property(g_ape->properties, "userlist")->val: NULL)
-
-#define GET_STAT_LIST(g_ape)											\
-	(get_property(g_ape->properties, "msgstatic") != NULL ?				\
-	 (st_push*)get_property(g_ape->properties, "msgstatic")->val: NULL)
+#define GET_PUSH_STAT(g_ape)											\
+	(get_property(g_ape->properties, "pushstatic") != NULL ?			\
+	 (st_push*)get_property(g_ape->properties, "pushstatic")->val: NULL)
 
 #endif

@@ -137,8 +137,8 @@ static void get_user_info(char *uin, USERS *user, acetables *g_ape)
 
 static void tick_static(acetables *g_ape, int lastcall)
 {
-    HTBL *ulist = GET_USER_LIST(g_ape);
-    st_push *st = GET_STAT_LIST(g_ape);
+    HTBL *ulist = GET_USER_TBL(g_ape);
+    st_push *st = GET_PUSH_STAT(g_ape);
     HTBL_ITEM *item;
     USERS *user;
     char *uin;
@@ -212,7 +212,7 @@ static unsigned int push_connect(callbackp *callbacki)
 	json_item *jlist = NULL;
 	CHANNEL *chan;
 	char *uin;
-	st_push *st = GET_STAT_LIST(callbacki->g_ape);
+	st_push *st = GET_PUSH_STAT(callbacki->g_ape);
 
 	JNEED_STR(callbacki->param, "uin", uin, RETURN_BAD_PARAMS);
 
@@ -240,7 +240,7 @@ static unsigned int push_connect(callbackp *callbacki)
 		SET_USER_FOR_ONLINE(callbacki->g_ape, uin, nuser);
 	}
 
-	SET_UIN_FOR_USER(nuser, uin);
+	ADD_UIN_FOR_USER(nuser, uin);
 	SET_USER_FOR_APE(callbacki->g_ape, uin, nuser);
 	get_user_info(uin, nuser, callbacki->g_ape);
 	
@@ -309,9 +309,8 @@ static unsigned int push_send(callbackp *callbacki)
 	post_raw_channel_restricted(newraw, chan, user, callbacki->g_ape);
 	POSTRAW_DONE(newraw);
 
-	st_push *st = (st_push*)get_property(callbacki->g_ape->properties,
-										 "msgstatic")->val;
-	st->msg_feed++;
+	st_push *st = GET_PUSH_STAT(callbacki->g_ape);
+	if (st) st->msg_feed++;
 
  done:
 	jlist = json_new_object();
@@ -380,7 +379,7 @@ static unsigned int push_userlist(callbackp *callbacki)
 	RAW *newraw;
 	json_item *jlist = json_new_object();
 	HTBL_ITEM *item;
-	HTBL *ulist = GET_USER_LIST(callbacki->g_ape);
+	HTBL *ulist = GET_USER_TBL(callbacki->g_ape);
 	USERS *user;
 	int num;
 
@@ -478,9 +477,8 @@ static unsigned int push_senduniq(callbackp *callbacki)
 		return (RETURN_NULL);
 	}
 
-	st_push *st = (st_push*)get_property(callbacki->g_ape->properties,
-										 "msgstatic")->val;
-	st->msg_notice++;
+	st_push *st = GET_PUSH_STAT(callbacki->g_ape);
+	if (st) st->msg_notice++;
 	/*
 	 * target user may set 1: accept 2: reject 3: accept friend
 	 * senduniq must contain pageclass: 1
@@ -535,8 +533,7 @@ static unsigned int push_sendmulti(callbackp *callbacki)
 	json_item *msg;
 	USERS *dst;
 
-	st_push *st = (st_push*)get_property(callbacki->g_ape->properties,
-										 "msgstatic")->val;
+	st_push *st = GET_PUSH_STAT(callbacki->g_ape);
 	sender = GET_UIN_FROM_USER(callbacki->call_user);
 	
 	JNEED_STR(callbacki->param, "pass", pass, RETURN_BAD_PARAMS);
@@ -556,7 +553,7 @@ static unsigned int push_sendmulti(callbackp *callbacki)
 	RAW *newraw = forge_raw(RAW_DATA, jlist);
 
 	if (!strcmp(uins, "ALL_ManGos")) {
-		HTBL *ulist = GET_USER_LIST(callbacki->g_ape);
+		HTBL *ulist = GET_USER_TBL(callbacki->g_ape);
 		HTBL_ITEM *item;
 		for (item = ulist->first; item != NULL; item = item->lnext) {
 			st->msg_notice++;
@@ -790,13 +787,9 @@ static unsigned int push_trustsend(callbackp *callbacki)
 
 static void init_module(acetables *g_ape)
 {
-	st_push *stdata = calloc(1, sizeof(st_push));
-	add_property(&g_ape->properties, "userlist", hashtbl_init(),
-				 EXTEND_HTBL, EXTEND_ISPRIVATE);
-	add_property(&g_ape->properties, "msgstatic", stdata,
-				 EXTEND_HTBL, EXTEND_ISPRIVATE);
-	add_property(&g_ape->properties, "onlineuser", hashtbl_init(),
-				 EXTEND_HTBL, EXTEND_ISPRIVATE);
+	MAKE_USER_TBL(g_ape);
+	MAKE_ONLINE_TBL(g_ape);
+	MAKE_PUSH_STAT(g_ape, calloc(1, sizeof(st_push)));
 	
     add_periodical((1000*60*30), 0, tick_static, g_ape, g_ape);
 	

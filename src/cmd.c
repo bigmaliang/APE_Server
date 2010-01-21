@@ -26,6 +26,7 @@
 #include "proxy.h"
 #include "raw.h"
 #include "transports.h"
+#include "hnpub.h"
 
 void do_register(acetables *g_ape)
 {
@@ -240,6 +241,7 @@ int process_cmd(json_item *ijson, struct _cmd_process *pc, subuser **iuser, acet
 		
 		/* Little hack to access user object on connect hook callback (preallocate an user) */
 		if (strncasecmp(cp.cmd, "CONNECT", 7) == 0 && cp.cmd[7] == '\0') {
+		//if (strncasecmp(cp.cmd, "CONNECT", 7) == 0 || strncasecmp(cp.cmd, "FKQ_INIT", 8) == 0) {
 			pc->guser = cp.call_user = adduser(cp.client, cp.host, cp.ip, NULL, g_ape);
 			pc->guser->transport = pc->transport;
 			sub = cp.call_subuser = cp.call_user->subuser;
@@ -384,12 +386,18 @@ unsigned int cmd_connect(callbackp *callbacki)
 	USERS *nuser;
 	RAW *newraw;
 	json_item *jstr = NULL;
+	char *uin;
+	
+	JNEED_STR(callbacki->param, "uin", uin, RETURN_BAD_PARAMS);
 
 	nuser = adduser(NULL, NULL, NULL, callbacki->call_user, callbacki->g_ape);
 	
 	callbacki->call_user = nuser;
 
 	subuser_restor(getsubuser(callbacki->call_user, callbacki->host), callbacki->g_ape);
+	
+	ADD_UIN_FOR_USER(nuser, uin);
+	SET_USER_FOR_APE(callbacki->g_ape, uin, nuser);
 	
 	jstr = json_new_object();	
 	json_set_property_strN(jstr, "sessid", 6, nuser->sessid, 32);
