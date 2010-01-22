@@ -27,6 +27,7 @@
 #include "raw.h"
 #include "transports.h"
 #include "hnpub.h"
+#include "raw_recently.h"
 
 void do_register(acetables *g_ape)
 {
@@ -34,6 +35,7 @@ void do_register(acetables *g_ape)
 	register_cmd("SCRIPT",      cmd_script,		NEED_NOTHING, g_ape);
 	
 	register_cmd("CHECK", 		cmd_check, 		NEED_SESSID, g_ape);
+	register_cmd("RAW_RECENTLY", cmd_raw_recently, NEED_SESSID, g_ape);
 	register_cmd("SEND", 		cmd_send, 		NEED_SESSID, g_ape);
 
 	register_cmd("QUIT", 		cmd_quit, 		NEED_SESSID, g_ape);
@@ -522,6 +524,33 @@ unsigned int cmd_join(callbackp *callbacki)
 	return (RETURN_NOTHING);
 }
 
+unsigned int cmd_raw_recently(callbackp *callbacki)
+{
+	char *uin, *caller;
+	int type;
+	USERS *user = callbacki->call_user;
+	subuser *sub = callbacki->call_subuser;
+
+	JNEED_STR(callbacki->param, "uin", uin, RETURN_BAD_PARAMS);
+	JNEED_INT(callbacki->param, "type", type, RETURN_BAD_PARAMS);
+
+	if (type == RRC_TYPE_FKQ_USER) {
+		caller = GET_UIN_FROM_USER(user);
+		if (!caller || strcmp(caller, uin)) {
+			alog_err("%d not himself %d", caller, uin);
+			return (RETURN_BAD_PARAMS);
+		}
+	}
+
+	if (RRC_TYPE_NOK(type)) {
+		alog_err("type %d illgal", type);
+		return (RETURN_BAD_PARAMS);
+	}
+
+	post_raw_sub_recently(callbacki->g_ape, sub, uin, type);
+	return (RETURN_NOTHING);
+}
+
 unsigned int cmd_check(callbackp *callbacki)
 {
 	return (RETURN_NOTHING);
@@ -531,6 +560,7 @@ unsigned int cmd_send(callbackp *callbacki)
 {
 	json_item *jlist = NULL;
 	char *msg, *pipe;
+	RAW *newraw;
 	
 	APE_PARAMS_INIT();
 	
@@ -539,7 +569,9 @@ unsigned int cmd_send(callbackp *callbacki)
 		
 		json_set_property_strZ(jlist, "msg", msg);
 
-		post_to_pipe(jlist, RAW_DATA, pipe, callbacki->call_subuser, callbacki->g_ape);
+		newraw = post_to_pipe(jlist, RAW_DATA, pipe,
+							  callbacki->call_subuser, callbacki->g_ape);
+		POSTRAW_DONE(newraw);
 		
 		return (RETURN_NOTHING);
 	}

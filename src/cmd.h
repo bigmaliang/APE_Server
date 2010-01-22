@@ -120,6 +120,7 @@ struct _cmd_process {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 unsigned int cmd_connect(struct _callbackp *);
+unsigned int cmd_raw_recently(struct _callbackp *);
 unsigned int cmd_check(struct _callbackp *);
 unsigned int cmd_send(struct _callbackp *);
 unsigned int cmd_quit(struct _callbackp *);

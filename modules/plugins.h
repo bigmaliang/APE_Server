@@ -28,7 +28,7 @@
 
 #include "../src/main.h"
 #include "../src/channel.h"
-#include "../src/channel_history.h"
+#include "../src/raw_recently.h"
 #include "../src/cmd.h"
 #include "../src/extend.h"
 #include "../src/users.h"

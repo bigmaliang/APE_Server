@@ -297,6 +297,8 @@ int main(int argc, char **argv)
 	transport_start(g_ape);	
 	
 	findandloadplugin(g_ape);
+	
+	init_raw_recently(g_ape);
 
 	server_is_running = 1;
 
@@ -315,6 +317,7 @@ int main(int argc, char **argv)
 	hashtbl_free(g_ape->hCallback);
 	
 	free(g_ape->plugins);
+	free_raw_recently(g_ape);
 	//free(srv);
 	free(g_ape);
 	

@@ -228,7 +228,7 @@ int post_raw_pipe(RAW *raw, const char *pipe, acetables *g_ape)
 	return 0;
 }
 
-int post_to_pipe(json_item *jlist, const char *rawname, const char *pipe, subuser *from, acetables *g_ape)
+RAW* post_to_pipe(json_item *jlist, const char *rawname, const char *pipe, subuser *from, acetables *g_ape)
 {
 	USERS *sender = from->user;
 	transpipe *recver = get_pipe_strict(pipe, sender, g_ape);
@@ -238,7 +238,7 @@ int post_to_pipe(json_item *jlist, const char *rawname, const char *pipe, subuse
 	if (sender != NULL) {
 		if (recver == NULL) {
 			send_error(sender, "UNKNOWN_PIPE", "109", g_ape);
-			return 0;
+			return NULL;
 		}
 		json_set_property_objN(jlist, "from", 4, get_json_object_user(sender));
 
@@ -251,25 +251,22 @@ int post_to_pipe(json_item *jlist, const char *rawname, const char *pipe, subuse
 		newraw = forge_raw(rawname, jlist_copy);
 		post_raw_restricted(newraw, sender, from, g_ape);
 		POSTRAW_DONE(newraw);
-	}	
+	}
+	newraw = NULL;
 	switch(recver->type) {
 		case USER_PIPE:
 			json_set_property_objN(jlist, "pipe", 4, get_json_object_user(sender));
 			newraw = forge_raw(rawname, jlist);
 			post_raw(newraw, recver->pipe, g_ape);
-			POSTRAW_DONE(newraw);
+			//POSTRAW_DONE(newraw);
 			break;
 		case CHANNEL_PIPE:
-			if (((CHANNEL*)recver->pipe)->head != NULL && ((CHANNEL*)recver->pipe)->head->next != NULL) {
+			//if (((CHANNEL*)recver->pipe)->head != NULL && ((CHANNEL*)recver->pipe)->head->next != NULL) {
+			if (((CHANNEL*)recver->pipe)->head != NULL) {
 				json_set_property_objN(jlist, "pipe", 4, get_json_object_channel(recver->pipe));
 				newraw = forge_raw(rawname, jlist);
 				post_raw_channel_restricted(newraw, recver->pipe, sender, g_ape);
-				
-				if (GET_CHANNEL_MAX_HISTORY_SIZE((CHANNEL*)recver->pipe) > 0) {
-					push_raw_to_channel_history((CHANNEL*)recver->pipe, newraw);
-				}
-				
-				POSTRAW_DONE(newraw);
+				//POSTRAW_DONE(newraw);
 			}
 			break;
 		case CUSTOM_PIPE:
@@ -279,8 +276,8 @@ int post_to_pipe(json_item *jlist, const char *rawname, const char *pipe, subuse
 		default:
 			break;
 	}
-		
-	return 1;
+	
+	return newraw;
 }
 
 

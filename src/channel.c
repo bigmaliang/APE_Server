@@ -68,7 +68,6 @@ CHANNEL *mkchan(char *chan, int flags, acetables *g_ape)
 	//memcpy(new_chan->topic, topic, strlen(topic)+1);
 
 	new_chan->pipe = init_pipe(new_chan, CHANNEL_PIPE, g_ape);
-	new_chan->history = init_channel_history();
 	
 	hashtbl_append(g_ape->hLusers, chan, (void *)new_chan);
 	
@@ -151,8 +150,6 @@ void rmchan(CHANNEL *chan, acetables *g_ape)
 	
 	destroy_pipe(chan->pipe, g_ape);
 
-	free_channel_history(chan->history);
-	
 	free(chan);
 	chan = NULL;
 }
@@ -165,8 +162,6 @@ void join(USERS *user, CHANNEL *chan, acetables *g_ape)
 	CHANLIST *chanl;
 	
 	FIRE_EVENT_NULL(join, user, chan, g_ape);
-	
-	post_channel_history(chan, user, g_ape);
 	
 	if (isonchannel(user, chan)) {
 		return;

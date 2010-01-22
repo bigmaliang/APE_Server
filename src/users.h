@@ -40,9 +40,6 @@
 #define MAX_HOST_LENGTH 256
 
 
-// Le 25/12/2006 à 02:15:19 Joyeux Noël
-
-
 struct _raw_pool {
 	struct RAW *raw;
 	struct _raw_pool *next;
