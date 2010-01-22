@@ -18,9 +18,9 @@
 
 static ace_plugin_infos infos_module = {
 	"\"Fkq\" system", // Module Name
-	"1.0",		       // Module Version
-	"hunantv",         // Module Author
-	"mod_fkq.conf"    // config file (bin/)
+	"1.0",			   // Module Version
+	"hunantv",		   // Module Author
+	"mod_fkq.conf"	  // config file (bin/)
 };
 
 /*
@@ -82,10 +82,10 @@ static int get_fkq_level(char *uin)
 		goto done;
 	}
 
-    pc = data_cell_search(evt->rcvdata, false, DATA_TYPE_U32, "fkqlevel");
-    if (pc != NULL) {
-        level = pc->v.ival;
-    }
+	pc = data_cell_search(evt->rcvdata, false, DATA_TYPE_U32, "fkqlevel");
+	if (pc != NULL) {
+		level = pc->v.ival;
+	}
 
  done:
 	mevent_free(evt);
@@ -145,9 +145,7 @@ static unsigned int fkq_init(callbackp *callbacki)
 		if (chan == NULL) {
 			chan = mkchanf(callbacki->g_ape, CHANNEL_AUTODESTROY,
 						   FKQ_PIP_NAME"%s", hostUin);
-			if (atoi(READ_CONF("fkq_max_history_size")) > 0) {
-				SET_CHANNEL_MAX_HISTORY_SIZE(chan, READ_CONF("fkq_max_history_size"));
-			}
+			ADD_FKQ_HOSTUIN(chan, hostUin);
 		}
 
 		chatnum = get_channel_usernum(chan);
@@ -172,51 +170,53 @@ static unsigned int fkq_init(callbackp *callbacki)
 
 static unsigned int fkq_join(callbackp *callbacki)
 {
-    char *hostUin;
+	char *hostUin;
 
-    USERS *user = callbacki->call_user;
-    CHANNEL *chan;
+	USERS *user = callbacki->call_user;
+	subuser *sub = callbacki->call_subuser;
+	CHANNEL *chan;
 
-    JNEED_STR(callbacki->param, "hostUin", hostUin, RETURN_BAD_PARAMS);
-    
+	JNEED_STR(callbacki->param, "hostUin", hostUin, RETURN_BAD_PARAMS);
+	
 	if (!hn_isvaliduin(hostUin)) {
 		return (RETURN_BAD_PARAMS);
 	}
-    
-    if (get_fkq_level(hostUin) == 1) {
+	
+	if (get_fkq_level(hostUin) == 1) {
 		chan = getchanf(callbacki->g_ape, FKQ_PIP_NAME"%s", hostUin);
 #if 0
-        if ((chan = getchanf(callbacki->g_ape, FKQ_PIP_NAME"%s", hostUin))
-            == NULL) {
-            chan = mkchanf(callbacki->g_ape, CHANNEL_AUTODESTROY,
+		if ((chan = getchanf(callbacki->g_ape, FKQ_PIP_NAME"%s", hostUin))
+			== NULL) {
+			chan = mkchanf(callbacki->g_ape, CHANNEL_AUTODESTROY,
 						   FKQ_PIP_NAME"%s", hostUin);
-            /*
-             * don't set channel private here, so, every channel should be return by
-             * session command with subuser_restore().
-             * Client MUST filter these channels, popup hostuin's fangke user
-             */
-            //SET_CHANNEL_PRIVATE(chan);
-        }
+			/*
+			 * don't set channel private here, so, every channel should be return by
+			 * session command with subuser_restore().
+			 * Client MUST filter these channels, popup hostuin's fangke user
+			 */
+			//SET_CHANNEL_PRIVATE(chan);
+		}
 #endif
-        if (chan != NULL) {
-            join(user, chan, callbacki->g_ape);
-            if (callbacki->call_subuser != NULL) {
-                SET_SUBUSER_HOSTUIN(callbacki->call_subuser, hostUin);
-            }
-        }
-    }
-    
+		if (chan != NULL) {
+			join(user, chan, callbacki->g_ape);
+			if (callbacki->call_subuser != NULL) {
+				ADD_SUBUSER_HOSTUIN(callbacki->call_subuser, hostUin);
+			}
+			post_raw_sub_recently(callbacki->g_ape, sub, hostUin, RRC_TYPE_FKQ_GROUP);
+		}
+	}
+	
 	return (RETURN_NOTHING);
 }
 
 static unsigned int fkq_open(callbackp *callbacki)
 {
-    char *uin;
+	char *uin;
 	json_item *jlist = NULL;
 	RAW *newraw;
 	subuser *sub = callbacki->call_subuser;
 
-    JNEED_STR(callbacki->param, "uin", uin, RETURN_BAD_PARAMS);
+	JNEED_STR(callbacki->param, "uin", uin, RETURN_BAD_PARAMS);
 
 	set_fkq_stat(uin, true);
 	fkq_join(callbacki);
@@ -231,13 +231,13 @@ static unsigned int fkq_open(callbackp *callbacki)
 
 static unsigned int fkq_close(callbackp *callbacki)
 {
-    char *uin;
+	char *uin;
 	json_item *jlist = NULL;
 	RAW *newraw;
 	USERS *nuser = callbacki->call_user;
 	subuser *sub = callbacki->call_subuser;
 
-    JNEED_STR(callbacki->param, "uin", uin, RETURN_BAD_PARAMS);
+	JNEED_STR(callbacki->param, "uin", uin, RETURN_BAD_PARAMS);
 
 	set_fkq_stat(uin, false);
 
@@ -262,48 +262,75 @@ static unsigned int fkq_close(callbackp *callbacki)
 static unsigned int fkq_send(callbackp *callbacki)
 {
 	json_item *jlist = NULL;
-	char *msg, *pipe;
+	RAW *newraw;
+	char *msg, *pipe, *uin;
+	CHANNEL *chan;
+	USERS *user;
 	
-	APE_PARAMS_INIT();
-	
-	if ((msg = JSTR(msg)) != NULL && (pipe = JSTR(pipe)) != NULL) {
+	JNEED_STR(callbacki->param, "msg", msg, RETURN_BAD_PARAMS);
+	JNEED_STR(callbacki->param, "pipe", pipe, RETURN_BAD_PARAMS);
+
+	transpipe *spipe = get_pipe(pipe, callbacki->g_ape);
+	if (spipe) {
 		jlist = json_new_object();
-		
 		json_set_property_strZ(jlist, "msg", msg);
+		newraw = post_to_pipe(jlist, RAW_FKQDATA, pipe,
+							  callbacki->call_subuser, callbacki->g_ape);
+
+		/* push raw to recently */
+		switch (spipe->type) {
+		case CHANNEL_PIPE:
+			chan = (CHANNEL*)(spipe->pipe);
+			if (chan) {
+				uin = GET_FKQ_HOSTUIN(chan);
+				if (uin) {
+					push_raw_recently(callbacki->g_ape, newraw,
+									  uin, RRC_TYPE_FKQ_GROUP);
+				}
+			}
+			break;
+		default:
+			user = (USERS*)(spipe->pipe);
+			if (user) {
+				uin = GET_UIN_FROM_USER(user);
+				if (uin) {
+					push_raw_recently(callbacki->g_ape, newraw,
+									  uin, RRC_TYPE_FKQ_USER);
+				}
+			}
+			break;
+		}
 		
-		post_to_pipe(jlist, RAW_FKQDATA, pipe, callbacki->call_subuser,
-                     callbacki->g_ape);
-		
-		return (RETURN_NOTHING);
+		POSTRAW_DONE(newraw);
 	}
 	
-	return (RETURN_BAD_PARAMS);
+	return (RETURN_NOTHING);
 }
 
 static void fkq_event_delsubuser(subuser *del, acetables *g_ape)
 {
-    char *uin = GET_SUBUSER_HOSTUIN(del);
-    if (uin != NULL) {
-        USERS *user = del->user;
-        subuser *cur = user->subuser;
-        char *otheruin;
-        bool lastone = true;
-        while (cur != NULL) {
-            otheruin = GET_SUBUSER_HOSTUIN(cur);
-            if (cur != del && otheruin != NULL && !strcmp(uin, otheruin)) {
-                lastone = false;
-                break;
-            }
-            cur = cur->next;
-        }
-            
-        if (lastone) {
-            CHANNEL *chan = getchanf(g_ape, FKQ_PIP_NAME"%s", uin);
-            if (chan != NULL) {
-                left(del->user, chan, g_ape);
-            }
-        }
-    }
+	char *uin = GET_SUBUSER_HOSTUIN(del);
+	if (uin != NULL) {
+		USERS *user = del->user;
+		subuser *cur = user->subuser;
+		char *otheruin;
+		bool lastone = true;
+		while (cur != NULL) {
+			otheruin = GET_SUBUSER_HOSTUIN(cur);
+			if (cur != del && otheruin != NULL && !strcmp(uin, otheruin)) {
+				lastone = false;
+				break;
+			}
+			cur = cur->next;
+		}
+			
+		if (lastone) {
+			CHANNEL *chan = getchanf(g_ape, FKQ_PIP_NAME"%s", uin);
+			if (chan != NULL) {
+				left(del->user, chan, g_ape);
+			}
+		}
+	}
 } 
 
 static void init_module(acetables *g_ape)

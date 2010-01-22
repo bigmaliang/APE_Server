@@ -14,8 +14,13 @@ enum {
 	ST_OPEN
 } fkq_stat;
 
-#define SET_SUBUSER_HOSTUIN(sub, uin)                                   \
-    (add_property(&sub->properties, "hostuin", uin, EXTEND_STR, EXTEND_ISPRIVATE))
+#define ADD_SUBUSER_HOSTUIN(sub, uin)							\
+	do {														\
+		if (get_property(sub->properties, "hostuin") == NULL) {	\
+			add_property(&sub->properties, "hostuin", uin,		\
+						 EXTEND_STR, EXTEND_ISPRIVATE);			\
+		}														\
+	} while (0)
 #define GET_SUBUSER_HOSTUIN(sub)                                    \
     (get_property(sub->properties, "hostuin") != NULL?              \
      (char*)get_property(sub->properties, "hostuin")->val: NULL)
@@ -30,5 +35,16 @@ enum {
 #define GET_FKQ_STAT(g_ape)												\
 	(get_property(g_ape->properties, "fkqstatic") != NULL ?				\
 	 (st_fkq*)get_property(g_ape->properties, "fkqstatic")->val: NULL)
+
+#define ADD_FKQ_HOSTUIN(chan, uin)									\
+	do {															\
+		if (get_property(chan->properties, "hostuin") == NULL) {	\
+			add_property(&chan->properties, "hostuin", uin,			\
+						 EXTEND_STR, EXTEND_ISPRIVATE);				\
+		}															\
+	} while (0)
+#define GET_FKQ_HOSTUIN(chan)										\
+    (get_property(chan->properties, "hostuin") != NULL?				\
+     (char*)get_property(chan->properties, "hostuin")->val: NULL)
 
 #endif
