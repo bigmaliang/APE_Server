@@ -30,8 +30,8 @@
 
 /* raw_recently_type, sync with ape.conf */
 enum {
-	RRC_TYPE_FKQ_GROUP = 0,
-	RRC_TYPE_FKQ_USER,
+	RRC_TYPE_SINGLE = 0,
+	RRC_TYPE_GROUP_FKQ,
 	RRC_TYPE_MAX
 };
 
@@ -52,8 +52,24 @@ typedef struct {
 void init_raw_recently(acetables *g_ape);
 void free_raw_recently(acetables *g_ape);
 
-void push_raw_recently(acetables *g_ape, RAW *raw, char *key, int type);
+/*
+ * push for user and group MUST be seprate
+ * there is NO push_raw_recently()
+ */
+void push_raw_recently_single(acetables *g_ape, RAW *raw, char *from, char *to);
+void push_raw_recently_group(acetables *g_ape, RAW *raw, char *key, int type);
+
+/*
+ * post for user and group COULD be seprate
+ * there IS post_raw_recently() and post_raw_sub_recently()
+ */
+void post_raw_recently_single(acetables *g_ape, USERS *user, char *from, char *to);
 void post_raw_recently(acetables *g_ape, USERS *user, char *key, int type);
-void post_raw_sub_recently(acetables *g_ape, subuser *sub,char *key, int type);
+void post_raw_sub_recently_single(acetables *g_ape, subuser *sub, char *from, char *to);
+void post_raw_sub_recently(acetables *g_ape, subuser *sub, char *key, int type);
+
+/* TODO: index, and deque won't be free() at runtime, mem growup... */
+
+/* TODO: distinct offline, online message in deque */
 
 #endif

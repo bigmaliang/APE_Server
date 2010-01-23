@@ -202,7 +202,7 @@ static unsigned int fkq_join(callbackp *callbacki)
 			if (callbacki->call_subuser != NULL) {
 				ADD_SUBUSER_HOSTUIN(callbacki->call_subuser, hostUin);
 			}
-			post_raw_sub_recently(callbacki->g_ape, sub, hostUin, RRC_TYPE_FKQ_GROUP);
+			post_raw_sub_recently(callbacki->g_ape, sub, hostUin, RRC_TYPE_GROUP_FKQ);
 		}
 	}
 	
@@ -263,9 +263,11 @@ static unsigned int fkq_send(callbackp *callbacki)
 {
 	json_item *jlist = NULL;
 	RAW *newraw;
-	char *msg, *pipe, *uin;
+	char *msg, *pipe, *uinfrom, *uinto;
 	CHANNEL *chan;
-	USERS *user;
+	USERS *user = callbacki->call_user;
+
+	uinfrom = GET_UIN_FROM_USER(user);
 	
 	JNEED_STR(callbacki->param, "msg", msg, RETURN_BAD_PARAMS);
 	JNEED_STR(callbacki->param, "pipe", pipe, RETURN_BAD_PARAMS);
@@ -282,20 +284,20 @@ static unsigned int fkq_send(callbackp *callbacki)
 		case CHANNEL_PIPE:
 			chan = (CHANNEL*)(spipe->pipe);
 			if (chan) {
-				uin = GET_FKQ_HOSTUIN(chan);
-				if (uin) {
-					push_raw_recently(callbacki->g_ape, newraw,
-									  uin, RRC_TYPE_FKQ_GROUP);
+				uinto = GET_FKQ_HOSTUIN(chan);
+				if (uinto) {
+					push_raw_recently_group(callbacki->g_ape, newraw,
+											uinto, RRC_TYPE_GROUP_FKQ);
 				}
 			}
 			break;
 		default:
 			user = (USERS*)(spipe->pipe);
 			if (user) {
-				uin = GET_UIN_FROM_USER(user);
-				if (uin) {
-					push_raw_recently(callbacki->g_ape, newraw,
-									  uin, RRC_TYPE_FKQ_USER);
+				uinto = GET_UIN_FROM_USER(user);
+				if (uinto) {
+					push_raw_recently_single(callbacki->g_ape, newraw,
+											 uinfrom, uinto);
 				}
 			}
 			break;

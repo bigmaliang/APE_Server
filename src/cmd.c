@@ -526,19 +526,25 @@ unsigned int cmd_join(callbackp *callbacki)
 
 unsigned int cmd_raw_recently(callbackp *callbacki)
 {
-	char *uin, *caller;
+	char *uin, *otheruin, *caller;
 	int type;
 	USERS *user = callbacki->call_user;
 	subuser *sub = callbacki->call_subuser;
 
 	JNEED_STR(callbacki->param, "uin", uin, RETURN_BAD_PARAMS);
 	JNEED_INT(callbacki->param, "type", type, RETURN_BAD_PARAMS);
+	otheruin = JSTR(otheruin);
 
-	if (type == RRC_TYPE_FKQ_USER) {
+	if (type == RRC_TYPE_SINGLE) {
 		caller = GET_UIN_FROM_USER(user);
 		if (!caller || strcmp(caller, uin)) {
 			alog_err("%d not himself %d", caller, uin);
 			return (RETURN_BAD_PARAMS);
+		}
+		if (otheruin) {
+			post_raw_sub_recently_single(callbacki->g_ape,
+										 sub, uin, otheruin);
+			return (RETURN_NOTHING);
 		}
 	}
 
