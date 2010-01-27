@@ -10,6 +10,11 @@ typedef struct {
 } st_fkq;
 
 enum {
+	BLACK_OP_ADD = 0,
+	BLACK_OP_DEL
+} black_op;
+
+enum {
 	ST_CLOSE = 0,
 	ST_OPEN
 } fkq_stat;
