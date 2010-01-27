@@ -233,8 +233,11 @@ static void rrc_index_update(HTBL *table, char *from, char *to, int max)
 			uListInit(&index, max, 0);
 			hashtbl_append(table, from, index);
 		}
-		
-		if (!uListSearch(index, to, rrc_index_cmp)) {
+
+		/* uListSearch() should pass to's address -_-!!
+		 * see http://tech.groups.yahoo.com/group/ClearSilver/message/1282
+		 */
+		if (!uListSearch(index, &to, rrc_index_cmp)) {
 			uListAppend(index, to);
 			uListSort(index, rrc_index_cmp);
 		}
@@ -246,7 +249,7 @@ static void rrc_index_update(HTBL *table, char *from, char *to, int max)
 			hashtbl_append(table, to, index);
 		}
 		
-		if (!uListSearch(index, from, rrc_index_cmp)) {
+		if (!uListSearch(index, &from, rrc_index_cmp)) {
 			uListAppend(index, from);
 			uListSort(index, rrc_index_cmp);
 		}
