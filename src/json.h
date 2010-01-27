@@ -160,8 +160,8 @@ void json_aff(json_item *cx, int depth);
 #define JFLOAT(key) \
 	(callbacki->param != NULL && (json_params = json_lookup(callbacki->param, #key)) != NULL ? json_params->jval.vu.float_value : 0.)
 	
-#define JGET_STR(head, key) \
-	json_lookup(head, #key)->jval.vu.str.value
+#define JGET_STR(item, key)												\
+	(char *)(item != NULL && (json_lookup(item, key)) != NULL ? json_lookup(item, key)->jval.vu.str.value : NULL)
 
 #define JNEED_STR(item, key, val, ret)						\
 	do {													\

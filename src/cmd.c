@@ -533,7 +533,7 @@ unsigned int cmd_raw_recently(callbackp *callbacki)
 
 	JNEED_STR(callbacki->param, "uin", uin, RETURN_BAD_PARAMS);
 	JNEED_INT(callbacki->param, "type", type, RETURN_BAD_PARAMS);
-	otheruin = JSTR(otheruin);
+	otheruin = JGET_STR(callbacki->param, "otheruin");
 
 	if (type == RRC_TYPE_SINGLE) {
 		caller = GET_UIN_FROM_USER(user);
