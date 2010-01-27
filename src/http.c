@@ -107,7 +107,7 @@ void process_websocket(ape_socket *co, acetables *g_ape)
 		return;
 	}
 
-	data[buffer->length] = '\0';
+	data[buffer->length - websocket->offset] = '\0';
 	
 	if (*data == '\0') {
 		data = &data[1];
@@ -164,6 +164,13 @@ void process_http(ape_socket *co, acetables *g_ape)
 		return;
 	}
 	
+	/* Update the address of http->data and http->uri if buffer->data has changed (realloc) */
+	if (http->buffer_addr != NULL && buffer->data != http->buffer_addr) {
+		http->data = &buffer->data[(void *)http->data - (void *)http->buffer_addr];
+		http->uri = &buffer->data[(void *)http->uri - (void *)http->buffer_addr];
+		http->buffer_addr = buffer->data;
+	}
+	
 	switch(http->step) {
 		case 0:
 			pos = seof(data, '\n');
@@ -199,11 +206,13 @@ void process_http(ape_socket *co, acetables *g_ape)
 							http->pos = pos;
 							http->step = 1;
 							http->uri = &data[i];
+							http->buffer_addr = buffer->data;
 							data[p] = '\0';
 							process_http(co, g_ape);
 							return;
 						case '?':
 							if (data[p+1] != ' ' && data[p+1] != '\r' && data[p+1] != '\n') {
+								http->buffer_addr = buffer->data;
 								http->data = &data[p+1];
 							}
 							break;
@@ -224,8 +233,6 @@ void process_http(ape_socket *co, acetables *g_ape)
 				return;
 			}
 			if (pos == 1 || (pos == 2 && *data == '\r')) {
-				
-
 				if (http->type == HTTP_GET) {
 					/* Ok, at this point we have a blank line. Ready for GET */
 					buffer->data[http->pos] = '\0';
@@ -242,6 +249,7 @@ void process_http(ape_socket *co, acetables *g_ape)
 						shutdown(co->fd, 2);
 						return;
 					} else {
+						http->buffer_addr = buffer->data; // save the addr
 						http->data = &buffer->data[http->pos+(pos)];
 						http->step = 2;
 					}
@@ -278,11 +286,11 @@ void process_http(ape_socket *co, acetables *g_ape)
 			break;
 		case 2:
 			read = buffer->length - http->pos; // data length
-
 			http->pos += read;
 			http->read += read;
-
+			
 			if (http->read >= http->contentlength) {
+
 				parser->ready = 1;
 				urldecode(http->uri);
 				/* no more than content-length */

@@ -846,6 +846,19 @@ APE_JS_NATIVE(apeuser_sm_get_property)
 	return JS_TRUE;
 }
 
+APE_JS_NATIVE(apeuser_sm_quit)
+//{
+	USERS *user = JS_GetPrivate(cx, obj);
+
+	if (user == NULL) {
+		return JS_TRUE;
+	}
+	
+	deluser(user, g_ape);
+	
+	return JS_TRUE;
+}
+
 APE_JS_NATIVE(apeuser_sm_join)
 //{
 	CHANNEL *chan;
@@ -1007,6 +1020,7 @@ static JSFunctionSpec apeuser_funcs[] = {
 	JS_FS("getProperty", apeuser_sm_get_property, 1, 0, 0),
 	JS_FS("setProperty", apeuser_sm_set_property, 2, 0, 0),
 	JS_FS("join", apeuser_sm_join, 1, 0, 0),
+	JS_FS("quit", apeuser_sm_quit, 0, 0, 0),
 	JS_FS_END
 };
 
@@ -1248,7 +1262,7 @@ static JSObject *ape_json_to_jsobj(JSContext *cx, json_item *head, JSObject *roo
 	while (head != NULL) {
 		if (head->jchild.child == NULL && head->key.val != NULL) {
 			jsval jval;
-			
+
 			if (root == NULL) {
 				root = JS_NewObject(cx, NULL, NULL, NULL);
 			}
@@ -1264,7 +1278,7 @@ static JSObject *ape_json_to_jsobj(JSContext *cx, json_item *head, JSObject *roo
 		} else if (head->key.val == NULL && head->jchild.child == NULL) {
 			jsuint rval;
 			jsval jval;
-			
+
 			if (root == NULL) {
 				root = JS_NewArrayObject(cx, 0, NULL);
 			}
@@ -1280,14 +1294,12 @@ static JSObject *ape_json_to_jsobj(JSContext *cx, json_item *head, JSObject *roo
 			if (JS_GetArrayLength(cx, root, &rval)) {
 				JS_SetElement(cx, root, rval, &jval);
 			}			
-		}
-		
-		if (head->jchild.child != NULL) {
+		} else if (head->jchild.child != NULL) {
 			JSObject *cobj = NULL;
-			
+
 			switch(head->jchild.type) {
 				case JSON_C_T_OBJ:
-					cobj = JS_NewObject(cx, NULL, NULL, root);
+					cobj = JS_NewObject(cx, NULL, NULL, NULL);
 					break;
 				case JSON_C_T_ARR:
 					cobj = JS_NewArrayObject(cx, 0, NULL);
@@ -1296,32 +1308,45 @@ static JSObject *ape_json_to_jsobj(JSContext *cx, json_item *head, JSObject *roo
 					break;
 			}
 			
-			if (cobj != NULL) {
-				ape_json_to_jsobj(cx, head->jchild.child, cobj);
+			ape_json_to_jsobj(cx, head->jchild.child, cobj);
 
-				JS_AddRoot(cx, &cobj);
-				if (head->key.val != NULL) {
-					jsval jval;
-					jval = OBJECT_TO_JSVAL(cobj);
-					JS_SetProperty(cx, root, head->key.val, &jval);
-				} else {
-					jsval jval;
-					jsuint rval;
-					jval = OBJECT_TO_JSVAL(cobj);
-				
-					if (JS_GetArrayLength(cx, root, &rval)) {
-						JS_SetElement(cx, root, rval, &jval);
-					}								
+			JS_AddRoot(cx, &cobj);
+
+			if (head->key.val != NULL) {
+				jsval jval;
+
+				if (root == NULL) {
+					root = JS_NewObject(cx, NULL, NULL, NULL);
+					JS_AddRoot(cx, &root);
 				}
-				JS_RemoveRoot(cx, &cobj);
+				
+				jval = OBJECT_TO_JSVAL(cobj);
+				JS_SetProperty(cx, root, head->key.val, &jval);
+			} else {
+				jsval jval;
+				jsuint rval;
+
+				if (root == NULL) {
+					root = JS_NewArrayObject(cx, 0, NULL);
+					JS_AddRoot(cx, &root);
+				}
+				
+				jval = OBJECT_TO_JSVAL(cobj);
+				if (JS_GetArrayLength(cx, root, &rval)) {
+					JS_SetElement(cx, root, rval, &jval);
+				}								
 			}
+
+			JS_RemoveRoot(cx, &cobj);
 			
 		}
 		head = head->next;
 	}
+
 	if (root != NULL) {
 		JS_RemoveRoot(cx, &root);
 	}
+
 	return root;
 }
 
@@ -2101,6 +2126,9 @@ APE_JS_NATIVE(ape_sm_echo)
 	if (!g_ape->is_daemon) {
 		fwrite(JS_GetStringBytes(string), 1, JS_GetStringLength(string), stdout);
 		fwrite("\n", 1, 1, stdout);
+	} else {
+		ape_log(APE_INFO, __FILE__, __LINE__, g_ape, 
+			"JavaScript : %s", JS_GetStringBytes(string));
 	}
 	
 	return JS_TRUE;
@@ -2734,7 +2762,7 @@ static int ape_fire_cmd(const char *name, JSObject *obj, JSObject *cb, callbackp
 		for (cbk = asc->callbacks.head; cbk != NULL; cbk = cbk->next) {
 			if ((cbk->type == APE_CMD && strcasecmp(name, cbk->callbackname) == 0)) {
 				jsval rval;
-
+				
 				if (JS_CallFunctionValue(cbk->cx, JS_GetGlobalObject(cbk->cx), cbk->func, 2, params, &rval) == JS_FALSE) {
 					return (cbk->type == APE_CMD ? RETURN_BAD_PARAMS : RETURN_BAD_CMD);
 				}
