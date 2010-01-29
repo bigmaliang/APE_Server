@@ -42,6 +42,7 @@
 #include "../src/events.h"
 #include "../src/log.h"
 #include "../src/config.h"
+#include "../src/queue.h"
 
 #include <stdarg.h>
 

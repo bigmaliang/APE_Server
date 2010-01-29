@@ -26,6 +26,32 @@ static ace_plugin_infos infos_module = {
 /*
  * file range 
  */
+static anchor_t* anchor_new(const char *name, const char *href,
+							const char *title, const char *target)
+{
+	if (!name || !href || !title || !target) return NULL;
+
+	anchor_t *anc = xmalloc(sizeof(anchor_t));
+	anc->name = strdup(name);
+	anc->href = strdup(href);
+	anc->title = strdup(title);
+	anc->target = strdup(target);
+
+	return anc;
+}
+
+static void anchor_free(void *a)
+{
+	if (!a) return;
+
+	anchor_t *anc = (anchor_t*)a;
+	SFREE(anc->name);
+	SFREE(anc->href);
+	SFREE(anc->title);
+	SFREE(anc->target);
+	SFREE(anc);
+}
+
 static int get_fkq_stat(char *uin)
 {
 	mevent_t *evt = NULL;
@@ -298,6 +324,9 @@ static unsigned int fkq_close(callbackp *callbacki)
 	return (RETURN_NOTHING);
 }
 
+/*
+ * get blacklist
+ */
 static unsigned int fkq_blacklist(callbackp *callbacki)
 {
 	json_item *jlist = NULL;
@@ -348,6 +377,9 @@ static unsigned int fkq_blacklist(callbackp *callbacki)
 	return (RETURN_NOTHING);
 }
 
+/*
+ * blacklist operation
+ */
 static unsigned int fkq_blackop(callbackp *callbacki)
 {
 	USERS *user = callbacki->call_user;
@@ -393,6 +425,82 @@ static unsigned int fkq_blackop(callbackp *callbacki)
 	} else {
 		return (RETURN_BAD_PARAMS);
 	}
+
+	return (RETURN_NOTHING);
+}
+
+/*
+ * visit list get, return uin's visit list
+ */
+static unsigned int fkq_visitlist(callbackp *callbacki)
+{
+	USERS *user;
+	subuser *sub = callbacki->call_subuser;
+	char *uin, *hostUin, key[128];
+
+	JNEED_STR(callbacki->param, "uin", uin, RETURN_BAD_PARAMS);
+	JNEED_STR(callbacki->param, "hostUin", hostUin, RETURN_BAD_PARAMS);
+	
+	user = GET_USER_FROM_APE(callbacki->g_ape, uin);
+	ASSAM_VISIT_KEY(key, hostUin);
+
+	json_item *jlist, *jvisit, *jvlist = json_new_array();
+	RAW *newraw;
+
+	Queue *queue;
+	QueueEntry *qv;
+	anchor_t *anc;
+
+	if ((queue = GET_FKQ_VISIT(user, key)) != NULL) {
+		queue_iterate(queue, qv) {
+			anc = (anchor_t*)qv->data;
+			jvisit = json_new_object();
+			json_set_property_strZ(jvisit, "name", anc->name);
+			json_set_property_strZ(jvisit, "href", anc->href);
+			json_set_property_strZ(jvisit, "title", anc->title);
+			json_set_property_strZ(jvisit, "target", anc->target);
+
+			json_set_element_obj(jvlist, jvisit);
+		}
+	}
+
+	jlist = json_new_object();
+	json_set_property_objZ(jlist, "visit", jvlist);
+	json_set_property_strZ(jlist, "hostUin", hostUin);
+	newraw = forge_raw("FKQ_VISITLIST", jlist);
+	post_raw_sub(newraw, sub, callbacki->g_ape);
+	POSTRAW_DONE(newraw);
+	
+	return (RETURN_NOTHING);
+}
+
+/*
+ * visit list set, hold user browse's action request
+ */
+static unsigned int fkq_visitadd(callbackp *callbacki)
+{
+	USERS *user = callbacki->call_user;
+	char *uin, *hostUin, *name, *href, key[128];
+	int maxnum;
+
+	uin = GET_UIN_FROM_USER(user);
+
+	JNEED_STR(callbacki->param, "hostUin", hostUin, RETURN_BAD_PARAMS);
+	JNEED_STR(callbacki->param, "name", name, RETURN_BAD_PARAMS);
+	JNEED_STR(callbacki->param, "href", href, RETURN_BAD_PARAMS);
+
+	ASSAM_VISIT_KEY(key, hostUin);
+	maxnum = atoi(READ_CONF("fkq_max_visit_size"));
+	if (maxnum > 0) {
+			anchor_t *anc = anchor_new(name, href, ANC_DFT_TITLE, ANC_DFT_TARGET);
+			Queue *queue = GET_FKQ_VISIT(user, key);
+			if (!queue) {
+				queue = queue_new(maxnum);
+				MAKE_FKQ_VISIT(user, key, queue);
+			}
+			queue_fixlen_push_head(queue, anc, anchor_free);
+	}
+	hn_senddata(callbacki, "999", "OPERATION_SUCCESS");
 
 	return (RETURN_NOTHING);
 }
@@ -496,6 +604,8 @@ static void init_module(acetables *g_ape)
 	register_cmd("FKQ_CLOSE", fkq_close, NEED_SESSID, g_ape);
 	register_cmd("FKQ_BLACKLIST", fkq_blacklist, NEED_SESSID, g_ape);
 	register_cmd("FKQ_BLACKOP", fkq_blackop, NEED_SESSID, g_ape);
+	register_cmd("FKQ_VISITLIST", fkq_visitlist, NEED_SESSID, g_ape);
+	register_cmd("FKQ_VISITADD", fkq_visitadd, NEED_SESSID, g_ape);
 	register_cmd("FKQ_SEND", fkq_send, NEED_SESSID, g_ape);
 }
 

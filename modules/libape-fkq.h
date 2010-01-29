@@ -19,6 +19,16 @@ enum {
 	ST_OPEN
 } fkq_stat;
 
+
+#define ANC_DFT_TITLE	"title"
+#define ANC_DFT_TARGET	"_blank"
+typedef struct _anc {
+	char *name;
+	char *href;
+	char *title;
+	char *target;
+} anchor_t;
+
 #define ADD_SUBUSER_HOSTUIN(sub, uin)							\
 	do {														\
 		if (get_property(sub->properties, "hostuin") == NULL) {	\
@@ -51,5 +61,18 @@ enum {
 #define GET_FKQ_HOSTUIN(chan)										\
     (get_property(chan->properties, "hostuin") != NULL?				\
      (char*)get_property(chan->properties, "hostuin")->val: NULL)
+
+/* visit trace list */
+#define ASSAM_VISIT_KEY(key, uin)	snprintf(key, sizeof(key), "visit_%s", uin)
+#define MAKE_FKQ_VISIT(user, key, p)						\
+	do {													\
+		if (get_property(user->properties, key) == NULL) {	\
+			add_property(&user->properties, key, p,			\
+						 EXTEND_POINTER, EXTEND_ISPRIVATE);	\
+		}													\
+	} while (0)
+#define GET_FKQ_VISIT(user, key)								\
+	(get_property(user->properties, key) != NULL ?				\
+	 (Queue*)get_property(user->properties, key)->val: NULL)
 
 #endif
