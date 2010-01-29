@@ -11,6 +11,13 @@ void hn_senderr(callbackp *callbacki, char *code, char *msg);
 void hn_senddata(callbackp *callbacki, char *code, char *msg);
 int hn_isvaliduin(char *uin);
 
+#define SFREE(p)								\
+	do {										\
+		if (p) {								\
+			free(p);							\
+		}										\
+	} while (0)
+
 #define MAKE_USER_TBL(g_ape)											\
 	do {																\
 		if (get_property(g_ape->properties, "userlist") == NULL) {		\

@@ -38,7 +38,7 @@ enum {
 #define RRC_TYPE_OK(type) (type >= 0 && type < RRC_TYPE_MAX)
 #define RRC_TYPE_NOK(type) (type < 0 || type >= RRC_TYPE_MAX)
 
-typedef struct RAW_NODE{
+typedef struct RAW_NODE {
 	struct RAW *value;
 	struct RAW_NODE *next;
 } RAW_NODE;

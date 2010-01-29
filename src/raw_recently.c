@@ -25,7 +25,7 @@
 #include "raw.h"
 #include "hash.h"
 #include "config.h"
-#include "ulist.h"
+#include "queue.h"
 
 #define ADD_RRC_DEQUE_TBL(g_ape)										\
 	do {																\
@@ -213,45 +213,40 @@ static void raw_deque_out_sub(acetables *g_ape, subuser *sub, char *key, int typ
 /*
  * rrc_index_xxx
  */
-static int rrc_index_cmp(const void *a, const void *b)
+static int rrc_index_cmp(void *a, void *b)
 {
 	char *sa, *sb;
-	sa = *(char**)a;
-	sb = *(char**)b;
+	sa = (char*)a;
+	sb = (char*)b;
 
 	return strcmp(sa, sb);
 }
 
 static void rrc_index_update(HTBL *table, char *from, char *to, int max)
 {
-	ULIST *index;
+	Queue *index;
 	
 	if (table && from && to && max > 0) {
 		/* update from's index */
 		index = hashtbl_seek(table, from);
 		if (!index) {
-			uListInit(&index, max, 0);
+			index = queue_new(max);
 			hashtbl_append(table, from, index);
 		}
 
-		/* uListSearch() should pass to's address -_-!!
-		 * see http://tech.groups.yahoo.com/group/ClearSilver/message/1282
-		 */
-		if (!uListSearch(index, &to, rrc_index_cmp)) {
-			uListAppend(index, to);
-			uListSort(index, rrc_index_cmp);
+		if (queue_find(index, to, rrc_index_cmp) == -1) {
+			queue_fixlen_push_head(index, from, free);
 		}
 
 		/* update to's index */
 		index = hashtbl_seek(table, to);
 		if (!index) {
-			uListInit(&index, max, 0);
+			index = queue_new(max);
 			hashtbl_append(table, to, index);
 		}
-		
-		if (!uListSearch(index, &from, rrc_index_cmp)) {
-			uListAppend(index, from);
-			uListSort(index, rrc_index_cmp);
+
+		if (queue_find(index, from, rrc_index_cmp) == -1) {
+			queue_fixlen_push_head(index, to, free);
 		}
 	}
 }
@@ -308,7 +303,7 @@ void free_raw_recently(acetables *g_ape)
 			hTmp = table->table[i];
 			while (hTmp != 0) {
 				hNext = hTmp->next;
-				uListDestroy((ULIST**)&(hTmp->addrs), ULIST_FREE);
+				queue_destroy(hTmp->addrs, free);
 				hTmp = hNext;
 			}
 		}
@@ -357,14 +352,15 @@ void post_raw_recently(acetables *g_ape, USERS *user, char *key, int type)
 		
 		PREOP_RRC_INDEX(table);
 
-		ULIST *index = hashtbl_seek(table, key);
+		Queue *index = hashtbl_seek(table, key);
+		QueueEntry *qe;
+		
 		if (index) {
-			ULIST_ITERATE(index) {
-				post_raw_recently_single(g_ape, user, key,
-										 (char*)index->items[t_rsv_i]);
+			queue_iterate(index, qe) {
+				post_raw_recently_single(g_ape, user, key, (char*)qe->data);
 			}
 		}
-	} else{
+	} else {
 		raw_deque_out(g_ape, user, key, type);
 	}
 }
@@ -388,11 +384,11 @@ void post_raw_sub_recently(acetables *g_ape, subuser *sub, char *key, int type)
 		
 		PREOP_RRC_INDEX(table);
 
-		ULIST *index = hashtbl_seek(table, key);
+		Queue *index = hashtbl_seek(table, key);
+		QueueEntry *qe;
 		if (index) {
-			ULIST_ITERATE(index) {
-				post_raw_sub_recently_single(g_ape, sub, key,
-											 (char*)index->items[t_rsv_i]);
+			queue_iterate(index, qe) {
+				post_raw_sub_recently_single(g_ape, sub, key, (char*)qe->data);
 			}
 		}
 	} else{
