@@ -62,7 +62,7 @@ extend *add_property(extend **entry, const char *key, void *val, void (*ifree)(v
 	
 	switch(etype) {
 		case EXTEND_STR:
-			new_property->val = xstrdup(val);	
+			new_property->val = xstrdup(val);
 			break;
 		case EXTEND_POINTER:
 		default:

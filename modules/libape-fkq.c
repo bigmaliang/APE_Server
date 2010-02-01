@@ -183,7 +183,17 @@ static int user_set_black(char *uin, char *buin, int type, int op)
  */
 
 /*
- * {"fkqstat": 1, "hostfkqlevel": 1, "hostfkqinfo": {"hostchatnum": 32}}
+ *input:
+ *  {"cmd":"FKQ_INIT", "chl":x, "sessid":"", "params":{"nick":"", "hostUin":""}}
+ *    nick: 访客用户昵称
+ *    hostUin: 访客群主号码
+ *output:
+ *  {"raw":"FKQ_INIT", "data":
+        {"fkqstat":1, "hostfkqlevel":0, "hostfkinfo":{"hostchatnum":0}}
+    }
+ *    fkqstat: 访问者访客群聊天功能状态. 0: 开启, 1: 关闭
+ *    hostfkqlevel: 访客群主访客群等级. 0 表示 hostUin 为没有访客群功能的普通用户
+ *    hostfkinfo: 访客群群内信息, 当前只包含聊天人数
  */
 static unsigned int fkq_init(callbackp *callbacki)
 {
@@ -194,16 +204,17 @@ static unsigned int fkq_init(callbackp *callbacki)
 	json_item *jlist = NULL;
 	RAW *newraw;
 
-	JNEED_STR(callbacki->param, "uin", uin, RETURN_BAD_PARAMS);
+	nuser = callbacki->call_user;
+	sub = callbacki->call_subuser;
+
+	uin = GET_UIN_FROM_USER(nuser);
+	
 	JNEED_STR(callbacki->param, "nick", nick, RETURN_BAD_PARAMS);
 	JNEED_STR(callbacki->param, "hostUin", hostUin, RETURN_BAD_PARAMS);
 
 	if (!hn_isvaliduin(uin) || !hn_isvaliduin(hostUin)) {
 		return (RETURN_BAD_PARAMS);
 	}
-
-	nuser = callbacki->call_user;
-	sub = callbacki->call_subuser;
 
 	ADD_NICK_FOR_USER(nuser, nick);
 	
@@ -239,6 +250,25 @@ static unsigned int fkq_init(callbackp *callbacki)
 	return (RETURN_NOTHING);
 }
 
+/*
+ *input:
+ *  {"cmd":"FKQ_JOIN", "chl":x, "sessid":"", "params":{"hostUin":""}}
+ *    hostUin: 访客群主号码
+ *output: 1, 或2, 或3, 或4, 或3+4
+ *1,NOTHING. 用户已经加入了该频道时空返回
+ *2,{"raw":"ERR", "data":{"code":"101", "value":"ERR_IS_BLACK"}}
+    用户被列为该群黑名单时返回错误
+ *3,{"raw":"CHANNEL","data":
+        {"users":[
+		    {"casttype":"uni","pubid":"dedd36d25f96b13c338889280aa4f112","properties":{"nick":"walker","uin":"1708931"},"level":1},
+		    {"casttype":"uni","pubid":"f4fe0a87e9cfb93225521f3b3cfb2118","properties":{"nick":"bluker","uin":"1206839"},"level":1}],
+		"pipe":{"casttype":"multi","pubid":"c6c37b0ba30b3a4b6f3d5deef4f8c76e","properties":{"name":"fangkequnpipe1206839"}}
+		}
+    }
+	访客群频道信息
+ *4,{"raw":"DATA", "data":""}
+    该群最近 20 条聊天信息
+ */
 static unsigned int fkq_join(callbackp *callbacki)
 {
 	char *uin, *hostUin;
@@ -274,6 +304,12 @@ static unsigned int fkq_join(callbackp *callbacki)
 	return (RETURN_NOTHING);
 }
 
+/*
+ *input:
+ *  {"cmd":"FKQ_OPEN", "chl":x, "sessid":"", "params":{}}
+ *output:
+ *  {"raw":"FKQ_OPEND", "data":{}}
+ */
 static unsigned int fkq_open(callbackp *callbacki)
 {
 	char *uin;
@@ -281,7 +317,7 @@ static unsigned int fkq_open(callbackp *callbacki)
 	RAW *newraw;
 	subuser *sub = callbacki->call_subuser;
 
-	JNEED_STR(callbacki->param, "uin", uin, RETURN_BAD_PARAMS);
+	uin = GET_UIN_FROM_USER(callbacki->call_user);
 
 	set_fkq_stat(uin, true);
 	fkq_join(callbacki);
@@ -294,6 +330,12 @@ static unsigned int fkq_open(callbackp *callbacki)
 	return (RETURN_NOTHING);
 }
 
+/*
+ *input:
+ *  {"cmd":"FKQ_CLOSE", "chl":x, "sessid":"", "params":{}}
+ *output:
+ *  {"raw":"FKQ_CLOSED", "data":{}}
+ */
 static unsigned int fkq_close(callbackp *callbacki)
 {
 	char *uin;
@@ -302,7 +344,7 @@ static unsigned int fkq_close(callbackp *callbacki)
 	USERS *nuser = callbacki->call_user;
 	subuser *sub = callbacki->call_subuser;
 
-	JNEED_STR(callbacki->param, "uin", uin, RETURN_BAD_PARAMS);
+	uin = GET_UIN_FROM_USER(callbacki->call_user);
 
 	set_fkq_stat(uin, false);
 
@@ -325,7 +367,12 @@ static unsigned int fkq_close(callbackp *callbacki)
 }
 
 /*
- * get blacklist
+ *input:
+ *  {"cmd":"FKQ_BLACKLIST", "chl":x, "sessid":"", "params":{}}
+ *output:
+ *  {"raw":"FKQ_BLACKLIST","data":{"black":[{"1206839":2}]}}
+ *    black: 黑名单列表数组, 前面是号码, 后面是黑名单类型. 2: 个人聊天黑名单, 3: 访客群黑名单
+ *    没有黑名单时 "black":0
  */
 static unsigned int fkq_blacklist(callbackp *callbacki)
 {
@@ -335,14 +382,11 @@ static unsigned int fkq_blacklist(callbackp *callbacki)
 	mevent_t *evt;
 	struct data_cell *pc, *cc;
 
-	USERS *user = callbacki->call_user;
 	subuser *sub = callbacki->call_subuser;
 	char *uin;
-	int btype, ret;
+	int ret;
 
-	uin = GET_UIN_FROM_USER(user);
-
-	JNEED_INT(callbacki->param, "blacktype", btype, RETURN_BAD_PARAMS);
+	uin = GET_UIN_FROM_USER(callbacki->call_user);
 
 	json_item *jblack, *jblist = json_new_array();
 	
@@ -378,7 +422,20 @@ static unsigned int fkq_blacklist(callbackp *callbacki)
 }
 
 /*
- * blacklist operation
+ *input:
+ *  {"cmd":"FKQ_BLACKLISTOP", "chl":x, "sessid":"", "params":
+         {"op":"", "blackuin":"", "blacktype":x}}
+ *  op: 操作类型. add: 添加黑名单, del: 删除黑名单,
+ *      is: 判断他是不是我的黑名单用户, am: 判断我是不是他的黑名单用户
+ *  blackuin: 对方用户号码
+ *  blacktype: 黑名单类型. 2: 个人聊天黑名单, 3: 访客群黑名单
+ *output: 1/2/3/4/5/6
+ *1,{"raw":"DATA", "data":{"code":"999", "value":"OPERATION_SUCCESS"}}
+ *2,{"raw":"ERR", "data":{"code":"1001", "value":"OPERATION_FAILURE"}}
+ *3,{"raw":"ERR", "data":{"code":"111", "value":"ERR_ALREADYBLACK"}}
+ *4,{"raw":"ERR", "data":{"code":"112", "value":"ERR_NOTBLACK"}}
+ *5,{"raw":"DATA", "data":{"code":"1", "value":"IS_BLACK"}}
+ *6,{"raw":"DATA", "data":{"code":"0", "value":"NOT_BLACK"}}
  */
 static unsigned int fkq_blackop(callbackp *callbacki)
 {
@@ -430,7 +487,20 @@ static unsigned int fkq_blackop(callbackp *callbacki)
 }
 
 /*
- * visit list get, return uin's visit list
+ *input:
+ *  {"cmd":"FKQ_VISITLIST", "chl":x, "sessid":"", "params":{"uin":"", "hostUin":""}}
+ *    uin: 获取谁的浏览历史
+ *    hostUin: uin 在哪个访客群中的浏览历史
+ *output:
+ *1,{"raw":"ERR","data":{"code":"009","value":"ERR_UIN_NEXIST"}}
+ *2,{"raw":"FKQ_VISITLIST","data":
+        {"visit":[
+		    {"name":"name1","href":"href1","title":"title1","target":"_blank"},
+			{"name":"name2","href":"href2","title":"title2","target":"_blank"}],
+		 "hostUin":"1227829"}
+		}
+ *    visit: 访问历史列表
+ *    hostUin: 访问历史群号
  */
 static unsigned int fkq_visitlist(callbackp *callbacki)
 {
@@ -441,8 +511,12 @@ static unsigned int fkq_visitlist(callbackp *callbacki)
 	JNEED_STR(callbacki->param, "uin", uin, RETURN_BAD_PARAMS);
 	JNEED_STR(callbacki->param, "hostUin", hostUin, RETURN_BAD_PARAMS);
 	
-	user = GET_USER_FROM_APE(callbacki->g_ape, uin);
 	ASSAM_VISIT_KEY(key, hostUin);
+	user = GET_USER_FROM_APE(callbacki->g_ape, uin);
+	if (!user) {
+		hn_senderr(callbacki, "009", "ERR_UIN_NEXIST");
+		return (RETURN_NOTHING);
+	}
 
 	json_item *jlist, *jvisit, *jvlist = json_new_array();
 	RAW *newraw;
@@ -475,7 +549,15 @@ static unsigned int fkq_visitlist(callbackp *callbacki)
 }
 
 /*
- * visit list set, hold user browse's action request
+ *input:
+ *  {"cmd":"FKQ_VISITADD", "chl":x, "sessid":"", "params":
+ *    {"hostUin":"", "name":"", "href":""}
+ *  }
+ *    hostUin: 访客群号
+ *    name: 浏览页面标题
+ *    href: 浏览页面链接
+ *output:
+ *  {"raw":"DATA", "data":{"code":"999", "value":"OPERATION_SUCCESS"}}
  */
 static unsigned int fkq_visitadd(callbackp *callbacki)
 {
@@ -505,6 +587,17 @@ static unsigned int fkq_visitadd(callbackp *callbacki)
 	return (RETURN_NOTHING);
 }
 
+/*
+ *input:
+ *  {"cmd":"FKQ_SEND", "chl":x, "sessid":"", "params":{"msg":"", "pipe":""}}
+ *    msg: 消息内容
+ *    pipe: 管道 ID
+ *output:
+ *1,NOTHING
+    成功发送
+ *2,{"raw":"ERR", "data":{"code":"101", "value":"ERR_IS_BLACK"}}
+    用户被列为该群黑名单时返回错误
+ */
 static unsigned int fkq_send(callbackp *callbacki)
 {
 	json_item *jlist = NULL;
@@ -598,15 +691,15 @@ static void init_module(acetables *g_ape)
 	MAKE_ONLINE_TBL(g_ape);
 	MAKE_FKQ_STAT(g_ape, calloc(1, sizeof(st_fkq)));
 	
-	register_cmd("FKQ_INIT", fkq_init, NEED_SESSID, g_ape);
-	register_cmd("FKQ_JOIN", fkq_join, NEED_SESSID, g_ape);
-	register_cmd("FKQ_OPEN", fkq_open, NEED_SESSID, g_ape);
-	register_cmd("FKQ_CLOSE", fkq_close, NEED_SESSID, g_ape);
-	register_cmd("FKQ_BLACKLIST", fkq_blacklist, NEED_SESSID, g_ape);
-	register_cmd("FKQ_BLACKOP", fkq_blackop, NEED_SESSID, g_ape);
-	register_cmd("FKQ_VISITLIST", fkq_visitlist, NEED_SESSID, g_ape);
-	register_cmd("FKQ_VISITADD", fkq_visitadd, NEED_SESSID, g_ape);
-	register_cmd("FKQ_SEND", fkq_send, NEED_SESSID, g_ape);
+	register_cmd("FKQ_INIT", 		fkq_init, 		NEED_SESSID, g_ape);
+	register_cmd("FKQ_JOIN", 		fkq_join, 		NEED_SESSID, g_ape);
+	register_cmd("FKQ_OPEN", 		fkq_open, 		NEED_SESSID, g_ape);
+	register_cmd("FKQ_CLOSE", 		fkq_close, 		NEED_SESSID, g_ape);
+	register_cmd("FKQ_BLACKLIST", 	fkq_blacklist, 	NEED_SESSID, g_ape);
+	register_cmd("FKQ_BLACKOP", 	fkq_blackop, 	NEED_SESSID, g_ape);
+	register_cmd("FKQ_VISITLIST", 	fkq_visitlist, 	NEED_SESSID, g_ape);
+	register_cmd("FKQ_VISITADD", 	fkq_visitadd, 	NEED_SESSID, g_ape);
+	register_cmd("FKQ_SEND", 		fkq_send, 		NEED_SESSID, g_ape);
 }
 
 static ace_callbacks callbacks = {
