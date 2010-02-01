@@ -38,17 +38,6 @@ enum {
 #define RRC_TYPE_OK(type) (type >= 0 && type < RRC_TYPE_MAX)
 #define RRC_TYPE_NOK(type) (type < 0 || type >= RRC_TYPE_MAX)
 
-typedef struct RAW_NODE {
-	struct RAW *value;
-	struct RAW_NODE *next;
-} RAW_NODE;
-
-typedef struct {
-	int length;	
-	struct RAW_NODE *head;
-	struct RAW_NODE *tail;
-} RAW_DEQUE;
-
 void init_raw_recently(acetables *g_ape);
 void free_raw_recently(acetables *g_ape);
 
@@ -67,8 +56,6 @@ void post_raw_recently_single(acetables *g_ape, USERS *user, char *from, char *t
 void post_raw_recently(acetables *g_ape, USERS *user, char *key, int type);
 void post_raw_sub_recently_single(acetables *g_ape, subuser *sub, char *from, char *to);
 void post_raw_sub_recently(acetables *g_ape, subuser *sub, char *key, int type);
-
-/* TODO: index, and deque won't be free() at runtime, mem growup... */
 
 /* TODO: distinct offline, online message in deque */
 
