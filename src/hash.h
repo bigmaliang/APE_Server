@@ -42,8 +42,8 @@ typedef struct _htbl_item
 
 HTBL *hashtbl_init();
 
-void hashtbl_free(HTBL *htbl);
-void hashtbl_empty(HTBL *htbl);
+void hashtbl_free(HTBL *htbl, void (*ifree)(void*));
+void hashtbl_empty(HTBL *htbl, void (*ifree)(void*));
 void *hashtbl_seek(HTBL *htbl, const char *key);
 void hashtbl_erase(HTBL *htbl, const char *key);
 void hashtbl_append(HTBL *htbl, const char *key, void *structaddr);

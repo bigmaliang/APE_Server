@@ -310,11 +310,11 @@ int main(int argc, char **argv)
 		unlink(pidfile);
 	}
 	
-	hashtbl_free(g_ape->hLogin);
-	hashtbl_free(g_ape->hSessid);
-	hashtbl_free(g_ape->hLusers);
+	hashtbl_free(g_ape->hLogin, NULL);
+	hashtbl_free(g_ape->hSessid, NULL);
+	hashtbl_free(g_ape->hLusers, NULL);
 	
-	hashtbl_free(g_ape->hCallback);
+	hashtbl_free(g_ape->hCallback, NULL);
 	
 	free(g_ape->plugins);
 	free_raw_recently(g_ape);

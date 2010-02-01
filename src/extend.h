@@ -28,6 +28,7 @@ typedef enum {
 	EXTEND_STR,
 	EXTEND_JSON,
 	EXTEND_HTBL,
+	EXTEND_QUEUE,
 	EXTEND_POINTER
 } EXTEND_TYPE;
 
@@ -41,6 +42,7 @@ typedef struct _extend extend;
 struct _extend
 {	
 	void *val;
+	void (*ifree)(void *p);
 	
 	EXTEND_TYPE type;
 	EXTEND_PUBLIC visibility;
@@ -54,6 +56,7 @@ void *get_property_val(extend *entry, const char *key);
 void clear_properties(extend **entry);
 void del_property(extend **entry, const char *key);
 //extend *add_property_str(extend **entry, char *key, char *val);
-extend *add_property(extend **entry, const char *key, void *val, EXTEND_TYPE etype, EXTEND_PUBLIC visibility);
+extend *add_property(extend **entry, const char *key, void *val, void (*ifree)(void*),
+					 EXTEND_TYPE etype, EXTEND_PUBLIC visibility);
 void set_property(extend *entry, const char *key, void *val);
 #endif

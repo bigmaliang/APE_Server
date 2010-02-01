@@ -65,7 +65,6 @@ static void keep_up_with_my_friend(USERS *user, acetables *g_ape)
 static void get_user_info(char *uin, USERS *user, acetables *g_ape)
 {
 	HTBL *ulist;
-	extend *ext;
 
 	mevent_t *evt;
 	struct data_cell *pc, *cc;
@@ -85,9 +84,8 @@ static void get_user_info(char *uin, USERS *user, acetables *g_ape)
 
 	pc = data_cell_search(evt->rcvdata, false, DATA_TYPE_ARRAY, "friend");
 	if (pc != NULL) {
-		ext = add_property(&user->properties, "friend", hashtbl_init(),
-						   EXTEND_HTBL, EXTEND_ISPRIVATE);
-		ulist = (HTBL*)ext->val;
+		MAKE_USER_FRIEND_TBL(user);
+		ulist = GET_USER_FRIEND_TBL(user);
 		iterate_data(pc) {
 			cc = pc->v.aval->items[t_rsv_i];
 
@@ -109,10 +107,8 @@ static void get_user_info(char *uin, USERS *user, acetables *g_ape)
 
 	pc = data_cell_search(evt->rcvdata, false, DATA_TYPE_ARRAY, "incept");
 	if (pc != NULL) {
-		ext = add_property(&user->properties, "incept", hashtbl_init(),
-						   EXTEND_HTBL, EXTEND_ISPRIVATE);
-		ulist = (HTBL*)ext->val;
-
+		MAKE_USER_INCEPT_TBL(user);
+		ulist = GET_USER_INCEPT_TBL(user);
 		iterate_data(pc) {
 			cc = pc->v.aval->items[t_rsv_i];
 
@@ -127,7 +123,8 @@ static void get_user_info(char *uin, USERS *user, acetables *g_ape)
 	if (pc != NULL) {
 		sprintf(val, "%d", pc->v.ival);
 		alog_noise("add %s sitemessage %s", uin, val);
-		add_property(&user->properties, "msgset", val, EXTEND_STR, EXTEND_ISPRIVATE);
+		add_property(&user->properties, "msgset", val, NULL,
+					 EXTEND_STR, EXTEND_ISPRIVATE);
 	}
 
  done:
@@ -193,7 +190,7 @@ static void tick_static(acetables *g_ape, int lastcall)
             ST_NUM_USER, st->num_user);
     mevent_add_str(evt, "sqls", "5", sql);
     st->num_user = 0;
-	hashtbl_empty(GET_ONLINE_TBL(g_ape));
+	hashtbl_empty(GET_ONLINE_TBL(g_ape), NULL);
 
     ret = mevent_trigger(evt);
     if (PROCESS_NOK(ret)) {
@@ -332,15 +329,13 @@ static unsigned int push_regpageclass(callbackp *callbacki)
 	}
 
 	char *apps;
+	HTBL *ulist;
+	HTBL_ITEM *item;
 	JNEED_STR(callbacki->param, "apps", apps, RETURN_BAD_PARAMS);
 
-	extend *ext = get_property(sub->properties, "incept");
-	if (ext == NULL) {
-		ext = add_property(&sub->properties, "incept", hashtbl_init(),
-						   EXTEND_HTBL, EXTEND_ISPRIVATE);
-	}
-
-	if (ext != NULL && ext->val != NULL) {
+	MAKE_SUB_INCEPT_TBL(sub);
+	ulist = GET_SUB_INCEPT_TBL(sub);
+	if (ulist) {
 		char *incept = strdup(apps);
 		char *ids[100];
 		size_t num = explode('x', incept, ids, 99);
@@ -348,14 +343,12 @@ static unsigned int push_regpageclass(callbackp *callbacki)
 		for (loopi = 0; loopi <= num; loopi++) {
 			alog_noise("append %s for %s's %s",
 					   ids[loopi], sub->user->sessid, sub->channel);
-			hashtbl_append(ext->val, ids[loopi], NULL);
+			hashtbl_append(ulist, ids[loopi], NULL);
 		}
 		free(incept);
 
 		json_item *jlist = json_new_object();
 		json_item *class_list = json_new_array();
-		HTBL_ITEM *item;
-		HTBL *ulist = ext->val;
 		for (item = ulist->first; item != NULL; item = item->lnext) {
 			json_item *class = json_new_object();
 			json_set_property_strZ(class, "id", item->key);
@@ -641,16 +634,13 @@ static void push_ticksubuser(subuser *sub, acetables *g_ape)
 
 static void push_post_raw_sub(RAW *raw, subuser *sub, acetables *g_ape)
 {
-	extend *usrp = get_property(sub->user->properties, "incept");
-	extend *subp = get_property(sub->properties, "incept");
-	extend *msgp = get_property(sub->user->properties, "msgset");
-
-	int post;
-
 	HTBL *list;
 	HTBL_ITEM *item;
 	int add_size = 16;
 	struct _raw_pool_user *pool;
+	int post;
+	
+	extend *msgp = get_property(sub->user->properties, "msgset");
 
 	alog_noise("prepare post %s", raw->data);
 
@@ -686,9 +676,8 @@ static void push_post_raw_sub(RAW *raw, subuser *sub, acetables *g_ape)
 	 */
 	int type;
 	JNEED_INT(it, "data.msg.type", type, (void)0);
-	if (usrp != NULL && usrp->val != NULL) {
+	if ((list = GET_USER_INCEPT_TBL(sub->user)) != NULL) {
 		post = 0;
-		list = usrp->val;
 		for (item = list->first; item != NULL; item = item->lnext) {
 			if (type == atoi(item->key)) {
 				post = 1;
@@ -719,9 +708,8 @@ static void push_post_raw_sub(RAW *raw, subuser *sub, acetables *g_ape)
 	/*
 	 * check pageclass
 	 */
-	if (subp != NULL && subp->val != NULL) {
+	if ((list = GET_SUB_INCEPT_TBL(sub)) != NULL) {
 		post = 0;
-		list = subp->val;
 		for (item = list->first; item != NULL; item = item->lnext) {
 			if (pageclass == atoi(item->key)) {
 				post = 1;

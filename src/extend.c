@@ -25,6 +25,7 @@
 #include "utils.h"
 #include "json.h"
 #include "hash.h"
+#include "queue.h"
 
 /*
 	Add a property to an object (user, channel, proxy, acetables)
@@ -40,7 +41,8 @@
 	EXTEND_ISPUBLIC : The property is added to the json tree sent with get_json_object_*
 	EXTEND_ISPRIVATE : The property is not shown in get_json_object_*
 */
-extend *add_property(extend **entry, const char *key, void *val, EXTEND_TYPE etype, EXTEND_PUBLIC visibility)
+extend *add_property(extend **entry, const char *key, void *val, void (*ifree)(void*),
+					 EXTEND_TYPE etype, EXTEND_PUBLIC visibility)
 {
 	extend *new_property = NULL, *eTmp;
 	
@@ -68,10 +70,11 @@ extend *add_property(extend **entry, const char *key, void *val, EXTEND_TYPE ety
 			visibility = EXTEND_ISPRIVATE;
 		case EXTEND_JSON:
 			/* /!\ the JSON tree (val) is free'ed when this property is removed */
-			new_property->val = val;		
+			new_property->val = val;
 			break;		
 	}
 
+	new_property->ifree = ifree;
 	new_property->next = eTmp;
 	new_property->type = etype;
 	new_property->visibility = visibility;
@@ -96,9 +99,18 @@ void set_property(extend *entry, const char *key, void *val)
 				break;
 			case EXTEND_JSON:
 				free_json_item(entry->val);
+				entry->val = val;
+				break;
 			case EXTEND_HTBL:
-				hashtbl_free(entry->val);
+				hashtbl_free(entry->val, entry->ifree);
+				entry->val = val;
+				break;
+			case EXTEND_QUEUE:
+				queue_destroy(entry->val, entry->ifree);
+				entry->val = val;
+				break;
 			default:
+				if (entry->ifree) entry->ifree(entry->val);
 				entry->val = val;
 				break;
 			}
@@ -147,9 +159,13 @@ void del_property(extend **entry, const char *key)
 					free_json_item(pEntry->val);
 					break;
 				case EXTEND_HTBL:
-					hashtbl_free(pEntry->val);
+					hashtbl_free(pEntry->val, pEntry->ifree);
+					break;
+				case EXTEND_QUEUE:
+					queue_destroy(pEntry->val, pEntry->ifree);
 					break;
 				default:
+					if (pEntry->ifree) pEntry->ifree(pEntry->val);
 					break;
 			}
 			
@@ -177,9 +193,13 @@ void clear_properties(extend **entry)
 				free_json_item(pEntry->val);
 				break;
 			case EXTEND_HTBL:
-				hashtbl_free(pEntry->val);
+				hashtbl_free(pEntry->val, pEntry->ifree);
+				break;
+			case EXTEND_QUEUE:
+				queue_destroy(pEntry->val, pEntry->ifree);
 				break;
 			default:
+				if (pEntry->ifree) pEntry->ifree(pEntry->val);
 				break;
 		}
 		free(pEntry);

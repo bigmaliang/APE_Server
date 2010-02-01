@@ -68,7 +68,7 @@ void queue_destroy(Queue *queue, QueueFreeFunc free_func)
 	
 	while (!queue_is_empty(queue)) {
 		val = queue_pop_head(queue);
-		free_func(val);
+		if(free_func) free_func(val);
 	}
 
 	/* Free back the queue */
@@ -292,7 +292,7 @@ int queue_fixlen_push_head(Queue *queue, QueueValue data, QueueFreeFunc free_fun
 	return queue_push_head(queue, data);
 }
 
-int queue_length(Queue *queue)
+unsigned int queue_length(Queue *queue)
 {
 	if (queue == NULL || queue->head == NULL) return 0;
 

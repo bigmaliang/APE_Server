@@ -234,7 +234,7 @@ int queue_fixlen_push_head(Queue *queue, QueueValue data, QueueFreeFunc free_fun
  * @return           The number of the entries in the queue.
  */
 
-int queue_length(Queue *queue);
+unsigned int queue_length(Queue *queue);
 
 #define queue_iterate(q, qe)						\
 	for (qe = q->head; qe != NULL; qe = qe->next)

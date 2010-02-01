@@ -30,7 +30,7 @@
 #define ADD_RRC_DEQUE_TBL(g_ape)										\
 	do {																\
 		if (get_property(g_ape->properties, "raw_recently_deque") == NULL) { \
-			add_property(&g_ape->properties, "raw_recently_deque", hashtbl_init(), \
+			add_property(&g_ape->properties, "raw_recently_deque", hashtbl_init(), NULL, \
 						 EXTEND_HTBL, EXTEND_ISPRIVATE);				\
 		}																\
 	} while (0)
@@ -41,7 +41,7 @@
 #define ADD_RRC_INDEX_TBL(g_ape)										\
 	do {																\
 		if (get_property(g_ape->properties, "raw_recently_index") == NULL) { \
-			add_property(&g_ape->properties, "raw_recently_index", hashtbl_init(), \
+			add_property(&g_ape->properties, "raw_recently_index", hashtbl_init(), NULL, \
 						 EXTEND_HTBL, EXTEND_ISPRIVATE);				\
 		}																\
 	} while (0)
@@ -278,37 +278,8 @@ void init_raw_recently(acetables *g_ape)
 
 void free_raw_recently(acetables *g_ape)
 {
-	HTBL *table = GET_RRC_DEQUE_TBL(g_ape);
-	if (table) {
-		size_t i;
-		HTBL_ITEM *hTmp;
-		HTBL_ITEM *hNext;
-		for (i = 0; i < (HACH_TABLE_MAX + 1); i++) {
-			hTmp = table->table[i];
-			while (hTmp != 0) {
-				hNext = hTmp->next;
-				raw_deque_free(hTmp->addrs);
-				hTmp = hNext;
-			}
-		}
-		hashtbl_free(table);
-	}
-
-	table = GET_RRC_INDEX_TBL(g_ape);
-	if (table) {
-		size_t i;
-		HTBL_ITEM *hTmp;
-		HTBL_ITEM *hNext;
-		for (i = 0; i < (HACH_TABLE_MAX + 1); i++) {
-			hTmp = table->table[i];
-			while (hTmp != 0) {
-				hNext = hTmp->next;
-				queue_destroy(hTmp->addrs, free);
-				hTmp = hNext;
-			}
-		}
-		hashtbl_free(table);
-	}
+	hashtbl_free(GET_RRC_DEQUE_TBL(g_ape), NULL);
+	hashtbl_free(GET_RRC_INDEX_TBL(g_ape), NULL);
 }
 
 void push_raw_recently_single(acetables *g_ape, RAW *raw, char *from, char *to)
