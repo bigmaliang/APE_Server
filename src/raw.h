@@ -48,7 +48,7 @@ typedef struct RAW
 
 
 RAW *forge_raw(const char *raw, json_item *jlist);
-int free_raw(RAW *fraw);
+void free_raw(void *p);
 void delete_raw(RAW *fraw);
 RAW *copy_raw(RAW *input);
 RAW *copy_raw_z(RAW *input);

@@ -59,16 +59,15 @@ RAW *forge_raw(const char *raw, json_item *jlist)
 	return new_raw;
 }
 
-int free_raw(RAW *fraw)
+void free_raw(void *p)
 {
-	if (fraw->refcount == 1) {
-		fraw->refcount--;
+	RAW *fraw = (RAW*)p;
+	
+	fraw->refcount--;
+	if (fraw->refcount == 0) {
 		free(fraw->data);
 		free(fraw);
-
-		return 0;
 	}
-	return --(fraw->refcount);
 }
 
 void delete_raw(RAW *fraw)
