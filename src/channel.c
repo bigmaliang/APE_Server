@@ -164,10 +164,17 @@ void join(USERS *user, CHANNEL *chan, acetables *g_ape)
 	FIRE_EVENT_NULL(join, user, chan, g_ape);
 	
 	if (isonchannel(user, chan)) {
-		return;
+		/*
+		 * if channel has QUIET flag, post the channel prop to user,
+		 * otherwise return
+		 */
+		if ((chan->flags & CHANNEL_QUIET)) {
+			list = chan->head;
+			goto joined;
+		} else {
+			return;
+		}
 	}
-	
-	jlist = json_new_object();
 	
 	list = xmalloc(sizeof(*list)); // TODO is it free ?
 	list->userinfo = user;
@@ -182,6 +189,9 @@ void join(USERS *user, CHANNEL *chan, acetables *g_ape)
 	
 	user->chan_foot = chanl;
 
+ joined:
+	jlist = json_new_object();
+	
 	if (!(chan->flags & CHANNEL_NONINTERACTIVE)) {
 		
 		json_item *user_list;

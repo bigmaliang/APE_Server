@@ -33,6 +33,7 @@
 
 #define CHANNEL_NONINTERACTIVE 		0x01
 #define CHANNEL_AUTODESTROY 		0x02
+#define CHANNEL_QUIET				0x04
 
 typedef struct CHANNEL
 {

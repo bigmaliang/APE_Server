@@ -506,38 +506,41 @@ void subuser_restor(subuser *sub, acetables *g_ape)
 	chanl = user->chan_foot;
 
 	while (chanl != NULL) {
-		jlist = json_new_object();
-		
 		chan = chanl->chaninfo;
-		
-		if (!(chan->flags & CHANNEL_NONINTERACTIVE) && chan->head != NULL) {
-			json_item *user_list = json_new_array();
+		/*
+		 * quiet channel won't be posted on subuser_restor 
+		 */
+		if (!(chan->flags & CHANNEL_QUIET)) {
+			jlist = json_new_object();
+			if ( !(chan->flags & CHANNEL_NONINTERACTIVE) && chan->head != NULL ) {
+				json_item *user_list = json_new_array();
 			
-			ulist = chan->head;
+				ulist = chan->head;
 			
-			while (ulist != NULL) {
+				while (ulist != NULL) {
 	
-				json_item *juser = get_json_object_user(ulist->userinfo);
+					json_item *juser = get_json_object_user(ulist->userinfo);
 		
-				if (ulist->userinfo != user) {
-					//make_link(user, ulist->userinfo);
+					if (ulist->userinfo != user) {
+						//make_link(user, ulist->userinfo);
+					}
+				
+					json_set_property_intN(juser, "level", 5, ulist->level);
+				
+					json_set_element_obj(user_list, juser);
+
+					ulist = ulist->next;
 				}
-				
-				json_set_property_intN(juser, "level", 5, ulist->level);
-				
-				json_set_element_obj(user_list, juser);
-
-				ulist = ulist->next;
-			}
 			
-			json_set_property_objN(jlist, "users", 5, user_list);
-		}
-		json_set_property_objN(jlist, "pipe", 4, get_json_object_channel(chan));
+				json_set_property_objN(jlist, "users", 5, user_list);
+			}
+			json_set_property_objN(jlist, "pipe", 4, get_json_object_channel(chan));
 
-		newraw = forge_raw(RAW_CHANNEL, jlist);
-		newraw->priority = RAW_PRI_HI;
-		post_raw_sub(newraw, sub, g_ape);
-		POSTRAW_DONE(newraw);
+			newraw = forge_raw(RAW_CHANNEL, jlist);
+			newraw->priority = RAW_PRI_HI;
+			post_raw_sub(newraw, sub, g_ape);
+			POSTRAW_DONE(newraw);
+		}
 		chanl = chanl->next;
 	}
 
