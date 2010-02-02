@@ -225,7 +225,7 @@ static unsigned int fkq_init(callbackp *callbacki)
 	if (level == 1) {
 		CHANNEL *chan = getchanf(callbacki->g_ape, FKQ_PIP_NAME"%s", hostUin);
 		if (chan == NULL) {
-			chan = mkchanf(callbacki->g_ape, CHANNEL_AUTODESTROY,
+			chan = mkchanf(callbacki->g_ape, CHANNEL_AUTODESTROY | CHANNEL_QUIET,
 						   FKQ_PIP_NAME"%s", hostUin);
 			ADD_FKQ_HOSTUIN(chan, hostUin);
 		}
