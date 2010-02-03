@@ -392,6 +392,16 @@ unsigned int cmd_connect(callbackp *callbacki)
 	
 	JNEED_STR(callbacki->param, "uin", uin, RETURN_BAD_PARAMS);
 
+	if (GET_USER_FROM_APE(callbacki->g_ape, uin) != NULL) {
+		if (atoi(CONFIG_VAL(Server, enable_user_reconnect,
+							callbacki->g_ape->srv)) == 1) {
+			deluser(GET_USER_FROM_APE(callbacki->g_ape, uin), callbacki->g_ape);
+		} else {
+			hn_senderr(callbacki, "006", "ERR_UIN_USED");
+			return (RETURN_NOTHING);
+		}
+	}
+	
 	nuser = adduser(NULL, NULL, NULL, callbacki->call_user, callbacki->g_ape);
 	
 	callbacki->call_user = nuser;
@@ -526,22 +536,17 @@ unsigned int cmd_join(callbackp *callbacki)
 
 unsigned int cmd_raw_recently(callbackp *callbacki)
 {
-	char *uin, *otheruin, *caller;
+	char *uin, *otheruin;
 	int type;
 	USERS *user = callbacki->call_user;
 	subuser *sub = callbacki->call_subuser;
 
-	JNEED_STR(callbacki->param, "uin", uin, RETURN_BAD_PARAMS);
+	uin = GET_UIN_FROM_USER(user);
+	JNEED_STR(callbacki->param, "uin", otheruin, RETURN_BAD_PARAMS);
 	JNEED_INT(callbacki->param, "type", type, RETURN_BAD_PARAMS);
-	otheruin = JGET_STR(callbacki->param, "otheruin");
 
 	if (type == RRC_TYPE_SINGLE) {
-		caller = GET_UIN_FROM_USER(user);
-		if (!caller || strcmp(caller, uin)) {
-			alog_err("%d not himself %d", caller, uin);
-			return (RETURN_BAD_PARAMS);
-		}
-		if (otheruin) {
+		if (strcmp(otheruin, "0")) {
 			post_raw_sub_recently_single(callbacki->g_ape,
 										 sub, uin, otheruin);
 			return (RETURN_NOTHING);
@@ -575,8 +580,8 @@ unsigned int cmd_send(callbackp *callbacki)
 		
 		json_set_property_strZ(jlist, "msg", msg);
 
-		newraw = post_to_pipe(jlist, RAW_DATA, pipe,
-							  callbacki->call_subuser, callbacki->g_ape);
+		post_to_pipe(jlist, RAW_DATA, pipe,
+					 callbacki->call_subuser, callbacki->g_ape, false);
 		POSTRAW_DONE(newraw);
 		
 		return (RETURN_NOTHING);
