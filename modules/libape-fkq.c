@@ -52,6 +52,15 @@ static void anchor_free(void *a)
 	SFREE(anc);
 }
 
+static int anchor_cmp(void *a, void *b)
+{
+	anchor_t *anca, *ancb;
+	anca = (anchor_t*)a;
+	ancb = (anchor_t*)b;
+
+	return strcmp(anca->href, ancb->href);
+}
+
 static int get_fkq_stat(char *uin)
 {
 	mevent_t *evt = NULL;
@@ -274,7 +283,7 @@ static unsigned int fkq_join(callbackp *callbacki)
 	char *uin, *hostUin;
 
 	USERS *user = callbacki->call_user;
-	subuser *sub = callbacki->call_subuser;
+	//subuser *sub = callbacki->call_subuser;
 	CHANNEL *chan;
 
 	JNEED_STR(callbacki->param, "hostUin", hostUin, RETURN_BAD_PARAMS);
@@ -295,8 +304,7 @@ static unsigned int fkq_join(callbackp *callbacki)
 				if (callbacki->call_subuser != NULL) {
 					ADD_SUBUSER_HOSTUIN(callbacki->call_subuser, hostUin);
 				}
-				post_raw_sub_recently(callbacki->g_ape, sub, hostUin,
-									  RRC_TYPE_GROUP_FKQ);
+				//post_raw_sub_recently(callbacki->g_ape, sub, hostUin, RRC_TYPE_GROUP_FKQ);
 			}
 		}
 	}
@@ -306,7 +314,8 @@ static unsigned int fkq_join(callbackp *callbacki)
 
 /*
  *input:
- *  {"cmd":"FKQ_OPEN", "chl":x, "sessid":"", "params":{}}
+ *  {"cmd":"FKQ_OPEN", "chl":x, "sessid":"", "params":{"hostUin":""}}
+ *    hostUin: open 完后要 join 到的访客群号码
  *output:
  *  {"raw":"FKQ_OPEND", "data":{}}
  */
@@ -577,10 +586,14 @@ static unsigned int fkq_visitadd(callbackp *callbacki)
 			anchor_t *anc = anchor_new(name, href, ANC_DFT_TITLE, ANC_DFT_TARGET);
 			Queue *queue = GET_FKQ_VISIT(user, key);
 			if (!queue) {
-				queue = queue_new(maxnum);
+				queue = queue_new(maxnum, anchor_free);
 				MAKE_FKQ_VISIT(user, key, queue);
 			}
-			queue_fixlen_push_head(queue, anc, anchor_free);
+			if (queue_find(queue, anc, anchor_cmp) == -1) {
+				queue_fixlen_push_head(queue, anc);
+			} else {
+				anchor_free(anc);
+			}
 	}
 	hn_senddata(callbacki, "999", "OPERATION_SUCCESS");
 
@@ -635,11 +648,12 @@ static unsigned int fkq_send(callbackp *callbacki)
 		if (post) {
 			jlist = json_new_object();
 			json_set_property_strZ(jlist, "msg", msg);
-			newraw = post_to_pipe(jlist, RAW_FKQDATA, pipe,
-								  callbacki->call_subuser, callbacki->g_ape);
+			jlist = post_to_pipe(jlist, RAW_FKQDATA, pipe,
+								 callbacki->call_subuser, callbacki->g_ape, true);
 
 			/* push raw to recently */
 			if (uinto) {
+				newraw = forge_raw("RAW_RECENTLY", jlist);
 				if (spipe->type == CHANNEL_PIPE) {
 					push_raw_recently_group(callbacki->g_ape, newraw,
 											uinto, RRC_TYPE_GROUP_FKQ);
@@ -647,9 +661,8 @@ static unsigned int fkq_send(callbackp *callbacki)
 					push_raw_recently_single(callbacki->g_ape, newraw,
 											 uinfrom, uinto);
 				}
+				POSTRAW_DONE(newraw);
 			}
-			
-			POSTRAW_DONE(newraw);
 		} else {
 			alog_warn("user %s in %s:%d's black", uinfrom, uinto, spipe->type);
 			hn_senderr(callbacki, "101", "ERR_IS_BLACK");
@@ -689,6 +702,7 @@ static void init_module(acetables *g_ape)
 {
 	MAKE_USER_TBL(g_ape);
 	MAKE_ONLINE_TBL(g_ape);
+	//MAKE_VISITNUM_TBL(g_ape);
 	MAKE_FKQ_STAT(g_ape, calloc(1, sizeof(st_fkq)));
 	
 	register_cmd("FKQ_INIT", 		fkq_init, 		NEED_SESSID, g_ape);
