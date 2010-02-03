@@ -19,6 +19,8 @@
 
 /* raw.c */
 
+#include <stdbool.h>
+
 #include "raw.h"
 #include "users.h"
 #include "channel.h"
@@ -227,7 +229,7 @@ int post_raw_pipe(RAW *raw, const char *pipe, acetables *g_ape)
 	return 0;
 }
 
-RAW* post_to_pipe(json_item *jlist, const char *rawname, const char *pipe, subuser *from, acetables *g_ape)
+json_item* post_to_pipe(json_item *jlist, const char *rawname, const char *pipe, subuser *from, acetables *g_ape, bool jcopy)
 {
 	USERS *sender = from->user;
 	transpipe *recver = get_pipe_strict(pipe, sender, g_ape);
@@ -237,7 +239,7 @@ RAW* post_to_pipe(json_item *jlist, const char *rawname, const char *pipe, subus
 	if (sender != NULL) {
 		if (recver == NULL) {
 			send_error(sender, "UNKNOWN_PIPE", "109", g_ape);
-			return NULL;
+			return jlist;
 		}
 		json_set_property_objN(jlist, "from", 4, get_json_object_user(sender));
 
@@ -251,32 +253,37 @@ RAW* post_to_pipe(json_item *jlist, const char *rawname, const char *pipe, subus
 		post_raw_restricted(newraw, sender, from, g_ape);
 		POSTRAW_DONE(newraw);
 	}
-	newraw = NULL;
+	jlist_copy = NULL;
 	switch(recver->type) {
 		case USER_PIPE:
 			json_set_property_objN(jlist, "pipe", 4, get_json_object_user(sender));
+			json_set_property_objN(jlist, "to", 2,
+								   get_json_object_user((USERS*)recver->pipe));
+			if (jcopy) jlist_copy = json_item_copy(jlist, NULL);
 			newraw = forge_raw(rawname, jlist);
 			post_raw(newraw, recver->pipe, g_ape);
-			//POSTRAW_DONE(newraw);
+			POSTRAW_DONE(newraw);
 			break;
 		case CHANNEL_PIPE:
 			//if (((CHANNEL*)recver->pipe)->head != NULL && ((CHANNEL*)recver->pipe)->head->next != NULL) {
 			if (((CHANNEL*)recver->pipe)->head != NULL) {
 				json_set_property_objN(jlist, "pipe", 4, get_json_object_channel(recver->pipe));
+				if (jcopy) jlist_copy = json_item_copy(jlist, NULL);
 				newraw = forge_raw(rawname, jlist);
 				post_raw_channel_restricted(newraw, recver->pipe, sender, g_ape);
-				//POSTRAW_DONE(newraw);
+				POSTRAW_DONE(newraw);
 			}
 			break;
 		case CUSTOM_PIPE:
 			json_set_property_objN(jlist, "pipe", 4, get_json_object_user(sender));
+			if (jcopy) jlist_copy = json_item_copy(jlist, NULL);
 			post_json_custom(jlist, sender, recver, g_ape);
 			break;
 		default:
 			break;
 	}
 	
-	return newraw;
+	return jlist_copy;
 }
 
 
