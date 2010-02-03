@@ -19,6 +19,8 @@
 
 /* channel.c */
 
+#include "stdbool.h"
+
 #include "channel.h"
 #include "hash.h"
 #include "utils.h"
@@ -162,8 +164,10 @@ void join(USERS *user, CHANNEL *chan, acetables *g_ape)
 	CHANLIST *chanl;
 	
 	FIRE_EVENT_NULL(join, user, chan, g_ape);
-	
+
+	bool alreadyon = false;
 	if (isonchannel(user, chan)) {
+		alreadyon = true;
 		/*
 		 * if channel has QUIET flag, post the channel prop to user,
 		 * otherwise return
@@ -199,7 +203,7 @@ void join(USERS *user, CHANNEL *chan, acetables *g_ape)
 		
 		user_list = json_new_array();
 		
-		if (list->next != NULL) {
+		if (list->next != NULL && !alreadyon) {
 			
 			uinfo = json_new_object();
 		
