@@ -106,7 +106,7 @@ void set_property(extend *entry, const char *key, void *val)
 				entry->val = val;
 				break;
 			case EXTEND_QUEUE:
-				queue_destroy(entry->val, entry->ifree);
+				queue_destroy(entry->val);
 				entry->val = val;
 				break;
 			default:
@@ -162,7 +162,7 @@ void del_property(extend **entry, const char *key)
 					hashtbl_free(pEntry->val, pEntry->ifree);
 					break;
 				case EXTEND_QUEUE:
-					queue_destroy(pEntry->val, pEntry->ifree);
+					queue_destroy(pEntry->val);
 					break;
 				default:
 					if (pEntry->ifree) pEntry->ifree(pEntry->val);
@@ -196,7 +196,7 @@ void clear_properties(extend **entry)
 				hashtbl_free(pEntry->val, pEntry->ifree);
 				break;
 			case EXTEND_QUEUE:
-				queue_destroy(pEntry->val, pEntry->ifree);
+				queue_destroy(pEntry->val);
 				break;
 			default:
 				if (pEntry->ifree) pEntry->ifree(pEntry->val);

@@ -57,28 +57,6 @@ typedef void *QueueValue;
 typedef struct _Queue Queue;
 typedef struct _QueueEntry QueueEntry;
 
-/*
- * put _QueueEntry here for public use.
- */
-struct _QueueEntry {
-	QueueValue data;
-	QueueEntry *prev;
-	QueueEntry *next;
-};
-
-struct _Queue {
-	QueueEntry *head;
-	QueueEntry *tail;
-	unsigned int num;
-	unsigned int max;
-};
-
-/**
- * A null @ref QueueValue.
- */
-
-#define QUEUE_NULL ((void *) 0)
-
 /**
  * Callback function used to compare values in a queue.
  *
@@ -99,15 +77,39 @@ typedef int (*QueueCompareFunc)(QueueValue value1, QueueValue value2);
 
 typedef void (*QueueFreeFunc)(QueueValue value);
 
+/*
+ * put _QueueEntry here for public use.
+ */
+struct _QueueEntry {
+	QueueValue data;
+	QueueEntry *prev;
+	QueueEntry *next;
+};
+
+struct _Queue {
+	QueueEntry *head;
+	QueueEntry *tail;
+	unsigned int num;
+	unsigned int max;
+	QueueFreeFunc free_func;
+};
+
+/**
+ * A null @ref QueueValue.
+ */
+
+#define QUEUE_NULL ((void *) 0)
+
 /**
  * Create a new double-ended queue.
  *
  * @param max       The max size on fixlen_xxx operation.
+ * @param free_func  The data free function.
  * @return           A new queue, or NULL if it was not possible to allocate
  *                   the memory.
  */
 
-Queue *queue_new(unsigned int max);
+Queue *queue_new(unsigned int max, QueueFreeFunc free_func);
 
 /**
  * Destroy a queue.
@@ -121,10 +123,9 @@ void queue_free(Queue *queue);
  * Destroy a queue, and free the Entry
  *
  * @param queue      The queue to destroy.
- * @param free_func  The data free function.
  */
 
-void queue_destroy(Queue *queue, QueueFreeFunc free_func);
+void queue_destroy(void *p);
 
 /**
  * Add a value to the head of a queue.
@@ -219,15 +220,27 @@ int queue_find(Queue *queue, QueueValue data, QueueCompareFunc compare_func);
  *
  * @param queue      The queue.
  * @param data       The value to be add.
- * @param free_func  The data free function.
  * @return           Non-zero if the value was added successfully, or zero
  *                   if it was not possible to allocate the memory for the
  *                   new entry. 
  */
 
-int queue_fixlen_push_head(Queue *queue, QueueValue data, QueueFreeFunc free_func);
+int queue_fixlen_push_head(Queue *queue, QueueValue data);
 
 /**
+ * Add a value to the tail of a queue, when data num reach max,
+ * pop data from head, and free it
+ *
+ * @param queue      The queue.
+ * @param data       The value to be add.
+ * @return           Non-zero if the value was added successfully, or zero
+ *                   if it was not possible to allocate the memory for the
+ *                   new entry. 
+ */
+
+int queue_fixlen_push_tail(Queue *queue, QueueValue data);
+
+ /**
  * Find the length of a queue
  *
  * @param queue      The queue.

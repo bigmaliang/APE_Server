@@ -31,7 +31,7 @@
 	do {																\
 		if (get_property(g_ape->properties, "raw_recently_queue") == NULL) { \
 			add_property(&g_ape->properties, "raw_recently_queue", hashtbl_init(), \
-						 NULL, EXTEND_HTBL, EXTEND_ISPRIVATE);			\
+						 queue_destroy, EXTEND_HTBL, EXTEND_ISPRIVATE);	\
 		}																\
 	} while (0)
 #define GET_RRC_QUEUE_TBL(g_ape)										\
@@ -42,11 +42,11 @@
 	do {																\
 		if (get_property(g_ape->properties, "raw_recently_index") == NULL) { \
 			add_property(&g_ape->properties, "raw_recently_index", hashtbl_init(), \
-						 NULL, EXTEND_HTBL, EXTEND_ISPRIVATE);			\
+						 queue_destroy, EXTEND_HTBL, EXTEND_ISPRIVATE);	\
 		}																\
 	} while (0)
 #define GET_RRC_INDEX_TBL(g_ape)										\
-	(get_property(g_ape->properties, "raw_recently_index") != NULL ?		\
+	(get_property(g_ape->properties, "raw_recently_index") != NULL ?	\
 	 (HTBL*)get_property(g_ape->properties, "raw_recently_index")->val: NULL)
 
 #define PREOP_RRC_QUEUE(table, hkey)									\
@@ -58,13 +58,13 @@
 		if (!table)														\
 			return;														\
 	} while (0);
-#define PREOP_RRC_INDEX(table)											\
-	do {																\
-		if (!g_ape)														\
-			return;														\
-		table = GET_RRC_INDEX_TBL(g_ape);								\
-		if (!table)														\
-			return;														\
+#define PREOP_RRC_INDEX(table)					\
+	do {										\
+		if (!g_ape)								\
+			return;								\
+		table = GET_RRC_INDEX_TBL(g_ape);		\
+		if (!table)								\
+			return;								\
 	} while (0);
 
 /* hkey: 10_11 */
@@ -91,12 +91,12 @@ static void raw_queue_in(acetables *g_ape, RAW *raw, char *key, int type)
 
 	Queue *queue = hashtbl_seek(table, hkey);
 	if (!queue) {
-		queue = queue_new(rrc_max_size[type]);
+		queue = queue_new(rrc_max_size[type], free_raw);
 		hashtbl_append(table, hkey, queue);
 	}
 
 	copy_raw_z(raw);
-	queue_fixlen_push_head(queue, raw, free_raw);
+	queue_fixlen_push_tail(queue, raw);
 }
 
 static void raw_queue_out(acetables *g_ape, USERS *user, char *key, int type)
@@ -152,23 +152,23 @@ static void rrc_index_update(HTBL *table, char *from, char *to, int max)
 		/* update from's index */
 		index = hashtbl_seek(table, from);
 		if (!index) {
-			index = queue_new(max);
+			index = queue_new(max, free);
 			hashtbl_append(table, from, index);
 		}
 
 		if (queue_find(index, to, rrc_index_cmp) == -1) {
-			queue_fixlen_push_head(index, strdup(to), free);
+			queue_fixlen_push_head(index, strdup(to));
 		}
 
 		/* update to's index */
 		index = hashtbl_seek(table, to);
 		if (!index) {
-			index = queue_new(max);
+			index = queue_new(max, free);
 			hashtbl_append(table, to, index);
 		}
 
 		if (queue_find(index, from, rrc_index_cmp) == -1) {
-			queue_fixlen_push_head(index, strdup(from), free);
+			queue_fixlen_push_head(index, strdup(from));
 		}
 	}
 }
@@ -200,8 +200,10 @@ void init_raw_recently(acetables *g_ape)
 
 void free_raw_recently(acetables *g_ape)
 {
-	hashtbl_free(GET_RRC_QUEUE_TBL(g_ape), free_raw);
-	hashtbl_free(GET_RRC_INDEX_TBL(g_ape), free);
+	//hashtbl_free(GET_RRC_QUEUE_TBL(g_ape), free_raw);
+	//hashtbl_free(GET_RRC_INDEX_TBL(g_ape), free);
+	del_property(&g_ape->properties, "raw_recently_queue");
+	del_property(&g_ape->properties, "raw_recently_index");
 }
 
 void push_raw_recently_single(acetables *g_ape, RAW *raw, char *from, char *to)

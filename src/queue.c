@@ -30,7 +30,7 @@ CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 /* A double-ended queue */
 
-Queue *queue_new(unsigned int max)
+Queue *queue_new(unsigned int max, QueueFreeFunc free_func)
 {
 	Queue *queue;
 
@@ -44,12 +44,15 @@ Queue *queue_new(unsigned int max)
 	queue->tail = NULL;
 	queue->num = 0;
 	queue->max = max;
+	queue->free_func = free_func;
 
 	return queue;
 }
 
 void queue_free(Queue *queue)
 {
+	if (!queue) return;
+	
 	/* Empty the queue */
 	
 	while (!queue_is_empty(queue)) {
@@ -61,14 +64,17 @@ void queue_free(Queue *queue)
 	free(queue);
 }
 
-void queue_destroy(Queue *queue, QueueFreeFunc free_func)
+void queue_destroy(void *p)
 {
+	if (!p) return;
+	
+	Queue *queue = (Queue*)p;
 	QueueValue val;
 	/* Destroy the queue */
 	
 	while (!queue_is_empty(queue)) {
 		val = queue_pop_head(queue);
-		if(free_func) free_func(val);
+		if(queue->free_func) queue->free_func(val);
 	}
 
 	/* Free back the queue */
@@ -280,16 +286,28 @@ int queue_find(Queue *queue, QueueValue data, QueueCompareFunc compare_func)
 	return -1;
 }
 
-int queue_fixlen_push_head(Queue *queue, QueueValue data, QueueFreeFunc free_func)
+int queue_fixlen_push_head(Queue *queue, QueueValue data)
 {
 	QueueValue val;
 	
 	while (queue->num >= queue->max) {
 		val = queue_pop_tail(queue);
-		free_func(val);
+		if (queue->free_func) queue->free_func(val);
 	}
 
 	return queue_push_head(queue, data);
+}
+
+int queue_fixlen_push_tail(Queue *queue, QueueValue data)
+{
+	QueueValue val;
+	
+	while (queue->num >= queue->max) {
+		val = queue_pop_head(queue);
+		if (queue->free_func) queue->free_func(val);
+	}
+
+	return queue_push_tail(queue, data);
 }
 
 unsigned int queue_length(Queue *queue)
