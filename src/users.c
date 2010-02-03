@@ -39,6 +39,7 @@
 #include "utils.h"
 #include "transports.h"
 #include "log.h"
+#include "hnpub.h"
 
 /* Checking whether the user is in a channel */
 unsigned int isonchannel(USERS *user, CHANNEL *chan)
@@ -193,6 +194,8 @@ void deluser(USERS *user, acetables *g_ape)
 
 	left_all(user, g_ape);
 
+	char *uin = GET_UIN_FROM_USER(user);
+
 	FIRE_EVENT_NULL(deluser, user, user->istmp, g_ape);
 
 	/* kill all users connections */
@@ -200,6 +203,9 @@ void deluser(USERS *user, acetables *g_ape)
 	clear_subusers(user, g_ape);
 
 	hashtbl_erase(g_ape->hSessid, user->sessid);
+	if (uin != NULL && GET_USER_TBL(g_ape) != NULL) {
+		hashtbl_erase(GET_USER_TBL(g_ape), uin);
+	}
 	
 	g_ape->nConnected--;
 	
