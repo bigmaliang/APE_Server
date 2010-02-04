@@ -26,6 +26,7 @@
 #include "hash.h"
 #include "config.h"
 #include "queue.h"
+#include "hnpub.h"
 
 #define ADD_RRC_QUEUE_TBL(g_ape)										\
 	do {																\
@@ -135,15 +136,6 @@ static void raw_queue_out_sub(acetables *g_ape, subuser *sub, char *key, int typ
 /*
  * rrc_index_xxx
  */
-static int rrc_index_cmp(void *a, void *b)
-{
-	char *sa, *sb;
-	sa = (char*)a;
-	sb = (char*)b;
-
-	return strcmp(sa, sb);
-}
-
 static void rrc_index_update(HTBL *table, char *from, char *to, int max)
 {
 	Queue *index;
@@ -156,7 +148,7 @@ static void rrc_index_update(HTBL *table, char *from, char *to, int max)
 			hashtbl_append(table, from, index);
 		}
 
-		if (queue_find(index, to, rrc_index_cmp) == -1) {
+		if (queue_find(index, to, hn_str_cmp) == -1) {
 			queue_fixlen_push_head(index, strdup(to));
 		}
 
@@ -167,7 +159,7 @@ static void rrc_index_update(HTBL *table, char *from, char *to, int max)
 			hashtbl_append(table, to, index);
 		}
 
-		if (queue_find(index, from, rrc_index_cmp) == -1) {
+		if (queue_find(index, from, hn_str_cmp) == -1) {
 			queue_fixlen_push_head(index, strdup(from));
 		}
 	}

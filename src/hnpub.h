@@ -10,6 +10,7 @@
 void hn_senderr(callbackp *callbacki, char *code, char *msg);
 void hn_senddata(callbackp *callbacki, char *code, char *msg);
 int hn_isvaliduin(char *uin);
+int hn_str_cmp(void *a, void *b);
 
 #define SFREE(p)								\
 	do {										\

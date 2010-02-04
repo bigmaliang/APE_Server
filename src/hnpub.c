@@ -46,3 +46,11 @@ int hn_isvaliduin(char *uin)
 	return 1;
 }
 
+int hn_str_cmp(void *a, void *b)
+{
+	char *sa, *sb;
+	sa = (char*)a;
+	sb = (char*)b;
+	
+	return strcmp(sa, sb);
+}
