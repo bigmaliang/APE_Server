@@ -240,6 +240,8 @@ int queue_fixlen_push_head(Queue *queue, QueueValue data);
 
 int queue_fixlen_push_tail(Queue *queue, QueueValue data);
 
+unsigned int queue_remove_entry(Queue *queue, QueueValue data, QueueCompareFunc compare_func);
+
  /**
  * Find the length of a queue
  *

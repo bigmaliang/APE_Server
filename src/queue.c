@@ -310,6 +310,40 @@ int queue_fixlen_push_tail(Queue *queue, QueueValue data)
 	return queue_push_tail(queue, data);
 }
 
+unsigned int queue_remove_entry(Queue *queue, QueueValue data, QueueCompareFunc compare_func)
+{
+	QueueEntry *entry = queue->head, *enext;
+	unsigned int count = 0;
+
+	while (entry != NULL) {
+		enext = entry->next;
+			
+		if (compare_func(entry->data, data) == 0) {
+			if (entry->prev == NULL) {
+				queue->head = enext;
+				if(queue->head) queue->head->prev = NULL;
+				else queue->tail = NULL;
+			} else if (entry->next == NULL) {
+				queue->tail = entry->prev;
+				if (queue->tail) queue->tail->next = NULL;
+			} else {
+				/* entry->prev not NULL */
+				entry->prev->next = entry->next;
+				entry->next->prev = entry->prev;
+			}
+			if (queue->num > 0) queue->num--;
+			if (queue->free_func) queue->free_func(entry->data);
+			free(entry);
+			
+			count++;
+		}
+
+		entry = enext;
+	}
+
+	return count;
+}
+
 unsigned int queue_length(Queue *queue)
 {
 	if (queue == NULL || queue->head == NULL) return 0;
