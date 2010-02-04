@@ -29,16 +29,38 @@ typedef struct {
 	unsigned long num_login;
 } st_fkq;
 
-#define ADD_SUBUSER_HOSTUIN(sub, uin)							\
-	do {														\
-		if (get_property(sub->properties, "hostuin") == NULL) {	\
+#define ADD_SUBUSER_HOSTUIN(sub, uin)								\
+	do {															\
+		if (get_property(sub->properties, "hostuin") == NULL) {		\
 			add_property(&sub->properties, "hostuin", uin, NULL,	\
-						 EXTEND_STR, EXTEND_ISPRIVATE);			\
-		}														\
+						 EXTEND_STR, EXTEND_ISPRIVATE);				\
+		}															\
 	} while (0)
 #define GET_SUBUSER_HOSTUIN(sub)                                    \
     (get_property(sub->properties, "hostuin") != NULL?              \
      (char*)get_property(sub->properties, "hostuin")->val: NULL)
+
+#define ADD_SUBUSER_FKQINITUIN(sub, uin)							\
+	do {															\
+		if (get_property(sub->properties, "fkqinituin") == NULL) {	\
+			add_property(&sub->properties, "fkqinituin", uin, NULL,	\
+						 EXTEND_STR, EXTEND_ISPRIVATE);				\
+		}															\
+	} while (0)
+#define GET_SUBUSER_FKQINITUIN(sub)									\
+    (get_property(sub->properties, "fkqinituin") != NULL?			\
+     (char*)get_property(sub->properties, "fkqinituin")->val: NULL)
+
+#define MAKE_VISITNUM_TBL(g_ape)										\
+	do {																\
+		if (get_property(g_ape->properties, "visitnum") == NULL) {		\
+			add_property(&g_ape->properties, "visitnum", hashtbl_init(), \
+						 queue_destroy, EXTEND_HTBL, EXTEND_ISPRIVATE);	\
+		}																\
+	} while (0)
+#define GET_VISITNUM_TBL(ape)										\
+	(get_property(ape->properties, "visitnum") != NULL ?			\
+	 (HTBL*)get_property(ape->properties, "visitnum")->val: NULL)
 
 #define MAKE_FKQ_STAT(g_ape, p)										\
 	do {															\

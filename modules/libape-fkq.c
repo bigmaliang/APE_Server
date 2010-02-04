@@ -142,6 +142,71 @@ static int get_channel_usernum(CHANNEL *chan)
 	return num;
 }
 
+static int add_visitnum(acetables *g_ape, char *uin, char *huin, int *cnum)
+{
+	if (!g_ape || !uin || !huin) return 0;
+
+	HTBL *table = GET_VISITNUM_TBL(g_ape);
+	if (!table) return 0;
+
+	int ret = 0;
+	Queue *queue = hashtbl_seek(table, huin);
+	if (!queue) {
+		queue = queue_new(0, free);
+		hashtbl_append(table, huin, queue);
+	}
+
+	if (queue_find(queue, uin, hn_str_cmp) == -1) {
+		queue_push_head(queue, strdup(uin));
+		ret = 1;
+	}
+	
+	*cnum = queue_length(queue);
+
+	return ret;
+}
+
+static int del_visitnum(acetables *g_ape, char *uin, char *huin, int *cnum)
+{
+	if (!g_ape || !uin || !huin) return 0;
+
+	HTBL *table = GET_VISITNUM_TBL(g_ape);
+	if (!table) return 0;
+
+	int ret = 0;
+	Queue *queue = hashtbl_seek(table, huin);
+	if (!queue) {
+		queue = queue_new(0, free);
+		hashtbl_append(table, huin, queue);
+	}
+
+	ret = queue_remove_entry(queue, uin, hn_str_cmp);
+
+	*cnum = queue_length(queue);
+
+	return ret;
+}
+
+static void notice_channel_visitnum(char *huin, int changenum,
+									unsigned int currentnum, acetables *g_ape)
+{
+	json_item *jlist;
+	RAW *newraw;
+	CHANNEL *chan;
+
+	chan = getchanf(g_ape, FKQ_PIP_NAME"%s", huin);
+	if (chan) {
+		jlist = json_new_object();
+
+		json_set_property_intZ(jlist, "change", changenum);
+		json_set_property_intZ(jlist, "current", currentnum);
+	
+		newraw = forge_raw("FKQ_VISITCHANGE", jlist);
+		post_raw_channel(newraw, chan, g_ape);
+		POSTRAW_DONE(newraw);
+	}
+}
+
 static bool user_is_black(char *uin, char *buin, int type)
 {
 	mevent_t *evt;
@@ -198,11 +263,11 @@ static int user_set_black(char *uin, char *buin, int type, int op)
  *    hostUin: 访客群主号码
  *output:
  *  {"raw":"FKQ_INIT", "data":
-        {"fkqstat":1, "hostfkqlevel":0, "hostfkinfo":{"hostchatnum":0}}
+        {"fkqstat":1, "hostfkqlevel":0, "hostfkinfo":{"hostchatnum":0, "hostvisitnum":10}}
     }
  *    fkqstat: 访问者访客群聊天功能状态. 0: 开启, 1: 关闭
  *    hostfkqlevel: 访客群主访客群等级. 0 表示 hostUin 为没有访客群功能的普通用户
- *    hostfkinfo: 访客群群内信息, 当前只包含聊天人数
+ *    hostfkinfo: 访客群群内信息, 当前包含聊天人数, 浏览人数
  */
 static unsigned int fkq_init(callbackp *callbacki)
 {
@@ -227,10 +292,10 @@ static unsigned int fkq_init(callbackp *callbacki)
 
 	ADD_NICK_FOR_USER(nuser, nick);
 	
-	int stat, level, chatnum;
+	int stat, level, chatnum, visitnum;
 	stat = get_fkq_stat(uin);
 	level = get_fkq_level(hostUin);
-	chatnum = 0;
+	chatnum = visitnum = 0;
 	if (level == 1) {
 		CHANNEL *chan = getchanf(callbacki->g_ape, FKQ_PIP_NAME"%s", hostUin);
 		if (chan == NULL) {
@@ -243,10 +308,15 @@ static unsigned int fkq_init(callbackp *callbacki)
 
 		if (isonchannel(nuser, chan) && chatnum > 0)
 			chatnum--;
+
+		ADD_SUBUSER_FKQINITUIN(sub, hostUin);
+		if (add_visitnum(callbacki->g_ape, uin, hostUin, &visitnum))
+			notice_channel_visitnum(hostUin, 1, visitnum, callbacki->g_ape);
 	}
 	
 	json_item *info = json_new_object();
 	json_set_property_intZ(info, "hostchatnum", chatnum);
+	json_set_property_intZ(info, "hostvisitnum", visitnum);
 
 	jlist = json_new_object();
 	json_set_property_intZ(jlist, "fkqstat", stat);
@@ -263,7 +333,7 @@ static unsigned int fkq_init(callbackp *callbacki)
  *input:
  *  {"cmd":"FKQ_JOIN", "chl":x, "sessid":"", "params":{"hostUin":""}}
  *    hostUin: 访客群主号码
- *output: 1, 或2, 或3, 或4, 或3+4
+ *output: 1, 或2, 或3[, 或4, 或3+4 4已走单独命令获取历史记录]
  *1,NOTHING. 用户已经加入了该频道时空返回
  *2,{"raw":"ERR", "data":{"code":"101", "value":"ERR_IS_BLACK"}}
     用户被列为该群黑名单时返回错误
@@ -674,12 +744,14 @@ static unsigned int fkq_send(callbackp *callbacki)
 
 static void fkq_event_delsubuser(subuser *del, acetables *g_ape)
 {
-	char *uin = GET_SUBUSER_HOSTUIN(del);
+	char *uin;
+	USERS *user = del->user;
+	subuser *cur = user->subuser;
+	char *otheruin;
+	bool lastone = true;
+
+	uin = GET_SUBUSER_HOSTUIN(del);
 	if (uin != NULL) {
-		USERS *user = del->user;
-		subuser *cur = user->subuser;
-		char *otheruin;
-		bool lastone = true;
 		while (cur != NULL) {
 			otheruin = GET_SUBUSER_HOSTUIN(cur);
 			if (cur != del && otheruin != NULL && !strcmp(uin, otheruin)) {
@@ -696,13 +768,34 @@ static void fkq_event_delsubuser(subuser *del, acetables *g_ape)
 			}
 		}
 	}
+
+	uin = GET_SUBUSER_FKQINITUIN(del);
+	cur = user->subuser;
+	if (uin != NULL) {
+		while (cur != NULL) {
+			otheruin = GET_SUBUSER_FKQINITUIN(cur);
+			if (cur != del && otheruin != NULL && !strcmp(uin, otheruin)) {
+				lastone = false;
+				break;
+			}
+			cur = cur->next;
+		}
+			
+		if (lastone) {
+			char *myuin = GET_UIN_FROM_USER(user);
+			int changenum, currentnum;
+			changenum = del_visitnum(g_ape, myuin, uin, &currentnum);
+			if (changenum)
+				notice_channel_visitnum(uin, changenum, currentnum, g_ape);
+		}
+	}
 } 
 
 static void init_module(acetables *g_ape)
 {
 	MAKE_USER_TBL(g_ape);
 	MAKE_ONLINE_TBL(g_ape);
-	//MAKE_VISITNUM_TBL(g_ape);
+	MAKE_VISITNUM_TBL(g_ape);
 	MAKE_FKQ_STAT(g_ape, calloc(1, sizeof(st_fkq)));
 	
 	register_cmd("FKQ_INIT", 		fkq_init, 		NEED_SESSID, g_ape);
