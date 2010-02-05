@@ -1,0 +1,56 @@
+DATA CHANGE
+===========
+I, Added queue.h for raw_recently, visit list
+	I need to maintain some data, like recently raw, and recently visit user,
+	so I added queue.h(http://c-algorithms.sourceforge.net/)
+
+
+
+SOLUTION CHANGE
+===============
+I, free_raw
+	http://github.com/bigml/APE_Server/commit/7c9718c1d9d57beb92def9bc0b6a30138fe7449a
+
+	Aped sometimes core dump on free_raw() called by send_raws(),
+	and I make some change like this(haven't crashed until now):
+
+	  	post_raw_sub increment the refcount, if refcount==1, free_raw() will do the job.
+
+	and added a POSTRAW_DONE macro to avoid memleak when post_raw_xxx do nothing.
+
+
+I, enable_user_reconnect
+	http://github.com/bigml/APE_Server/commit/4213749b51e178522889a94abd985c4bb26464b3
+
+	Drop old user to avoid NICK_ALREADY_USER error.
+
+
+I, raw_recently
+	Added raw_recently.c & .h for history raw restore.  And add RawRecently {} in ape.conf
+	for hisotry size config.  So, there is a new command RAW_RECENTLY in cmd.c
+
+	There is a raw_recently index hashtbl and a raw_recently queue hashtbl on ape.
+		RRC_INDEX table with user number as key, and a user number queue as value,
+		to store user's max_num_user chat user number.
+
+		RRC_QUEUE table with "%s(uin)_%d(type)" as key, and a raw queue as value,
+		to store chat session's max_size_single/max_size_group_fkq's chat raw.
+
+
+I, QUIET channel
+   http://github.com/bigml/APE_Server/commit/27f0659818869cebde08f8eb6683056f7fe9ea7a
+
+   Sometimes, I don't need joined channel post to client on SESSION command,
+   application will send it's own XXX_JOIN command, and server response channel
+   property even if user is_already_on_channel.
+
+   Seems more seprate for multi-application enviorment.
+
+
+
+API CHANGE
+==========
+I, Added an ifree parameter for add_property(), and hashtbl_free().
+   for memory free on property and hashtbl del.
+   http://github.com/bigml/APE_Server/commit/3c7f593aacdee53e8c8d0745f0a9e6f42a706cd7#diff-3
+I, Added hashtbl_empty() for empty a hash table

@@ -405,11 +405,11 @@ unsigned int cmd_connect(callbackp *callbacki)
 	nuser = adduser(NULL, NULL, NULL, callbacki->call_user, callbacki->g_ape);
 	
 	callbacki->call_user = nuser;
-
-	subuser_restor(getsubuser(callbacki->call_user, callbacki->host), callbacki->g_ape);
 	
 	ADD_UIN_FOR_USER(nuser, uin);
 	SET_USER_FOR_APE(callbacki->g_ape, uin, nuser);
+
+	subuser_restor(getsubuser(callbacki->call_user, callbacki->host), callbacki->g_ape);
 	
 	jstr = json_new_object();	
 	json_set_property_strN(jstr, "sessid", 6, nuser->sessid, 32);
@@ -558,7 +558,7 @@ unsigned int cmd_raw_recently(callbackp *callbacki)
 		return (RETURN_BAD_PARAMS);
 	}
 
-	post_raw_sub_recently(callbacki->g_ape, sub, uin, type);
+	post_raw_sub_recently(callbacki->g_ape, sub, otheruin, type);
 	return (RETURN_NOTHING);
 }
 
