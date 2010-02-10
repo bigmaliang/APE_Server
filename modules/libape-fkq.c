@@ -502,7 +502,7 @@ static unsigned int fkq_blacklist(callbackp *callbacki)
 
 /*
  *input:
- *  {"cmd":"FKQ_BLACKLISTOP", "chl":x, "sessid":"", "params":
+ *  {"cmd":"FKQ_BLACKOP", "chl":x, "sessid":"", "params":
          {"op":"", "blackuin":"", "blacktype":x}}
  *  op: 操作类型. add: 添加黑名单, del: 删除黑名单,
  *      is: 判断他是不是我的黑名单用户, am: 判断我是不是他的黑名单用户
@@ -562,7 +562,7 @@ static unsigned int fkq_blackop(callbackp *callbacki)
 		return (RETURN_BAD_PARAMS);
 	}
 
-	return (RETURN_NOTHING);
+	return (RETURN_NULL);
 }
 
 /*
