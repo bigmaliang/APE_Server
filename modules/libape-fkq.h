@@ -2,7 +2,7 @@
 #define __LIBAPE_FKQ_H__
 
 #define FKQ_PIP_NAME "FangkequnPipe"
-#define RAW_FKQDATA	"FKQDATA"
+#define RAW_FKQDATA	"FKQ_DATA"
 
 enum {
 	BLACK_OP_ADD = 0,
@@ -25,9 +25,13 @@ typedef struct _anc {
 } anchor_t;
 
 typedef struct {
-    unsigned long alive_group;
-	unsigned long num_login;
+	unsigned long msg_total;
 } st_fkq;
+
+enum {
+	ST_FKQ_MSG_TOTAL = 100,
+	ST_FKQ_ALIVE_GROUP
+} fkq_stastic;
 
 #define ADD_SUBUSER_HOSTUIN(sub, uin)								\
 	do {															\

@@ -202,33 +202,15 @@ static void tick_static(acetables *g_ape, int lastcall)
 /*
  * pro range
  */
-static unsigned int push_connect(callbackp *callbacki)
+static unsigned int push_init(callbackp *callbacki)
 {
-	USERS *nuser;
-	RAW *newraw;
-	json_item *jlist = NULL;
+	USERS *nuser = callbacki->call_user;
 	CHANNEL *chan;
-	char *uin;
+	char *uin = GET_UIN_FROM_USER(nuser);
 	st_push *st = GET_PUSH_STAT(callbacki->g_ape);
 
-	JNEED_STR(callbacki->param, "uin", uin, RETURN_BAD_PARAMS);
-
-	if (!hn_isvaliduin(uin)) {
-		return (RETURN_BAD_PARAMS);
-	}
-
-	if (GET_USER_FROM_APE(callbacki->g_ape, uin) != NULL) {
-		if (atoi(READ_CONF("enable_user_reconnect")) == 1) {
-			deluser(GET_USER_FROM_APE(callbacki->g_ape, uin), callbacki->g_ape);
-		} else {
-			alog_warn("user %s used", uin);
-			hn_senderr(callbacki, "006", "ERR_UIN_USED");
-			return (RETURN_NOTHING);
-		}
-	}
+	get_user_info(uin, nuser, callbacki->g_ape);
 	
-	nuser = adduser(NULL, NULL, NULL, callbacki->call_user, callbacki->g_ape);
-
 	st->num_login++;
 	
 	USERS *tuser = GET_USER_FROM_ONLINE(callbacki->g_ape, uin);
@@ -237,16 +219,12 @@ static unsigned int push_connect(callbackp *callbacki)
 		SET_USER_FOR_ONLINE(callbacki->g_ape, uin, nuser);
 	}
 
-	ADD_UIN_FOR_USER(nuser, uin);
-	SET_USER_FOR_APE(callbacki->g_ape, uin, nuser);
-	get_user_info(uin, nuser, callbacki->g_ape);
-	
 	/*
 	 * make own channel
 	 */
 	if ((chan = getchanf(callbacki->g_ape, FRIEND_PIP_NAME"%s", uin)) == NULL) {
-		chan = mkchanf(callbacki->g_ape, CHANNEL_NONINTERACTIVE | CHANNEL_AUTODESTROY,
-					   FRIEND_PIP_NAME"%s", uin);
+		chan = mkchanf(callbacki->g_ape, CHANNEL_NONINTERACTIVE |
+					   CHANNEL_AUTODESTROY | CHANNEL_QUIET, FRIEND_PIP_NAME"%s", uin);
 		if (chan == NULL) {
 			alog_err("make channel %s failure", uin);
 			//smsalarm_msgf(callbacki->g_ape, "make channel %s failed", uin);
@@ -256,16 +234,6 @@ static unsigned int push_connect(callbackp *callbacki)
 	}
 	join(nuser, chan, callbacki->g_ape);
 	keep_up_with_my_friend(nuser, callbacki->g_ape);
-
-	callbacki->call_user = nuser;
-	subuser_restor(callbacki->call_subuser, callbacki->g_ape);
-
-	jlist = json_new_object();
-	json_set_property_strZ(jlist, "sessid", nuser->sessid);
-	newraw = forge_raw(RAW_LOGIN, jlist);
-	newraw->priority = RAW_PRI_HI;
-	post_raw(newraw, nuser, callbacki->g_ape);
-	POSTRAW_DONE(newraw);
 
 	return (RETURN_NOTHING);
 }
@@ -302,7 +270,7 @@ static unsigned int push_send(callbackp *callbacki)
 	json_item *jcopy = json_item_copy(msg->father, NULL);
 	json_set_property_objZ(jlist, "msg", jcopy);
 	json_set_property_objZ(jlist, "pipe", get_json_object_channel(chan));
-	newraw = forge_raw(RAW_DATA, jlist);
+	newraw = forge_raw(RAW_PUSHDATA, jlist);
 	post_raw_channel_restricted(newraw, chan, user, callbacki->g_ape);
 	POSTRAW_DONE(newraw);
 
@@ -319,7 +287,7 @@ static unsigned int push_send(callbackp *callbacki)
 	return (RETURN_NULL);
 }
 
-static unsigned int push_regpageclass(callbackp *callbacki)
+static unsigned int push_regclass(callbackp *callbacki)
 {
 	subuser *sub = callbacki->call_subuser;
 	if (sub == NULL) {
@@ -356,7 +324,7 @@ static unsigned int push_regpageclass(callbackp *callbacki)
 		}
 		json_set_property_objZ(jlist, "pageclass", class_list);
 
-		RAW *newraw = forge_raw("REGCLASS", jlist);
+		RAW *newraw = forge_raw("PUSH_REGCLASS", jlist);
 		post_raw_sub(newraw, sub, callbacki->g_ape);
 		POSTRAW_DONE(newraw);
 	} else {
@@ -391,7 +359,7 @@ static unsigned int push_userlist(callbackp *callbacki)
 		json_set_property_intZ(jlist, "num", num);
 	}
 
-	newraw = forge_raw("USERLIST", jlist);
+	newraw = forge_raw("PUSH_USERLIST", jlist);
 	post_raw(newraw, callbacki->call_user, callbacki->g_ape);
 	POSTRAW_DONE(newraw);
 
@@ -417,7 +385,7 @@ static unsigned int push_friendlist(callbackp *callbacki)
 			}
 		}
 	}
-	newraw = forge_raw("FRIENDLIST", jlist);
+	newraw = forge_raw("PUSH_FRIENDLIST", jlist);
 	post_raw(newraw, callbacki->call_user, callbacki->g_ape);
 	POSTRAW_DONE(newraw);
 
@@ -447,7 +415,7 @@ static unsigned int push_useronline(callbackp *callbacki)
 
 	free(users);
 
-	newraw = forge_raw(RAW_DATA, jlist);
+	newraw = forge_raw("PUSH_USERONLINE", jlist);
 	post_raw(newraw, callbacki->call_user, callbacki->g_ape);
 	POSTRAW_DONE(newraw);
 
@@ -511,7 +479,7 @@ static unsigned int push_senduniq(callbackp *callbacki)
 	json_item *jcopy = json_item_copy(msg->father, NULL);
 	RAW *newraw;
 	json_set_property_objZ(jlist, "msg", jcopy);
-	newraw = forge_raw(RAW_DATA, jlist);
+	newraw = forge_raw(RAW_PUSHDATA, jlist);
 	post_raw(newraw, user, callbacki->g_ape);
 	POSTRAW_DONE(newraw);
 
@@ -543,7 +511,7 @@ static unsigned int push_sendmulti(callbackp *callbacki)
 
 	json_item *jlist = json_new_object();
 	json_set_property_objZ(jlist, "msg", json_item_copy(msg->father, NULL));
-	RAW *newraw = forge_raw(RAW_DATA, jlist);
+	RAW *newraw = forge_raw(RAW_PUSHDATA, jlist);
 
 	if (!strcmp(uins, "ALL_ManGos")) {
 		HTBL *ulist = GET_USER_TBL(callbacki->g_ape);
@@ -759,14 +727,14 @@ static unsigned int push_trustsend(callbackp *callbacki)
 	json_item *jlist = json_new_object();
 
 	json_set_property_strZ(jlist, "msg", msg);
-	newraw = forge_raw(RAW_DATA, jlist);
+	newraw = forge_raw(RAW_PUSHDATA, jlist);
 	post_raw(newraw, user, callbacki->g_ape);
 	POSTRAW_DONE(newraw);
 
 	json_item *ej = json_new_object();
 	json_set_property_strZ(ej, "code", "999");
 	json_set_property_strZ(ej, "value", "OPERATION_SUCESS");
-	newraw = forge_raw(RAW_DATA, ej);
+	newraw = forge_raw(RAW_PUSHDATA, ej);
 	send_raw_inline(callbacki->client, callbacki->transport,
 					newraw, callbacki->g_ape);
 
@@ -781,15 +749,14 @@ static void init_module(acetables *g_ape)
 	
     add_periodical((1000*60*30), 0, tick_static, g_ape, g_ape);
 	
-	register_cmd("CONNECT",	push_connect, NEED_NOTHING, g_ape);
-	register_cmd("SEND", push_send, NEED_SESSID, g_ape);
-	register_cmd("REGCLASS", push_regpageclass, NEED_SESSID, g_ape);
-	register_cmd("USERLIST", push_userlist, NEED_SESSID, g_ape);
-	register_cmd("FRIENDLIST", push_friendlist, NEED_SESSID, g_ape);
-	register_cmd("USERONLINE", push_useronline, NEED_SESSID, g_ape);
-	register_cmd("SENDUNIQ", push_senduniq, NEED_SESSID, g_ape);
-	register_cmd("SENDMULTI", push_sendmulti, NEED_SESSID, g_ape);
-	//register_cmd("TRUSTSEND", push_trustsend, NEED_NOTHING, g_ape);
+	register_cmd("PUSH_INIT",		push_init,		NEED_SESSID, g_ape);
+	register_cmd("PUSH_SEND",		push_send,		NEED_SESSID, g_ape);
+	register_cmd("PUSH_REGCLASS",	push_regclass,	NEED_SESSID, g_ape);
+	register_cmd("PUSH_USERLIST",	push_userlist,	NEED_SESSID, g_ape);
+	register_cmd("PUSH_FRIENDLIST",	push_friendlist, NEED_SESSID, g_ape);
+	register_cmd("PUSH_USERONLINE",	push_useronline, NEED_SESSID, g_ape);
+	register_cmd("PUSH_SENDUNIQ",	push_senduniq,	NEED_SESSID, g_ape);
+	register_cmd("PUSH_SENDMULTI",	push_sendmulti,	NEED_SESSID, g_ape);
 }
 
 static ace_callbacks callbacks = {

@@ -2,6 +2,7 @@
 #define __LIBAPE_PUSH_H__
 
 #define FRIEND_PIP_NAME	"*FriendPipe"
+#define RAW_PUSHDATA "PUSH_DATA"
 #define MAX_CLIENT_PERPUSH	500
 
 typedef struct {

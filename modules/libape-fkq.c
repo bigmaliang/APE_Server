@@ -142,6 +142,18 @@ static int get_channel_usernum(CHANNEL *chan)
 	return num;
 }
 
+static int get_visitnum(acetables *g_ape, char *huin)
+{
+	if (!g_ape || !huin) return 0;
+
+	HTBL *table = GET_VISITNUM_TBL(g_ape);
+	if (!table) return 0;
+
+	Queue *queue = hashtbl_seek(table, huin);
+
+	return queue_length(queue);
+}
+
 static int add_visitnum(acetables *g_ape, char *uin, char *huin, int *cnum)
 {
 	if (!g_ape || !uin || !huin) return 0;
@@ -252,6 +264,56 @@ static int user_set_black(char *uin, char *buin, int type, int op)
 	return ret;
 }
 
+static void tick_static(acetables *g_ape, int lastcall)
+{
+	st_fkq *st = GET_FKQ_STAT(g_ape);
+	HTBL *clist = g_ape->hLusers;
+	HTBL_ITEM *item;
+	CHANNEL *chan;
+	char *huin;
+	int ret, count = 1;
+    char sql[1024], usrlist[512], tok[64];
+	
+    mevent_t *evt;
+    evt = mevent_init_plugin("db_community", REQ_CMD_STAT, FLAGS_NONE);
+    if (evt == NULL) {
+        alog_err("init mevent db_community failure");
+        return;
+    }
+    mevent_add_array(evt, NULL, "sqls");
+	
+    memset(sql, 0x0, sizeof(sql));
+    memset(usrlist, 0x0, sizeof(usrlist));
+	for (item = clist->first; item != NULL; item = item->lnext) {
+		chan = (CHANNEL*)item->addrs;
+		huin = GET_FKQ_HOSTUIN(chan);
+		if (chan && !strncasecmp(chan->name, FKQ_PIP_NAME, strlen(FKQ_PIP_NAME))) {
+			count++;
+			sprintf(tok, "%d", count);
+			
+			snprintf(sql, sizeof(sql), "INSERT INTO fkq (userid, chatnum, visitnum) "
+					 " VALUES (%s, %d, %d)", huin, get_visitnum(g_ape, huin),
+					 get_channel_usernum(chan));
+			mevent_add_str(evt, "sqls", tok, sql);
+		}
+	}
+
+	snprintf(sql, sizeof(sql), "INSERT INTO mps (type, count) "
+			 " VALUES (%d, %lu)", ST_FKQ_MSG_TOTAL, st->msg_total);
+	mevent_add_str(evt, "sqls", "0", sql);
+	st->msg_total = 0;
+
+	snprintf(sql, sizeof(sql), "INSERT INTO mps (type, count) "
+			 " VALUES (%d, %d)", ST_FKQ_ALIVE_GROUP, count--);
+	mevent_add_str(evt, "sqls", "1", sql);
+
+    ret = mevent_trigger(evt);
+    if (PROCESS_NOK(ret)) {
+        alog_err("trigger statistic event failure %d", ret);
+    }
+	mevent_free(evt);
+}
+
 /*
  * pro range
  */
@@ -345,8 +407,8 @@ static unsigned int fkq_init(callbackp *callbacki)
 		}
     }
 	访客群频道信息
- *4,{"raw":"DATA", "data":""}
-    该群最近 20 条聊天信息
+ *4,{"raw":"ERR", "data":{"code":"102", "value":"ERR_GROUP_BUSY"}}
+    该群聊天人数超过设置
  */
 static unsigned int fkq_join(callbackp *callbacki)
 {
@@ -368,8 +430,16 @@ static unsigned int fkq_join(callbackp *callbacki)
 		if (chan != NULL) {
 			if (user_is_black(hostUin, uin, BLACK_TYPE_MIM_FKQ)) {
 				alog_warn("%s in %s's fkq's blacklist", uin, hostUin);
-				hn_senderr(callbacki, "101", "ERR_IS_BLACK");
+				hn_senderr(callbacki, "101", "ERR_IS_BLACK:0:host");
+				return (RETURN_NULL);
 			} else {
+				int chatnum = get_channel_usernum(chan);
+				if (!isonchannel(user, chan) && strcmp(uin, hostUin) &&
+					chatnum >= atoi(READ_CONF("max_user_per_group"))) {
+					alog_warn("%s's chatnum reached %d", hostUin, chatnum);
+					hn_senderr(callbacki, "102", "ERR_GROUP_BUSY");
+					return (RETURN_NULL);
+				}
 				join(user, chan, callbacki->g_ape);
 				if (callbacki->call_subuser != NULL) {
 					ADD_SUBUSER_HOSTUIN(callbacki->call_subuser, hostUin);
@@ -594,7 +664,7 @@ static unsigned int fkq_visitlist(callbackp *callbacki)
 	user = GET_USER_FROM_APE(callbacki->g_ape, uin);
 	if (!user) {
 		hn_senderr(callbacki, "009", "ERR_UIN_NEXIST");
-		return (RETURN_NOTHING);
+		return (RETURN_NULL);
 	}
 
 	json_item *jlist, *jvisit, *jvlist = json_new_array();
@@ -678,21 +748,24 @@ static unsigned int fkq_visitadd(callbackp *callbacki)
  *output:
  *1,NOTHING
     成功发送
- *2,{"raw":"ERR", "data":{"code":"101", "value":"ERR_IS_BLACK"}}
+ *2,{"raw":"ERR", "data":{"code":"101", "value":"ERR_IS_BLACK:%s:%s"}}
     用户被列为该群黑名单时返回错误
  */
 static unsigned int fkq_send(callbackp *callbacki)
 {
 	json_item *jlist = NULL;
 	RAW *newraw;
-	char *msg, *pipe, *uinfrom, *uinto = NULL;
+	char *msg, *pipe, *uinfrom, *uinto = NULL, *nickto = NULL;
 	CHANNEL *chan;
 	USERS *user = callbacki->call_user;
+	st_fkq *st = GET_FKQ_STAT(callbacki->g_ape);
 
 	uinfrom = GET_UIN_FROM_USER(user);
 	
 	JNEED_STR(callbacki->param, "msg", msg, RETURN_BAD_PARAMS);
 	JNEED_STR(callbacki->param, "pipe", pipe, RETURN_BAD_PARAMS);
+
+	if (st) st->msg_total++;
 
 	bool post = true;
 	transpipe *spipe = get_pipe(pipe, callbacki->g_ape);
@@ -709,6 +782,7 @@ static unsigned int fkq_send(callbackp *callbacki)
 			user = (USERS*)(spipe->pipe);
 			if (user) {
 				uinto = GET_UIN_FROM_USER(user);
+				nickto = GET_NICK_FROM_USER(user);
 				if (uinto && user_is_black(uinto, uinfrom, BLACK_TYPE_MIM_USER)) {
 					post = false;
 				}
@@ -734,8 +808,16 @@ static unsigned int fkq_send(callbackp *callbacki)
 				POSTRAW_DONE(newraw);
 			}
 		} else {
+			char tok[128];
+
+			if (spipe->type == CHANNEL_PIPE) {
+				snprintf(tok, sizeof(tok), "ERR_IS_BLACK:0:host");
+			} else {
+				snprintf(tok, sizeof(tok), "ERR_IS_BLACK:%s:%s", uinto, nickto);
+			}
 			alog_warn("user %s in %s:%d's black", uinfrom, uinto, spipe->type);
-			hn_senderr(callbacki, "101", "ERR_IS_BLACK");
+			hn_senderr(callbacki, "101", tok);
+			return (RETURN_NULL);
 		}
 	}
 	
@@ -797,6 +879,8 @@ static void init_module(acetables *g_ape)
 	MAKE_ONLINE_TBL(g_ape);
 	MAKE_VISITNUM_TBL(g_ape);
 	MAKE_FKQ_STAT(g_ape, calloc(1, sizeof(st_fkq)));
+	
+    add_periodical((1000*60*30), 0, tick_static, g_ape, g_ape);
 	
 	register_cmd("FKQ_INIT", 		fkq_init, 		NEED_SESSID, g_ape);
 	register_cmd("FKQ_JOIN", 		fkq_join, 		NEED_SESSID, g_ape);
