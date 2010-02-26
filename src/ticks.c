@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2006, 2007, 2008, 2009  Anthony Catel <a.catel@weelya.com>
+  Copyright (C) 2006, 2007, 2008, 2009, 2010  Anthony Catel <a.catel@weelya.com>
 
   This file is part of APE Server.
   APE is free software; you can redistribute it and/or modify
@@ -64,11 +64,12 @@ inline void process_tick(acetables *g_ape)
 		
 		if (timers->ticks_left <= 0) {
 			int lastcall = (timers->times > 0 && --timers->times == 0);
-			void (*func_timer)(void *param, int) = timers->func;
-			func_timer(timers->params, lastcall);
+			void (*func_timer)(void *param, int *) = timers->func;
+			func_timer(timers->params, &lastcall);
 			
 			if (lastcall) {
 				struct _ticks_callback *tmpTimers = timers->next;
+
 				del_timer(timers, g_ape);
 				timers = tmpTimers;
 				continue;

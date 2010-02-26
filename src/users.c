@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2006, 2007, 2008, 2009  Anthony Catel <a.catel@weelya.com>
+  Copyright (C) 2006, 2007, 2008, 2009, 2010  Anthony Catel <a.catel@weelya.com>
 
   This file is part of APE Server.
   APE is free software; you can redistribute it and/or modify
@@ -240,7 +240,7 @@ void do_died(subuser *sub)
 	}
 }
 
-void check_timeout(acetables *g_ape, int last)
+void check_timeout(acetables *g_ape, int *last)
 {
 	USERS *list, *wait;
 	long int ctime = time(NULL);

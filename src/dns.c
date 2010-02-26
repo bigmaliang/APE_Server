@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2006, 2007, 2008, 2009  Anthony Catel <a.catel@weelya.com>
+  Copyright (C) 2006, 2007, 2008, 2009, 2010  Anthony Catel <a.catel@weelya.com>
 
   This file is part of APE Server.
   APE is free software; you can redistribute it and/or modify
@@ -181,7 +181,7 @@ void ape_gethostbyname(char *name, void (*callback)(char *, void *, acetables *)
 	dns_timeouts(NULL, -1, 0);
 }
 
-static void ape_dns_timeout(void *params, int last)
+static void ape_dns_timeout(void *params, int *last)
 {
 	dns_timeouts(NULL, -1, 0);
 }

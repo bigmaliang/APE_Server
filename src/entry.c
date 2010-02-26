@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2006, 2007, 2008, 2009  Anthony Catel <a.catel@weelya.com>
+  Copyright (C) 2006, 2007, 2008, 2009, 2010  Anthony Catel <a.catel@weelya.com>
 
   This file is part of APE Server.
   APE is free software; you can redistribute it and/or modify
@@ -47,7 +47,6 @@
 #include <pwd.h>
 
 #include <errno.h>
-
 
 static void signal_handler(int sign)
 {
@@ -266,7 +265,7 @@ int main(int argc, char **argv)
 		printf("Author  : Weelya (contact@weelya.com)\n\n");		
 	}
 	signal(SIGPIPE, SIG_IGN);
-
+	
 	ape_dns_init(g_ape);
 	
 	g_ape->cmd_hook.head = NULL;

@@ -333,7 +333,7 @@ APE_JS_NATIVE(apesocket_close)
 //{
 	ape_socket *client;
 	JSBool safe = JS_FALSE;
-	
+
 	struct _ape_sock_callbacks *cb = JS_GetPrivate(cx, obj);
 	
 	if (cb == NULL || !cb->state) {
@@ -357,6 +357,21 @@ APE_JS_NATIVE(apesocket_close)
 	} else {
 		safe_shutdown(client->fd, g_ape);
 	}
+	return JS_TRUE;
+}
+
+APE_JS_NATIVE(apesocketserver_close)
+//{
+	ape_socket *server;
+	
+	server = JS_GetPrivate(cx, obj);
+	
+	if (server == NULL) {
+		return JS_TRUE;
+	}
+
+	shutdown(server->fd, 2);
+	
 	return JS_TRUE;
 }
 
@@ -892,6 +907,39 @@ APE_JS_NATIVE(apeuser_sm_join)
 	return JS_TRUE;
 }
 
+APE_JS_NATIVE(apeuser_sm_left)
+//{
+	CHANNEL *chan;
+	char *chan_name;
+	JSObject *chan_obj;
+	USERS *user = JS_GetPrivate(cx, obj);
+	
+	*rval = JSVAL_FALSE;
+		
+	if (user == NULL) {
+		return JS_TRUE;
+	}
+	
+	if (JSVAL_IS_STRING(argv[0])) {
+		JS_ConvertArguments(cx, 1, argv, "s", &chan_name);
+		if ((chan = getchan(chan_name, g_ape)) == NULL) {
+			return JS_TRUE;
+		}
+	} else if (JSVAL_IS_OBJECT(argv[0])) {
+		JS_ConvertArguments(cx, 1, argv, "o", &chan_obj);
+		if (!JS_InstanceOf(cx, chan_obj, &channel_class, 0) || (chan = JS_GetPrivate(cx, chan_obj)) == NULL) {
+			return JS_TRUE;
+		}
+	} else {
+		return JS_TRUE;
+	}
+	
+	left(user, chan, g_ape);
+	
+	*rval = JSVAL_TRUE;
+	return JS_TRUE;
+}
+
 APE_JS_NATIVE(apeuser_sm_set_property)
 //{
 	char *key;
@@ -997,15 +1045,20 @@ APE_JS_NATIVE(apemysql_sm_query)
 #endif
 
 static JSFunctionSpec apesocket_funcs[] = {
-    JS_FS("write",   apesocket_write,	1, 0, 0),
+    	JS_FS("write",   apesocket_write,	1, 0, 0),
 	JS_FS("close",   apesocket_close,	0, 0, 0),
-    JS_FS_END
+    	JS_FS_END
+};
+
+static JSFunctionSpec apesocketserver_funcs[] = {
+	JS_FS("close",   apesocketserver_close,	0, 0, 0),
+    	JS_FS_END
 };
 
 static JSFunctionSpec apesocketclient_funcs[] = {
-    JS_FS("write",   apesocketclient_write,	1, 0, 0),
+    	JS_FS("write",   apesocketclient_write,	1, 0, 0),
 	JS_FS("close",   apesocketclient_close,	0, 0, 0),
-    JS_FS_END
+    	JS_FS_END
 };
 
 static JSFunctionSpec apesocket_client_funcs[] = {
@@ -1020,6 +1073,7 @@ static JSFunctionSpec apeuser_funcs[] = {
 	JS_FS("getProperty", apeuser_sm_get_property, 1, 0, 0),
 	JS_FS("setProperty", apeuser_sm_set_property, 2, 0, 0),
 	JS_FS("join", apeuser_sm_join, 1, 0, 0),
+	JS_FS("left", apeuser_sm_left, 1, 0, 0),
 	JS_FS("quit", apeuser_sm_quit, 0, 0, 0),
 	JS_FS_END
 };
@@ -1259,6 +1313,7 @@ static void reportError(JSContext *cx, const char *message, JSErrorReport *repor
 
 static JSObject *ape_json_to_jsobj(JSContext *cx, json_item *head, JSObject *root)
 {
+	JS_EnterLocalRootScope(cx);
 	while (head != NULL) {
 		if (head->jchild.child == NULL && head->key.val != NULL) {
 			jsval jval;
@@ -1266,7 +1321,6 @@ static JSObject *ape_json_to_jsobj(JSContext *cx, json_item *head, JSObject *roo
 			if (root == NULL) {
 				root = JS_NewObject(cx, NULL, NULL, NULL);
 			}
-			JS_AddRoot(cx, &root);
 			
 			if (head->jval.vu.str.value != NULL) {
 				jval = STRING_TO_JSVAL(JS_NewStringCopyN(cx, head->jval.vu.str.value, head->jval.vu.str.length));
@@ -1281,8 +1335,7 @@ static JSObject *ape_json_to_jsobj(JSContext *cx, json_item *head, JSObject *roo
 
 			if (root == NULL) {
 				root = JS_NewArrayObject(cx, 0, NULL);
-			}
-			JS_AddRoot(cx, &root);			
+			}			
 			
 			if (head->jval.vu.str.value != NULL) {	
 				jval = STRING_TO_JSVAL(JS_NewStringCopyN(cx, head->jval.vu.str.value, head->jval.vu.str.length));
@@ -1290,7 +1343,7 @@ static JSObject *ape_json_to_jsobj(JSContext *cx, json_item *head, JSObject *roo
 				jsdouble dp = (head->jval.vu.integer_value ? head->jval.vu.integer_value : head->jval.vu.float_value);
 				JS_NewNumberValue(cx, dp, &jval);
 			}
-			/* TODO : jsdouble can be garbaged in the next call */
+
 			if (JS_GetArrayLength(cx, root, &rval)) {
 				JS_SetElement(cx, root, rval, &jval);
 			}			
@@ -1310,14 +1363,12 @@ static JSObject *ape_json_to_jsobj(JSContext *cx, json_item *head, JSObject *roo
 			
 			ape_json_to_jsobj(cx, head->jchild.child, cobj);
 
-			JS_AddRoot(cx, &cobj);
 
 			if (head->key.val != NULL) {
 				jsval jval;
 
 				if (root == NULL) {
 					root = JS_NewObject(cx, NULL, NULL, NULL);
-					JS_AddRoot(cx, &root);
 				}
 				
 				jval = OBJECT_TO_JSVAL(cobj);
@@ -1328,25 +1379,21 @@ static JSObject *ape_json_to_jsobj(JSContext *cx, json_item *head, JSObject *roo
 
 				if (root == NULL) {
 					root = JS_NewArrayObject(cx, 0, NULL);
-					JS_AddRoot(cx, &root);
 				}
 				
 				jval = OBJECT_TO_JSVAL(cobj);
+				
 				if (JS_GetArrayLength(cx, root, &rval)) {
 					JS_SetElement(cx, root, rval, &jval);
 				}								
 			}
 
-			JS_RemoveRoot(cx, &cobj);
 			
 		}
 		head = head->next;
 	}
 
-	if (root != NULL) {
-		JS_RemoveRoot(cx, &root);
-	}
-
+	JS_LeaveLocalRootScope(cx);
 	return root;
 }
 
@@ -1981,17 +2028,30 @@ struct _ape_sm_timer
 	uintN argc;
 	jsval *argv;
 	
+	int cleared;
+	struct _ticks_callback *timer;
 };
 
-static void ape_sm_timer_wrapper(struct _ape_sm_timer *params, int last)
+static void ape_sm_timer_wrapper(struct _ape_sm_timer *params, int *last)
 {
 	jsval rval;
 	
 	//JS_SetContextThread(params->cx);
 	//JS_BeginRequest(params->cx);
-		JS_CallFunctionValue(params->cx, params->global, params->func, params->argc, params->argv, &rval);
-		if (last) {
+		if (!params->cleared) {
+			JS_CallFunctionValue(params->cx, params->global, params->func, params->argc, params->argv, &rval);
+		}
+		if (params->cleared) { /* JS_CallFunctionValue can set params->Cleared to true */
+			ape_sm_compiled *asc;
+			asc = JS_GetContextPrivate(params->cx);
+
+			if (!*last) {
+				*last = 1;
+			}
+		}
+		if (*last) {
 			JS_RemoveRoot(params->cx, &params->func);
+			
 			if (params->argv != NULL) {
 				free(params->argv);
 			}
@@ -2014,9 +2074,10 @@ APE_JS_NATIVE(ape_sm_set_timeout)
 	}
 	
 	params->cx = cx;
-	//params->global = asc->global;
 	params->global = obj;
 	params->argc = argc-2;
+	params->cleared = 0;
+	params->timer = NULL;
 	
 	params->argv = (argc-2 ? JS_malloc(cx, sizeof(*params->argv) * argc-2) : NULL);
 	
@@ -2029,7 +2090,6 @@ APE_JS_NATIVE(ape_sm_set_timeout)
 	}
 	
 	JS_AddRoot(cx, &params->func);
-	//JS_AddRoot(cx, &params->global);
 	
 	for (i = 0; i < argc-2; i++) {
 		params->argv[i] = argv[i+2];
@@ -2037,6 +2097,7 @@ APE_JS_NATIVE(ape_sm_set_timeout)
 	
 	timer = add_timeout(ms, ape_sm_timer_wrapper, params, g_ape);
 	timer->protect = 0;
+	params->timer = timer;
 	
 	*rval = INT_TO_JSVAL(timer->identifier);
 	
@@ -2059,6 +2120,8 @@ APE_JS_NATIVE(ape_sm_set_interval)
 	params->cx = cx;
 	params->global = asc->global;
 	params->argc = argc-2;
+	params->cleared = 0;
+	params->timer = NULL;
 	
 	params->argv = (argc-2 ? JS_malloc(cx, sizeof(*params->argv) * argc-2) : NULL);
 	
@@ -2077,6 +2140,8 @@ APE_JS_NATIVE(ape_sm_set_interval)
 	}
 	
 	timer = add_periodical(ms, 0, ape_sm_timer_wrapper, params, g_ape);
+	timer->protect = 0;
+	params->timer = timer;
 	
 	*rval = INT_TO_JSVAL(timer->identifier);
 	
@@ -2094,21 +2159,8 @@ APE_JS_NATIVE(ape_sm_clear_timeout)
 	}
 	
 	if ((timer = get_timer_identifier(identifier, g_ape)) != NULL && !timer->protect) {
-		JSContext *cx;
-		
 		params = timer->params;
-		
-		cx = params->cx;
-
-		JS_RemoveRoot(params->cx, &params->func);
-		
-		if (params->argv != NULL) {
-			JS_free(cx, params->argv);
-		}
-		JS_free(cx, params);
-		
-		del_timer(timer, g_ape);
-
+		params->cleared = 1;
 	}
 
 	return JS_TRUE;
@@ -2525,6 +2577,7 @@ APE_JS_NATIVE(ape_sm_sockserver_constructor)
 	server = ape_listen(port, ip, g_ape);
 	
 	if (server == NULL) {
+		*rval = JSVAL_FALSE;
 		return JS_TRUE;
 	}
 	
@@ -2669,7 +2722,7 @@ static void ape_sm_define_ape(ape_sm_compiled *asc, JSContext *gcx, acetables *g
 	JS_DefineFunctions(asc->cx, sockclient, apesocket_funcs);
 
 	JS_DefineFunctions(asc->cx, sockserver, apesocket_client_funcs);
-	JS_DefineFunctions(asc->cx, sockserver, apesocket_funcs);
+	JS_DefineFunctions(asc->cx, sockserver, apesocketserver_funcs);
 
 	JS_DefineFunctions(asc->cx, custompipe, apepipe_funcs);
 	JS_DefineFunctions(asc->cx, custompipe, apepipecustom_funcs);
