@@ -76,6 +76,9 @@ int hn_str_cmp(void *a, void *b);
 						 EXTEND_STR, EXTEND_ISPUBLIC);			\
 		}														\
 	} while (0)
+#define GET_NICK_FROM_USER(user)								\
+	(get_property(user->properties, "nick") != NULL ?			\
+	 (char*)get_property(user->properties, "nick")->val: NULL)
 
 #define MAKE_USER_FRIEND_TBL(user)										\
 	do {																\
