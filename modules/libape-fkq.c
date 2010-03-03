@@ -212,6 +212,7 @@ static void notice_channel_visitnum(char *huin, int changenum,
 
 		json_set_property_intZ(jlist, "change", changenum);
 		json_set_property_intZ(jlist, "current", currentnum);
+		json_set_property_strZ(jlist, "host", huin);
 	
 		newraw = forge_raw("FKQ_VISITCHANGE", jlist);
 		post_raw_channel(newraw, chan, g_ape);
@@ -271,7 +272,7 @@ static void tick_static(acetables *g_ape, int lastcall)
 	HTBL_ITEM *item;
 	CHANNEL *chan;
 	char *huin;
-	int ret, count = 1;
+	int ret, chatnum, visitnum, count = 0, repcount = 1;
     char sql[1024], usrlist[512], tok[64];
 	
     mevent_t *evt;
@@ -289,22 +290,27 @@ static void tick_static(acetables *g_ape, int lastcall)
 		huin = GET_FKQ_HOSTUIN(chan);
 		if (chan && !strncasecmp(chan->name, FKQ_PIP_NAME, strlen(FKQ_PIP_NAME))) {
 			count++;
-			sprintf(tok, "%d", count);
-			
-			snprintf(sql, sizeof(sql), "INSERT INTO fkq (userid, chatnum, visitnum) "
-					 " VALUES (%s, %d, %d)", huin, get_visitnum(g_ape, huin),
-					 get_channel_usernum(chan));
-			mevent_add_str(evt, "sqls", tok, sql);
+			chatnum = get_channel_usernum(chan);
+			visitnum = get_visitnum(g_ape, huin);
+
+			if (chatnum >= atoi(READ_CONF("statis_chatnum_threshold")) &&
+				repcount <= 51) {
+				repcount++;
+				sprintf(tok, "%d", repcount);
+				snprintf(sql, sizeof(sql), "INSERT INTO fkq (userid, chatnum, "
+						 " visitnum) VALUES (%s, %d, %d)", huin, chatnum, visitnum);
+				mevent_add_str(evt, "sqls", tok, sql);
+			}
 		}
 	}
-
+	
 	snprintf(sql, sizeof(sql), "INSERT INTO mps (type, count) "
 			 " VALUES (%d, %lu)", ST_FKQ_MSG_TOTAL, st->msg_total);
 	mevent_add_str(evt, "sqls", "0", sql);
 	st->msg_total = 0;
 
 	snprintf(sql, sizeof(sql), "INSERT INTO mps (type, count) "
-			 " VALUES (%d, %d)", ST_FKQ_ALIVE_GROUP, count--);
+			 " VALUES (%d, %d)", ST_FKQ_ALIVE_GROUP, count);
 	mevent_add_str(evt, "sqls", "1", sql);
 
     ret = mevent_trigger(evt);
@@ -325,7 +331,7 @@ static void tick_static(acetables *g_ape, int lastcall)
  *    hostUin: 访客群主号码
  *output:
  *  {"raw":"FKQ_INIT", "data":
-        {"fkqstat":1, "hostfkqlevel":0, "hostfkinfo":{"hostchatnum":0, "hostvisitnum":10}}
+        {"hostUin": "1798031", "fkqstat":1, "hostfkqlevel":0, "hostfkinfo":{"hostchatnum":0, "hostvisitnum":10}}
     }
  *    fkqstat: 访问者访客群聊天功能状态. 0: 开启, 1: 关闭
  *    hostfkqlevel: 访客群主访客群等级. 0 表示 hostUin 为没有访客群功能的普通用户
@@ -361,7 +367,8 @@ static unsigned int fkq_init(callbackp *callbacki)
 	if (level == 1) {
 		CHANNEL *chan = getchanf(callbacki->g_ape, FKQ_PIP_NAME"%s", hostUin);
 		if (chan == NULL) {
-			chan = mkchanf(callbacki->g_ape, CHANNEL_AUTODESTROY | CHANNEL_QUIET,
+			/* channel can't use AUTO_DESTROY, for the message reenter */
+			chan = mkchanf(callbacki->g_ape, CHANNEL_QUIET,
 						   FKQ_PIP_NAME"%s", hostUin);
 			ADD_FKQ_HOSTUIN(chan, hostUin);
 		}
@@ -381,6 +388,7 @@ static unsigned int fkq_init(callbackp *callbacki)
 	json_set_property_intZ(info, "hostvisitnum", visitnum);
 
 	jlist = json_new_object();
+	json_set_property_strZ(jlist, "hostUin", hostUin);
 	json_set_property_intZ(jlist, "fkqstat", stat);
 	json_set_property_intZ(jlist, "hostfkqlevel", level);
 	json_set_property_objZ(jlist, "hostfkinfo", info);
@@ -436,8 +444,10 @@ static unsigned int fkq_join(callbackp *callbacki)
 				int chatnum = get_channel_usernum(chan);
 				if (!isonchannel(user, chan) && strcmp(uin, hostUin) &&
 					chatnum >= atoi(READ_CONF("max_user_per_group"))) {
+					char tok[64];
 					alog_warn("%s's chatnum reached %d", hostUin, chatnum);
-					hn_senderr(callbacki, "102", "ERR_GROUP_BUSY");
+					snprintf(tok, sizeof(tok), "ERR_GROUP_BUSY:%s", hostUin);
+					hn_senderr(callbacki, "102", tok);
 					return (RETURN_NULL);
 				}
 				join(user, chan, callbacki->g_ape);
@@ -880,7 +890,7 @@ static void init_module(acetables *g_ape)
 	MAKE_VISITNUM_TBL(g_ape);
 	MAKE_FKQ_STAT(g_ape, calloc(1, sizeof(st_fkq)));
 	
-    add_periodical((1000*60*30), 0, tick_static, g_ape, g_ape);
+    add_periodical((1000*60*10), 0, tick_static, g_ape, g_ape);
 	
 	register_cmd("FKQ_INIT", 		fkq_init, 		NEED_SESSID, g_ape);
 	register_cmd("FKQ_JOIN", 		fkq_join, 		NEED_SESSID, g_ape);
