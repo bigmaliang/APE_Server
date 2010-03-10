@@ -142,18 +142,6 @@ static int get_channel_usernum(CHANNEL *chan)
 	return num;
 }
 
-static int get_visitnum(acetables *g_ape, char *huin)
-{
-	if (!g_ape || !huin) return 0;
-
-	HTBL *table = GET_VISITNUM_TBL(g_ape);
-	if (!table) return 0;
-
-	Queue *queue = hashtbl_seek(table, huin);
-
-	return queue_length(queue);
-}
-
 static int add_visitnum(acetables *g_ape, char *uin, char *huin, int *cnum)
 {
 	if (!g_ape || !uin || !huin) return 0;
@@ -265,15 +253,40 @@ static int user_set_black(char *uin, char *buin, int type, int op)
 	return ret;
 }
 
+int hn_chatnum_cmp(void *a, void *b)
+{
+	HTBL_ITEM *sa, *sb;
+	sa = (HTBL_ITEM*)a;
+	sb = (HTBL_ITEM*)b;
+
+	return atoi(sb->addrs) - atoi(sa->addrs);
+}
+
+static void channel_onjoin(acetables *g_ape, char *huin, int chatnum)
+{
+	HTBL *table = GET_CHATNUM_TBL(g_ape);
+	if (!table) return;
+
+	char tok[64];
+	sprintf(tok, "%d", chatnum);
+	
+	char *cnum = (char*)hashtbl_seek(table, huin);
+	if (cnum) {
+		if (atoi(cnum) >= chatnum) return;
+		free(cnum);
+	}
+	hashtbl_append(table, huin, strdup(tok));
+}
+
 static void tick_static(acetables *g_ape, int lastcall)
 {
 	st_fkq *st = GET_FKQ_STAT(g_ape);
-	HTBL *clist = g_ape->hLusers;
+	HTBL *table = GET_CHATNUM_TBL(g_ape);
 	HTBL_ITEM *item;
-	CHANNEL *chan;
-	char *huin;
-	int ret, chatnum, visitnum, count = 0, repcount = 1;
-    char sql[1024], usrlist[512], tok[64];
+	ListEntry *list = NULL, *node = NULL;
+	
+	int ret, count, repcount;
+    char sql[1024], tok[64];
 	
     mevent_t *evt;
     evt = mevent_init_plugin("db_community", REQ_CMD_STAT, FLAGS_NONE);
@@ -283,27 +296,16 @@ static void tick_static(acetables *g_ape, int lastcall)
     }
     mevent_add_array(evt, NULL, "sqls");
 	
-    memset(sql, 0x0, sizeof(sql));
-    memset(usrlist, 0x0, sizeof(usrlist));
-	for (item = clist->first; item != NULL; item = item->lnext) {
-		chan = (CHANNEL*)item->addrs;
-		huin = GET_FKQ_HOSTUIN(chan);
-		if (chan && !strncasecmp(chan->name, FKQ_PIP_NAME, strlen(FKQ_PIP_NAME))) {
-			count++;
-			chatnum = get_channel_usernum(chan);
-			visitnum = get_visitnum(g_ape, huin);
-
-			if (chatnum >= atoi(READ_CONF("statis_chatnum_threshold")) &&
-				repcount <= 51) {
-				repcount++;
-				sprintf(tok, "%d", repcount);
-				snprintf(sql, sizeof(sql), "INSERT INTO fkq (userid, chatnum, "
-						 " visitnum) VALUES (%s, %d, %d)", huin, chatnum, visitnum);
-				mevent_add_str(evt, "sqls", tok, sql);
-			}
-		}
+	count = 0;
+	for (item = table->first; item != NULL; item = item->lnext) {
+		list_prepend(&list, item);
+		count++;
 	}
-	
+	list_sort(&list, hn_chatnum_cmp);
+
+	/*
+	 * report count
+	 */
 	snprintf(sql, sizeof(sql), "INSERT INTO mps (type, count) "
 			 " VALUES (%d, %lu)", ST_FKQ_MSG_TOTAL, st->msg_total);
 	mevent_add_str(evt, "sqls", "0", sql);
@@ -312,6 +314,27 @@ static void tick_static(acetables *g_ape, int lastcall)
 	snprintf(sql, sizeof(sql), "INSERT INTO mps (type, count) "
 			 " VALUES (%d, %d)", ST_FKQ_ALIVE_GROUP, count);
 	mevent_add_str(evt, "sqls", "1", sql);
+
+	/*
+	 * report fkq
+	 */
+	repcount = 2;
+	node = list;
+	while (node != NULL && repcount < 52) {
+		item = (HTBL_ITEM*)list_data(node);
+		
+		sprintf(tok, "%d", repcount);
+		snprintf(sql, sizeof(sql), "INSERT INTO fkq (userid, chatnum, "
+				 " visitnum) VALUES (%s, %s, %s)",
+				 (char*)item->key, (char*)item->addrs, "0");
+		mevent_add_str(evt, "sqls", tok, sql);
+		
+		node = list_next(node);
+		repcount++;
+	}
+	
+	clist_free(list);
+	hashtbl_empty(table, free);
 
     ret = mevent_trigger(evt);
     if (PROCESS_NOK(ret)) {
@@ -449,6 +472,9 @@ static unsigned int fkq_join(callbackp *callbacki)
 					snprintf(tok, sizeof(tok), "ERR_GROUP_BUSY:%s", hostUin);
 					hn_senderr(callbacki, "102", tok);
 					return (RETURN_NULL);
+				}
+				if (!isonchannel(user, chan)) {
+					channel_onjoin(callbacki->g_ape, hostUin, chatnum+1);
 				}
 				join(user, chan, callbacki->g_ape);
 				if (callbacki->call_subuser != NULL) {
@@ -888,9 +914,10 @@ static void init_module(acetables *g_ape)
 	MAKE_USER_TBL(g_ape);
 	MAKE_ONLINE_TBL(g_ape);
 	MAKE_VISITNUM_TBL(g_ape);
+	MAKE_CHATNUM_TBL(g_ape);
 	MAKE_FKQ_STAT(g_ape, calloc(1, sizeof(st_fkq)));
 	
-    add_periodical((1000*60*10), 0, tick_static, g_ape, g_ape);
+    add_periodical((1000*60*30), 0, tick_static, g_ape, g_ape);
 	
 	register_cmd("FKQ_INIT", 		fkq_init, 		NEED_SESSID, g_ape);
 	register_cmd("FKQ_JOIN", 		fkq_join, 		NEED_SESSID, g_ape);

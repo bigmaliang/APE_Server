@@ -66,6 +66,17 @@ enum {
 	(get_property(ape->properties, "visitnum") != NULL ?			\
 	 (HTBL*)get_property(ape->properties, "visitnum")->val: NULL)
 
+#define MAKE_CHATNUM_TBL(g_ape)											\
+	do {																\
+		if (get_property(g_ape->properties, "chatnum") == NULL) {		\
+			add_property(&g_ape->properties, "chatnum", hashtbl_init(), \
+						 queue_destroy, EXTEND_HTBL, EXTEND_ISPRIVATE);	\
+		}																\
+	} while (0)
+#define GET_CHATNUM_TBL(ape)										\
+	(get_property(ape->properties, "chatnum") != NULL ?				\
+	 (HTBL*)get_property(ape->properties, "chatnum")->val: NULL)
+
 #define MAKE_FKQ_STAT(g_ape, p)										\
 	do {															\
 		if (get_property(g_ape->properties, "fkqstatic") == NULL) {	\
