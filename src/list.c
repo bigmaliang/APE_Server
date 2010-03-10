@@ -36,7 +36,7 @@ struct _ListEntry {
 	ListEntry *next;
 };
 
-void list_free(ListEntry *list)
+void clist_free(ListEntry *list)
 {
 	ListEntry *entry;
 
@@ -181,7 +181,7 @@ ListValue list_nth_data(ListEntry *list, int n)
 	}
 }
 
-int list_length(ListEntry *list)
+int clist_length(ListEntry *list)
 {
 	ListEntry *entry;
 	int length;
@@ -210,7 +210,7 @@ ListValue *list_to_array(ListEntry *list)
 
 	/* Allocate an array equal in size to the list length */
 	
-	listlen = list_length(list);
+	listlen = clist_length(list);
 
 	array = malloc(sizeof(ListValue) * listlen);
 

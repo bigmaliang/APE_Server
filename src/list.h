@@ -121,9 +121,10 @@ typedef int (*ListEqualFunc)(ListValue value1, ListValue value2);
  * Free an entire list.
  *
  * @param list         The list to free.
+ * change list_free to clist_free avoid conflict with mysql/my_list.h
  */
 
-void list_free(ListEntry *list);
+void clist_free(ListEntry *list);
 
 /**
  * Prepend a value to the start of a list.
@@ -202,9 +203,10 @@ ListValue list_nth_data(ListEntry *list, int n);
  *
  * @param list       The list.
  * @return           The number of entries in the list.
+ * change list_length to clist_length avoid conflict with mysql/my_list.h
  */
 
-int list_length(ListEntry *list);
+int clist_length(ListEntry *list);
 
 /**
  * Create a C array containing the contents of a list.

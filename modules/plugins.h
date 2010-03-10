@@ -43,6 +43,7 @@
 #include "../src/log.h"
 #include "../src/config.h"
 #include "../src/queue.h"
+#include "../src/list.h"
 
 #include <stdarg.h>
 
