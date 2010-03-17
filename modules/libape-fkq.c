@@ -473,7 +473,7 @@ static unsigned int fkq_join(callbackp *callbacki)
 					hn_senderr(callbacki, "102", tok);
 					return (RETURN_NULL);
 				}
-				if (!isonchannel(user, chan)) {
+				if (!isonchannel(user, chan) && chatnum >= 1) {
 					channel_onjoin(callbacki->g_ape, hostUin, chatnum+1);
 				}
 				join(user, chan, callbacki->g_ape);
@@ -914,6 +914,10 @@ static void init_module(acetables *g_ape)
 	MAKE_USER_TBL(g_ape);
 	MAKE_ONLINE_TBL(g_ape);
 	MAKE_VISITNUM_TBL(g_ape);
+	/*
+	 * CHATNUM_TBL is a hostUin => chatnum table,
+	 * where chatnum > 1
+	 */
 	MAKE_CHATNUM_TBL(g_ape);
 	MAKE_FKQ_STAT(g_ape, calloc(1, sizeof(st_fkq)));
 	

@@ -155,6 +155,9 @@ static void tick_static(acetables *g_ape, int lastcall)
     }
     mevent_add_array(evt, NULL, "sqls");
     
+	/*
+	 * report recently online user
+	 */
     memset(sql, 0x0, sizeof(sql));
     memset(usrlist, 0x0, sizeof(usrlist));
 	for (item = ulist->first; item != NULL; item = item->lnext) {
@@ -171,6 +174,9 @@ static void tick_static(acetables *g_ape, int lastcall)
              " VALUES (%d, %u, '%s');", ST_ONLINE, g_ape->nConnected, usrlist);
     mevent_add_str(evt, "sqls", "1", sql);
 
+	/*
+	 * report count
+	 */
     sprintf(sql, "INSERT INTO mps (type, count) VALUES (%d, %lu);",
             ST_NOTICE, st->msg_notice);
     mevent_add_str(evt, "sqls", "2", sql);
@@ -227,7 +233,6 @@ static unsigned int push_init(callbackp *callbacki)
 					   CHANNEL_AUTODESTROY | CHANNEL_QUIET, FRIEND_PIP_NAME"%s", uin);
 		if (chan == NULL) {
 			alog_err("make channel %s failure", uin);
-			//smsalarm_msgf(callbacki->g_ape, "make channel %s failed", uin);
 			hn_senderr(callbacki, "007", "ERR_MAKE_CHANNEL");
 			return (RETURN_NOTHING);
 		}
