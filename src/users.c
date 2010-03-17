@@ -589,6 +589,7 @@ void delsubuser(subuser **current, acetables *g_ape)
 	del->raw_pools.low.rawhead = del->raw_pools.low.rawfoot = NULL;
 	del->raw_pools.high.rawhead = del->raw_pools.high.rawfoot = NULL;
 	del->raw_pools.nraw = 0;
+	del->client->attach = NULL;
 	
 	clear_properties(&del->properties);
 	
