@@ -14,24 +14,14 @@ enum {
 	ST_OPEN
 } fkq_stat;
 
-
-#define ANC_DFT_TITLE	"title"
-#define ANC_DFT_TARGET	"_blank"
-typedef struct _anc {
-	char *name;
-	char *href;
-	char *title;
-	char *target;
-} anchor_t;
-
-typedef struct {
-	unsigned long msg_total;
-} st_fkq;
-
 enum {
 	ST_FKQ_MSG_TOTAL = 100,
 	ST_FKQ_ALIVE_GROUP
 } fkq_stastic;
+
+typedef struct {
+	unsigned long msg_total;
+} st_fkq;
 
 #define ADD_SUBUSER_HOSTUIN(sub, uin)								\
 	do {															\
@@ -65,17 +55,6 @@ enum {
 #define GET_VISITNUM_TBL(ape)										\
 	(get_property(ape->properties, "visitnum") != NULL ?			\
 	 (HTBL*)get_property(ape->properties, "visitnum")->val: NULL)
-
-#define MAKE_CHATNUM_TBL(g_ape)											\
-	do {																\
-		if (get_property(g_ape->properties, "chatnum") == NULL) {		\
-			add_property(&g_ape->properties, "chatnum", hashtbl_init(), \
-						 queue_destroy, EXTEND_HTBL, EXTEND_ISPRIVATE);	\
-		}																\
-	} while (0)
-#define GET_CHATNUM_TBL(ape)										\
-	(get_property(ape->properties, "chatnum") != NULL ?				\
-	 (HTBL*)get_property(ape->properties, "chatnum")->val: NULL)
 
 #define MAKE_FKQ_STAT(g_ape, p)										\
 	do {															\

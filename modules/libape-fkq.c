@@ -26,41 +26,6 @@ static ace_plugin_infos infos_module = {
 /*
  * file range 
  */
-static anchor_t* anchor_new(const char *name, const char *href,
-							const char *title, const char *target)
-{
-	if (!name || !href || !title || !target) return NULL;
-
-	anchor_t *anc = xmalloc(sizeof(anchor_t));
-	anc->name = strdup(name);
-	anc->href = strdup(href);
-	anc->title = strdup(title);
-	anc->target = strdup(target);
-
-	return anc;
-}
-
-static void anchor_free(void *a)
-{
-	if (!a) return;
-
-	anchor_t *anc = (anchor_t*)a;
-	SFREE(anc->name);
-	SFREE(anc->href);
-	SFREE(anc->title);
-	SFREE(anc->target);
-	SFREE(anc);
-}
-
-static int anchor_cmp(void *a, void *b)
-{
-	anchor_t *anca, *ancb;
-	anca = (anchor_t*)a;
-	ancb = (anchor_t*)b;
-
-	return strcmp(anca->href, ancb->href);
-}
-
 static int get_fkq_stat(char *uin)
 {
 	mevent_t *evt = NULL;
@@ -125,21 +90,6 @@ static int get_fkq_level(char *uin)
  done:
 	mevent_free(evt);
 	return level;
-}
-
-static int get_channel_usernum(CHANNEL *chan)
-{
-	if (chan == NULL) return 0;
-
-	struct userslist *ulist = chan->head;
-	int num = 0;
-	
-	while (ulist != NULL) {
-		num++;
-		ulist = ulist->next;
-	}
-
-	return num;
 }
 
 static int add_visitnum(acetables *g_ape, char *uin, char *huin, int *cnum)
@@ -253,29 +203,18 @@ static int user_set_black(char *uin, char *buin, int type, int op)
 	return ret;
 }
 
-int hn_chatnum_cmp(void *a, void *b)
-{
-	HTBL_ITEM *sa, *sb;
-	sa = (HTBL_ITEM*)a;
-	sb = (HTBL_ITEM*)b;
-
-	return atoi(sb->addrs) - atoi(sa->addrs);
-}
-
 static void channel_onjoin(acetables *g_ape, char *huin, int chatnum)
 {
 	HTBL *table = GET_CHATNUM_TBL(g_ape);
 	if (!table) return;
 
-	char tok[64];
-	sprintf(tok, "%d", chatnum);
-	
-	char *cnum = (char*)hashtbl_seek(table, huin);
+	chatNum *cnum = (chatNum*)hashtbl_seek(table, huin);
 	if (cnum) {
-		if (atoi(cnum) >= chatnum) return;
-		free(cnum);
+		if (cnum->fkq < chatnum) cnum->fkq = chatnum;
+	} else {
+		cnum = chatnum_new(0, chatnum);
+		hashtbl_append(table, huin, cnum);
 	}
-	hashtbl_append(table, huin, strdup(tok));
 }
 
 static void tick_static(acetables *g_ape, int lastcall)
@@ -284,6 +223,7 @@ static void tick_static(acetables *g_ape, int lastcall)
 	HTBL *table = GET_CHATNUM_TBL(g_ape);
 	HTBL_ITEM *item;
 	ListEntry *list = NULL, *node = NULL;
+	chatNum *cnum;
 	
 	int ret, count, repcount;
     char sql[1024], tok[64];
@@ -301,7 +241,6 @@ static void tick_static(acetables *g_ape, int lastcall)
 		list_prepend(&list, item);
 		count++;
 	}
-	list_sort(&list, hn_chatnum_cmp);
 
 	/*
 	 * report count
@@ -318,23 +257,42 @@ static void tick_static(acetables *g_ape, int lastcall)
 	/*
 	 * report fkq
 	 */
+	list_sort(&list, hn_chatnum_fkq_cmp);
 	repcount = 2;
 	node = list;
-	while (node != NULL && repcount < 52) {
+	while (node != NULL && repcount < 22) {
 		item = (HTBL_ITEM*)list_data(node);
+		cnum = (chatNum*)item->addrs;
 		
-		sprintf(tok, "%d", repcount);
-		snprintf(sql, sizeof(sql), "INSERT INTO fkq (userid, chatnum, "
-				 " visitnum) VALUES (%s, %s, %s)",
-				 (char*)item->key, (char*)item->addrs, "0");
+		sprintf(tok, "%d", repcount++);
+		snprintf(sql, sizeof(sql), "INSERT INTO fkq (userid, type, chatnum, "
+				 " visitnum) VALUES (%s, 2, %d, %s)",
+				 (char*)item->key, cnum->fkq, "0");
 		mevent_add_str(evt, "sqls", tok, sql);
 		
 		node = list_next(node);
-		repcount++;
+	}
+	
+	/*
+	 * report friend
+	 */
+	list_sort(&list, hn_chatnum_friend_cmp);
+	node = list;
+	while (node != NULL && repcount < 42) {
+		item = (HTBL_ITEM*)list_data(node);
+		cnum = (chatNum*)item->addrs;
+		
+		sprintf(tok, "%d", repcount++);
+		snprintf(sql, sizeof(sql), "INSERT INTO fkq (userid, type, chatnum, "
+				 " visitnum) VALUES (%s, 1, %d, %s)",
+				 (char*)item->key, cnum->friend, "0");
+		mevent_add_str(evt, "sqls", tok, sql);
+		
+		node = list_next(node);
 	}
 	
 	clist_free(list);
-	hashtbl_empty(table, free);
+	hashtbl_empty(table, chatnum_free);
 
     ret = mevent_trigger(evt);
     if (PROCESS_NOK(ret)) {
@@ -354,8 +312,8 @@ static void tick_static(acetables *g_ape, int lastcall)
  *    hostUin: 访客群主号码
  *output:
  *  {"raw":"FKQ_INIT", "data":
-        {"hostUin": "1798031", "fkqstat":1, "hostfkqlevel":0, "hostfkinfo":{"hostchatnum":0, "hostvisitnum":10}}
-    }
+ {"hostUin": "1798031", "fkqstat":1, "hostfkqlevel":0, "hostfkinfo":{"hostchatnum":0, "hostvisitnum":10}}
+ }
  *    fkqstat: 访问者访客群聊天功能状态. 0: 开启, 1: 关闭
  *    hostfkqlevel: 访客群主访客群等级. 0 表示 hostUin 为没有访客群功能的普通用户
  *    hostfkinfo: 访客群群内信息, 当前包含聊天人数, 浏览人数
@@ -708,11 +666,11 @@ static unsigned int fkq_visitlist(callbackp *callbacki)
 
 	Queue *queue;
 	QueueEntry *qv;
-	anchor_t *anc;
+	anchor *anc;
 
 	if ((queue = GET_FKQ_VISIT(user, key)) != NULL) {
 		queue_iterate(queue, qv) {
-			anc = (anchor_t*)qv->data;
+			anc = (anchor*)qv->data;
 			jvisit = json_new_object();
 			json_set_property_strZ(jvisit, "name", anc->name);
 			json_set_property_strZ(jvisit, "href", anc->href);
@@ -759,7 +717,7 @@ static unsigned int fkq_visitadd(callbackp *callbacki)
 	ASSAM_VISIT_KEY(key, hostUin);
 	maxnum = atoi(READ_CONF("fkq_max_visit_size"));
 	if (maxnum > 0) {
-			anchor_t *anc = anchor_new(name, href, ANC_DFT_TITLE, ANC_DFT_TARGET);
+			anchor *anc = anchor_new(name, href, ANC_DFT_TITLE, ANC_DFT_TARGET);
 			Queue *queue = GET_FKQ_VISIT(user, key);
 			if (!queue) {
 				queue = queue_new(maxnum, anchor_free);

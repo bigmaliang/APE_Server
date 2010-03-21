@@ -26,6 +26,20 @@ static ace_plugin_infos infos_module = {
 /*
  * file range
  */
+static void channel_onjoin(acetables *g_ape, char *uin, int chatnum)
+{
+	HTBL *table = GET_CHATNUM_TBL(g_ape);
+	if (!table) return;
+
+	chatNum *cnum = (chatNum*)hashtbl_seek(table, uin);
+	if (cnum) {
+		if (cnum->friend < chatnum) cnum->friend = chatnum;
+	} else {
+		cnum = chatnum_new(0, chatnum);
+		hashtbl_append(table, uin, cnum);
+	}
+}
+
 static void keep_up_with_my_friend(USERS *user, acetables *g_ape)
 {
 	HTBL_ITEM *item;
@@ -33,6 +47,7 @@ static void keep_up_with_my_friend(USERS *user, acetables *g_ape)
 	char *uin = GET_UIN_FROM_USER(user);
 	USERS *friend;
 	CHANNEL *chan, *jchan;
+	int chatnum;
 
 	chan = getchanf(g_ape, FRIEND_PIP_NAME"%s", uin);
 	if (chan == NULL) {
@@ -48,6 +63,9 @@ static void keep_up_with_my_friend(USERS *user, acetables *g_ape)
 			friend = GET_USER_FROM_APE(g_ape, item->key);
 			if (friend != NULL) {
 				alog_noise("%s invite %s\n", uin, item->key);
+				chatnum = get_channel_usernum(chan);
+				if (!isonchannel(friend, chan) && chatnum >=1)
+					channel_onjoin(g_ape, uin, chatnum+1);
 				join(friend, chan, g_ape);
 			}
 
@@ -56,6 +74,9 @@ static void keep_up_with_my_friend(USERS *user, acetables *g_ape)
 			 */
 			jchan = getchanf(g_ape, FRIEND_PIP_NAME"%s", item->key);
 			if (jchan != NULL) {
+				chatnum = get_channel_usernum(jchan);
+				if (!isonchannel(user, jchan) && chatnum >=1)
+					channel_onjoin(g_ape, item->key, chatnum+1);
 				join(user, jchan, g_ape);
 			}
 		}
@@ -237,6 +258,9 @@ static unsigned int push_init(callbackp *callbacki)
 			return (RETURN_NOTHING);
 		}
 	}
+	int chatnum = get_channel_usernum(chan);
+	if (!isonchannel(nuser, chan) && chatnum >=1)
+		channel_onjoin(callbacki->g_ape, uin, chatnum+1);
 	join(nuser, chan, callbacki->g_ape);
 	keep_up_with_my_friend(nuser, callbacki->g_ape);
 
@@ -750,6 +774,7 @@ static void init_module(acetables *g_ape)
 {
 	MAKE_USER_TBL(g_ape);
 	MAKE_ONLINE_TBL(g_ape);
+	MAKE_CHATNUM_TBL(g_ape);
 	MAKE_PUSH_STAT(g_ape, calloc(1, sizeof(st_push)));
 	
     add_periodical((1000*60*30), 0, tick_static, g_ape, g_ape);
