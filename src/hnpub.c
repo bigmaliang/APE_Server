@@ -5,6 +5,7 @@
 
 #include "log.h"
 #include "hnpub.h"
+#include "utils.h"
 
 void hn_senderr(callbackp *callbacki, char *code, char *msg)
 {
@@ -53,4 +54,88 @@ int hn_str_cmp(void *a, void *b)
 	sb = (char*)b;
 	
 	return strcmp(sa, sb);
+}
+
+/*
+ * anchor
+ */
+anchor* anchor_new(const char *name, const char *href,
+				   const char *title, const char *target)
+{
+	if (!name || !href || !title || !target) return NULL;
+
+	anchor *anc = xmalloc(sizeof(anchor));
+	anc->name = strdup(name);
+	anc->href = strdup(href);
+	anc->title = strdup(title);
+	anc->target = strdup(target);
+
+	return anc;
+}
+
+void anchor_free(void *a)
+{
+	if (!a) return;
+
+	anchor *anc = (anchor*)a;
+	SFREE(anc->name);
+	SFREE(anc->href);
+	SFREE(anc->title);
+	SFREE(anc->target);
+	SFREE(anc);
+}
+
+int anchor_cmp(void *a, void *b)
+{
+	anchor *anca, *ancb;
+	anca = (anchor*)a;
+	ancb = (anchor*)b;
+
+	return strcmp(anca->href, ancb->href);
+}
+
+/*
+ * chat number
+ */
+chatNum* chatnum_new(int fkq, int friend)
+{
+	chatNum *cnum = xmalloc(sizeof(*cnum));
+	
+	cnum->fkq = fkq;
+	cnum->friend = friend;
+
+	return cnum;
+}
+
+void chatnum_free(void *p)
+{
+	chatNum *cnum = (chatNum*)p;
+	
+	SFREE(cnum);
+}
+
+int hn_chatnum_fkq_cmp(void *a, void *b)
+{
+	HTBL_ITEM *sa, *sb;
+	sa = (HTBL_ITEM*)a;
+	sb = (HTBL_ITEM*)b;
+
+	chatNum *ca, *cb;
+	ca = (chatNum*)sa->addrs;
+	cb = (chatNum*)sb->addrs;
+
+	return cb->fkq - ca->fkq;
+}
+
+int hn_chatnum_friend_cmp(void *a, void *b)
+{
+	HTBL_ITEM *sa, *sb;
+	sa = (HTBL_ITEM*)a;
+	sb = (HTBL_ITEM*)b;
+
+	chatNum *ca, *cb;
+	ca = (chatNum*)sa->addrs;
+	cb = (chatNum*)sb->addrs;
+
+	return cb->friend - ca->friend;
 }

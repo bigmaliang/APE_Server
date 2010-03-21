@@ -80,6 +80,8 @@ void ban(CHANNEL *chan, struct USERS *banner, const char *ip, char *reason, unsi
 void rmban(CHANNEL *chan, const char *ip);
 void rmallban(CHANNEL *chan);
 
+int get_channel_usernum(CHANNEL *chan);
+
 struct userslist *getlist(const char *chan, acetables *g_ape);
 struct userslist *getuchan(struct USERS *user, CHANNEL *chan);
 	

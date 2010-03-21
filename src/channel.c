@@ -572,6 +572,21 @@ void rmallban(CHANNEL *chan)
 	chan->banned = NULL;
 }
 
+int get_channel_usernum(CHANNEL *chan)
+{
+	if (chan == NULL) return 0;
+	
+	struct userslist *ulist = chan->head;
+	int num = 0;
+	
+	while (ulist != NULL) {
+		num++;
+		ulist = ulist->next;
+	}
+	
+	return num;
+}
+
 json_item *get_json_object_channel(CHANNEL *chan)
 {
 	json_item *jstr = json_new_object();
