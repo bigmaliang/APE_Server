@@ -399,6 +399,16 @@ static unsigned int push_friendlist(callbackp *callbacki)
 {
 	HTBL_ITEM *item;
 	HTBL *ulist = GET_USER_FRIEND_TBL(callbacki->call_user);
+	char *uin = NULL;
+	USERS *user;
+
+	uin = JGET_STR(callbacki->param, "uin");
+	if (uin) {
+		user = GET_USER_FROM_APE(callbacki->g_ape, uin);
+		if (user) {
+			ulist = GET_USER_FRIEND_TBL(user);
+		}
+	}
 
 	RAW *newraw;
 	json_item *jlist = json_new_object();
