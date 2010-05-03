@@ -572,7 +572,6 @@ unsigned int cmd_send(callbackp *callbacki)
 {
 	json_item *jlist = NULL;
 	char *msg, *pipe;
-	RAW *newraw;
 	
 	APE_PARAMS_INIT();
 	
@@ -583,7 +582,6 @@ unsigned int cmd_send(callbackp *callbacki)
 
 		post_to_pipe(jlist, RAW_DATA, pipe,
 					 callbacki->call_subuser, callbacki->g_ape, false);
-		POSTRAW_DONE(newraw);
 		
 		return (RETURN_NOTHING);
 	}

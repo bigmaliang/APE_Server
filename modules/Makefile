@@ -20,9 +20,9 @@ ifdef LINUX_BUILD
 
 CFLAGS = -g -Wall -shared -fPIC -rdynamic
 
-EVENT_BASE = ../../../lib/mevent
-INC_EVENT = -I $(EVENT_BASE) -I ../../../event/plugin -I /usr/include/ClearSilver
-LIB_EVENT = -L $(EVENT_BASE) -lmevent -l neo_utl
+CS_BASE = ../../../lib/cs
+INC_EVENT = -I ../../../lib/mevent -I ../../../event/plugin -I /usr/include/ClearSilver
+LIB_EVENT = -L ../../../lib/mevent -lmevent -l neo_utl
 
 all: modules
 
