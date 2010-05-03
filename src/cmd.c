@@ -393,10 +393,6 @@ unsigned int cmd_connect(callbackp *callbacki)
 	
 	JNEED_STR(callbacki->param, "uin", uin, RETURN_BAD_PARAMS);
 
-	if (!hn_isvaliduin(uin)) {
-		return (RETURN_BAD_PARAMS);
-	}
-
 	if (GET_USER_FROM_APE(callbacki->g_ape, uin) != NULL) {
 		if (atoi(CONFIG_VAL(Server, enable_user_reconnect,
 							callbacki->g_ape->srv)) == 1) {
