@@ -26,7 +26,7 @@ LIB_EVENT = -L ../../../lib/mevent -lmevent -l neo_utl
 
 all: modules
 
-modules: libape-spidermonkey.c libape-push.c libape-fkq.c
+modules: libape-spidermonkey.c libape-lcs.c
 
 #	$(CC) $(CFLAGS) -Wl,-soname,libmod_spidermonkey.so -o lib/libmod_spidermonkey.so libape-spidermonkey.c -I../deps/js/src/dist/include/ -L../deps/js/src/ -ljs_static -lstdc++ -L./deps/mysac/ -I./deps/mysac/ -lmysac -lmysqlclient_r
 
