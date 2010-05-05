@@ -43,6 +43,9 @@ int hn_chatnum_fkq_cmp(void *a, void *b);
 		}										\
 	} while (0)
 
+/*
+ * USER TABLE a onlineING user table
+ */
 #define MAKE_USER_TBL(g_ape)											\
 	do {																\
 		if (get_property(g_ape->properties, "userlist") == NULL) {		\
@@ -50,8 +53,8 @@ int hn_chatnum_fkq_cmp(void *a, void *b);
 						 EXTEND_HTBL, EXTEND_ISPRIVATE);				\
 		}																\
 	} while (0)
-#define GET_USER_TBL(g_ape)												\
-	(get_property(g_ape->properties, "userlist") != NULL ?				\
+#define GET_USER_TBL(g_ape)											\
+	(get_property(g_ape->properties, "userlist") != NULL ?			\
 	 (HTBL*)get_property(g_ape->properties, "userlist")->val: NULL)
 
 #define SET_USER_FOR_APE(ape, uin, user)								\
@@ -63,6 +66,12 @@ int hn_chatnum_fkq_cmp(void *a, void *b);
 	(get_property(ape->properties, "userlist") != NULL ?				\
 	 hashtbl_seek(get_property(ape->properties, "userlist")->val, uin): NULL)
 
+
+
+
+/*
+ * ONLINE TABLE a onlinED user table in recent static periodical (30 minutes?)
+ */
 #define MAKE_ONLINE_TBL(g_ape)											\
 	do {																\
 		if (get_property(g_ape->properties, "onlineuser") == NULL) {	\
@@ -82,7 +91,34 @@ int hn_chatnum_fkq_cmp(void *a, void *b);
 #define GET_USER_FROM_ONLINE(ape, uin)									\
 	(get_property(ape->properties, "onlineuser") != NULL ?				\
 	 hashtbl_seek(get_property(ape->properties, "onlineuser")->val, uin): NULL)
+#define DEL_USER_FROM_ONLINE(ape, uin)									\
+	do {																\
+		hashtbl_erase(get_property(ape->properties, "onlineuser")->val, uin); \
+	} while (0)
 
+
+
+
+/*
+ * CHATNUM TABLE a appid => chatnum table where chatnum > 1
+ */
+#define MAKE_CHATNUM_TBL(g_ape)											\
+	do {																\
+		if (get_property(g_ape->properties, "chatnum") == NULL) {		\
+			add_property(&g_ape->properties, "chatnum", hashtbl_init(), \
+						 queue_destroy, EXTEND_HTBL, EXTEND_ISPRIVATE);	\
+		}																\
+	} while (0)
+#define GET_CHATNUM_TBL(ape)										\
+	(get_property(ape->properties, "chatnum") != NULL ?				\
+	 (HTBL*)get_property(ape->properties, "chatnum")->val: NULL)
+
+
+
+
+/*
+ * USER PROPERTIES
+ */
 #define ADD_UIN_FOR_USER(user, uin)								\
 	do {														\
 		if (get_property(user->properties, "uin") == NULL) {	\
@@ -114,16 +150,5 @@ int hn_chatnum_fkq_cmp(void *a, void *b);
 #define GET_USER_FRIEND_TBL(user)									\
 	(get_property(user->properties, "friend") != NULL ?				\
 	 (HTBL*)get_property(user->properties, "friend")->val: NULL)
-
-#define MAKE_CHATNUM_TBL(g_ape)											\
-	do {																\
-		if (get_property(g_ape->properties, "chatnum") == NULL) {		\
-			add_property(&g_ape->properties, "chatnum", hashtbl_init(), \
-						 queue_destroy, EXTEND_HTBL, EXTEND_ISPRIVATE);	\
-		}																\
-	} while (0)
-#define GET_CHATNUM_TBL(ape)										\
-	(get_property(ape->properties, "chatnum") != NULL ?				\
-	 (HTBL*)get_property(ape->properties, "chatnum")->val: NULL)
 
 #endif

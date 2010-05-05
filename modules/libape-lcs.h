@@ -5,23 +5,41 @@
 #define RAW_LCSDATA		"LCS_DATA"
 
 enum {
-	LCS_ST_STRANGER = 0,
-	LCS_ST_LIMITED,
-	LCS_ST_FREE,				/* 30 online/month, 20 history raw, 2 admin */
+	LCS_ST_BLACK = 0,
+	LCS_ST_STRANGER,
+	LCS_ST_FREE = 10,			/* 20 online, 20 history raw, 2 admin */
 	LCS_ST_VIPED,				/* ED history raw */
-	LCS_ST_VIPING,				/* 300 online/month, 180 history raw, 20 admin */
-	LCS_ST_VVIPING				/* unlimit online/month, unlimit history raw, unlimit admin */
-} lcs_stat;
+	LCS_ST_VIP,					/* 200 online, one year history raw, 20 admin */
+	LCS_ST_VVIP					/* unlimit online, history raw, admin */
+} lcsStat;
 
 enum {
 	LCS_SMS_CLOSE = 0,
 	LCS_SMS_OPEN,
 	LCS_ADM_OFFLINE,
 	LCS_ADM_ONLINE
-} lcs_flag;
+} lcsFlag;
+
+enum {
+    ST_ONLINE = 0,
+    ST_MSG_TOTAL,
+	ST_NUM_USER
+} lcsStastic;
 
 typedef struct {
 	unsigned long msg_total;
-} st_lcs;
+	unsigned long num_user;
+} stLcs;
+
+#define MAKE_LCS_STAT(g_ape, p)										\
+	do {															\
+		if (get_property(g_ape->properties, "lcsstatic") == NULL) {	\
+			add_property(&g_ape->properties, "lcsstatic", p, free,	\
+						 EXTEND_POINTER, EXTEND_ISPRIVATE);			\
+		}															\
+	} while (0)
+#define GET_LCS_STAT(g_ape)												\
+	(get_property(g_ape->properties, "lcsstatic") != NULL ?				\
+	 (st_lcs*)get_property(g_ape->properties, "lcsstatic")->val: NULL)
 
 #endif	/* __LIBAPE_LCS_H__ */
