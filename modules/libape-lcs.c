@@ -40,6 +40,37 @@ done:
 	return ret;
 }
 
+static int lcs_channel_admnum(CHANNEL *chan)
+{
+	if (!chan) return 0;
+	
+	struct userslist *ulist = chan->head;
+	int num = 0;
+	
+	while (ulist != NULL) {
+		if (ulist->level >= 3) num++;
+		ulist = ulist->next;
+	}
+	
+	return num;
+}
+
+static USERS* lcs_get_admin(CHANNEL *chan, int sn)
+{
+	if (!chan || sn <= 0) return NULL;
+
+	struct userslist *ulist = chan->head;
+	int num = 0;
+	
+	while (ulist != NULL) {
+		if (ulist->level >= 3) num++;
+		if (num == sn) return ulist->userinfo;
+		ulist = ulist->next;
+	}
+	
+	return NULL;
+}
+
 static void tick_static(acetables *g_ape, int lastcall)
 {
     stLcs *st = GET_LCS_STAT(g_ape);
@@ -100,12 +131,30 @@ static unsigned int lcs_join(callbackp *callbacki)
 		st->num_user++;
 		SET_USER_FOR_ONLINE(callbacki->g_ape, uin, nuser);
 	}
-	
-	olnum = 
+
+	/*
+	 * pre join
+	 */
+	chan = getchanf(callbacki->g_ape, LCS_PIP_NAME"%s", appid);
+	if (!chan) {
+		chan = mkchanf(callbacki->g_ape,
+					   CHANNEL_AUTODESTROY | CHANNEL_QUIET,
+					   LCS_PIP_NAME"%s", appid);
+		if (!chan) {
+			alog_err("make channel %s failure", appid);
+			hn_senderr(callbacki, "007", "ERR_MAKE_CHANNEL");
+			return (RETURN_NOTHING);
+		}
+	}
+	if (isonchannel(user, chan)) {
+		goto join;
+	}
+	olnum = get_channel_usernum(chan);
+	olnum_a = lcs_channel_admnum(chan);
 	ret = lcs_service_state(appid);
 	switch (ret) {
 	case LCS_ST_BLACK:
-		hn_senderr(callbacki, "010", "ERR_APP_BALCK");
+		hn_senderr(callbacki, "010", "ERR_APP_BLACK");
 	case LCS_ST_STRANGER:
 		hn_senderr(callbacki, "011", "ERR_APP_STRANGER");
 		return (RETURN_NOTHING);
@@ -123,22 +172,23 @@ static unsigned int lcs_join(callbackp *callbacki)
 	default:
 		break;
 	}
-	if ( >= LCS_SERVICE_NORMAL) {
-		chan = getchanf(callbacki->g_ape, LCS_PIP_NAME"%s", appid);
-		if (!chan) {
-			chan = mkchanf(callbacki->g_ape, CHANNEL_AUTODESTROY | CHANNEL_QUIET,
-						   LCS_PIP_NAME"%s", appid);
-			if (chan == NULL) {
-				alog_err("make channel %s failure", appid);
-				hn_senderr(callbacki, "007", "ERR_MAKE_CHANNEL");
-				return (RETURN_NOTHING);
+	
+	/*
+	 * join
+	 */
+join:
+	join(user, chan, callbacki->g_ape);
+	if (!isonchannel(user, chan) && olnum_a > 0) {
+		int sn = neo_rand(olnum_a);
+		USERS *admin = lcs_get_admin(chan, sn);
+		if (admin) {
+			char *uina = GET_UIN_FROM_USER(admin);
+			CHANNEL *chana = getchanf(callbacki->g_ape,
+									  LCS_PIP_NAME"%s_%s", appid, uina);
+			if (chana) {
+				join(user, chana, callbacki->g_ape);
 			}
 		}
-		join(user, chan, callbacki->g_ape);
-	} else {
-		alog_warn("app %s out of service", appid);
-		hn_senderr(callbacki, "010", "ERR_OUT_OF_SERVICE");
-		return (RETURN_NOTHING);
 	}
 	
 	return (RETURN_NOTHING);
