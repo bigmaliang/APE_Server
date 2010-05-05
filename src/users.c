@@ -206,6 +206,9 @@ void deluser(USERS *user, acetables *g_ape)
 	if (uin != NULL && GET_USER_TBL(g_ape) != NULL) {
 		hashtbl_erase(GET_USER_TBL(g_ape), uin);
 	}
+	if (uin != NULL && GET_ONLINE_TBL(g_ape) != NULL) {
+		hashtbl_erase(GET_ONLINE_TBL(g_ape), uin);
+	}
 	
 	g_ape->nConnected--;
 	
