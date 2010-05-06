@@ -40,6 +40,6 @@ typedef struct {
 	} while (0)
 #define GET_LCS_STAT(g_ape)												\
 	(get_property(g_ape->properties, "lcsstatic") != NULL ?				\
-	 (st_lcs*)get_property(g_ape->properties, "lcsstatic")->val: NULL)
+	 (stLcs*)get_property(g_ape->properties, "lcsstatic")->val: NULL)
 
 #endif	/* __LIBAPE_LCS_H__ */

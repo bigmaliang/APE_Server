@@ -23,6 +23,7 @@ typedef struct {
 
 void hn_senderr(callbackp *callbacki, char *code, char *msg);
 void hn_senddata(callbackp *callbacki, char *code, char *msg);
+unsigned int hash_string(const char *str);
 int hn_isvaliduin(char *uin);
 int hn_str_cmp(void *a, void *b);
 
