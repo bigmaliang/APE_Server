@@ -71,6 +71,20 @@ static USERS* lcs_get_admin(CHANNEL *chan, int sn)
 	return NULL;
 }
 
+static void lcs_report(char *appid, int err)
+{
+	char sql[1024];
+	mevent_t *evt;
+	evt = mevent_init_plugin("stat", REQ_CMD_REPORT, FLAGS_NONE);
+
+	memset(sql, 0x0, sizeof(sql));
+	snprintf(sql, sizeof(sql), "INSERT INTO moniter (appid, type) "
+			 " VALUES ('%s', %d)", appid, err);
+	mevent_add_str(evt, NULL, "sqls", sql);
+    mevent_trigger(evt);
+	mevent_free(evt);
+}
+
 static void tick_static(acetables *g_ape, int lastcall)
 {
     stLcs *st = GET_LCS_STAT(g_ape);
@@ -82,18 +96,18 @@ static void tick_static(acetables *g_ape, int lastcall)
 	mevent_add_array(evt, NULL, "sqls");
 
     memset(sql, 0x0, sizeof(sql));
-    snprintf(sql, sizeof(sql), "INSERT INTO lcs (type, count) "
+    snprintf(sql, sizeof(sql), "INSERT INTO counter (type, count) "
              " VALUES (%d, %u);", ST_ONLINE, g_ape->nConnected);
     mevent_add_str(evt, "sqls", "1", sql);
 	
     memset(sql, 0x0, sizeof(sql));
-    snprintf(sql, sizeof(sql), "INSERT INTO lcs (type, count) "
+    snprintf(sql, sizeof(sql), "INSERT INTO counter (type, count) "
              " VALUES (%d, %u);", ST_MSG_TOTAL, st->msg_total);
     mevent_add_str(evt, "sqls", "2", sql);
 	st->msg_total = 0;
 	
     memset(sql, 0x0, sizeof(sql));
-    snprintf(sql, sizeof(sql), "INSERT INTO lcs (type, count) "
+    snprintf(sql, sizeof(sql), "INSERT INTO counter (type, count) "
              " VALUES (%d, %u);", ST_NUM_USER, st->num_user);
     mevent_add_str(evt, "sqls", "3", sql);
 	st->num_user = 0;
@@ -116,7 +130,8 @@ static unsigned int lcs_join(callbackp *callbacki)
 	USERS *user = callbacki->call_user;
 	subuser *sub = callbacki->call_subuser;
 	CHANNEL *chan;
-	int olnum, olnum_a, ret;
+	char errcode[64];
+	int olnum, olnum_a, err = 0, ret;
 	stLcs *st = GET_LCS_STAT(callbacki->g_ape);
 
 	JNEED_STR(callbacki->param, "appid", appid, RETURN_BAD_PARAMS);
@@ -154,20 +169,20 @@ static unsigned int lcs_join(callbackp *callbacki)
 	ret = lcs_service_state(appid);
 	switch (ret) {
 	case LCS_ST_BLACK:
-		hn_senderr(callbacki, "010", "ERR_APP_BLACK");
+		err = 110;
 	case LCS_ST_STRANGER:
-		hn_senderr(callbacki, "011", "ERR_APP_STRANGER");
-		return (RETURN_NOTHING);
+		err = 111;
+		goto onerror;
 	case LCS_ST_FREE:
 	case LCS_ST_VIPED:
 		if (olnum > atoi(READ_CONF("max_online_free"))) {
-			hn_senderr(callbacki, "012", "ERR_APP_LIMITED");
-			return (RETURN_NOTHING);
+			err = 112;
+			goto onerror;
 		}
 	case LCS_ST_VIP:
 		if (olnum > atoi(READ_CONF("max_online_vip"))) {
-			hn_senderr(callbacki, "012", "ERR_APP_LIMITED");
-			return (RETURN_NOTHING);
+			err = 113;
+			goto onerror;
 		}
 	default:
 		break;
@@ -178,19 +193,43 @@ static unsigned int lcs_join(callbackp *callbacki)
 	 */
 join:
 	join(user, chan, callbacki->g_ape);
-	if (!isonchannel(user, chan) && olnum_a > 0) {
+	
+	CHANLIST *chanl = user->chan_foot;
+	CHANNEL *chana;
+	char *uina;
+	USERS *admin;
+	char tok[128];
+	bool joined = false;
+	snprintf(tok, sizeof(tok), "%s%s_", LCS_PIP_NAME, appid);
+	
+	while (chanl) {
+		chana  = chanl->chaninfo;
+		if (!strncmp(chana->name, tok, strlen(tok))) {
+			join(user, chana, callbacki->g_ape);
+			joined = true;
+			break;
+		}
+		chanl = chanl->next;
+	}
+	
+	if (!joined && olnum_a > 0) {
 		int sn = neo_rand(olnum_a);
-		USERS *admin = lcs_get_admin(chan, sn);
+		admin = lcs_get_admin(chan, sn);
 		if (admin) {
-			char *uina = GET_UIN_FROM_USER(admin);
-			CHANNEL *chana = getchanf(callbacki->g_ape,
-									  LCS_PIP_NAME"%s_%s", appid, uina);
+			uina = GET_UIN_FROM_USER(admin);
+			chana = getchanf(callbacki->g_ape, LCS_PIP_NAME"%s_%s", appid, uina);
 			if (chana) {
 				join(user, chana, callbacki->g_ape);
 			}
 		}
 	}
 	
+	return (RETURN_NOTHING);
+
+onerror:
+	sprintf(errcode, "%d", err);
+	hn_senderr(callbacki, errcode, "ERR_APP_NPASS");
+	lcs_report(appid, err);
 	return (RETURN_NOTHING);
 }
 
