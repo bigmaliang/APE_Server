@@ -182,6 +182,12 @@ void json_aff(json_item *cx, int depth);
 			return (ret);										\
 		val = json_lookup(item, key)->jval.vu.integer_value;	\
 	} while(0)
+#define JNEED_UINT(item, key, val, ret)									\
+	do {																\
+		if (item == NULL || json_lookup(item, key) == NULL)				\
+			return (ret);												\
+		val = (unsigned int)json_lookup(item, key)->jval.vu.integer_value; \
+	} while(0)
 #define JNEED_FLOAT(item, key, val, ret)					\
 	do {													\
 		if (item == NULL || json_lookup(item, key) == NULL) \
