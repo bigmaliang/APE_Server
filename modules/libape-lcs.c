@@ -76,13 +76,23 @@ static USERS* lcs_get_admin(CHANNEL *chan, int sn)
 	return NULL;
 }
 
-static void lcs_access_report(callbackp *callbacki, char *aname, char *uname, int retcode)
+static unsigned int lcs_join_report(callbackp *callbacki, char *aname,
+									char *uname, char *unamea,
+									char *url, char *title, int retcode)
 {
+	if (!callbacki || !aname || !uname) return 0;
+
+	if (!unamea) unamea = "none";
+	if (!url) url = "none";
+	if (!title) title = "none";
+	
 	char sql[1024];
 	mevent_t *evt;
-	evt = mevent_init_plugin("rawdb", REQ_CMD_ACCESS, FLAGS_NONE);
+	struct data_cell *pc;
+	evt = mevent_init_plugin("rawdb", REQ_CMD_ACCESS, FLAGS_SYNC);
 
 	unsigned int aid, uid;
+	unsigned int ret = 0;
 	aid = hash_string(aname);
 	uid = hash_string(uname);
 
@@ -99,12 +109,24 @@ static void lcs_access_report(callbackp *callbacki, char *aname, char *uname, in
 	memset(sql, 0x0, sizeof(sql));
 	/* TODO need escape */
 	snprintf(sql, sizeof(sql),
-			 "INSERT INTO acess (aid, aname, uid, uname, ip, refer, retcode) "
-			 " VALUES (%u, '%s', %u, '%s', '%s', '%s', %d)",
-			 aid, aname, uid, uname, callbacki->ip, refer, retcode);
+			 "INSERT INTO join (aid, aname, uid, uname, unamea, "
+			 " ip, refer, url, title, retcode) "
+			 " VALUES (%u, '%s', %u, '%s', '%s', '%s', '%s', '%s', '%s', %d)",
+			 aid, aname, uid, uname, unamea,
+			 callbacki->ip, refer, url, title, retcode);
 	mevent_add_str(evt, NULL, "sqls", sql);
-    mevent_trigger(evt);
+	if (PROCESS_NOK(mevent_trigger(evt))) {
+		alog_err("join report for %s %s %s failure",
+				 aname, uname, url);
+		goto done;
+	}
+
+	pc = data_cell_search(evt->rcvdata, false, DATA_TYPE_U32, "id");
+	if (pc) ret = pc->v.ival;
+	
+done:
 	mevent_free(evt);
+	return ret;
 }
 
 static void tick_static(acetables *g_ape, int lastcall)
@@ -155,7 +177,16 @@ static unsigned int lcs_join(callbackp *callbacki)
 	int olnum, olnum_a, err = 0, ret;
 	stLcs *st = GET_LCS_STAT(callbacki->g_ape);
 
+	CHANLIST *chanl = user->chan_foot;
+	CHANNEL *chana;
+	char *unamea = NULL, *url, *title;
+	USERS *admin;
+	char tok[128];
+	bool joined = false;
+	
 	JNEED_STR(callbacki->param, "aname", aname, RETURN_BAD_PARAMS);
+	url = JGET_STR(callbacki->param, "url");
+	title = JGET_STR(callbacki->param, "title");
 	uname = GET_UIN_FROM_USER(user);
 
 	/*
@@ -177,7 +208,7 @@ static unsigned int lcs_join(callbackp *callbacki)
 					   LCS_PIP_NAME"%s", aname);
 		if (!chan) {
 			alog_err("make channel %s failure", aname);
-			hn_senderr(callbacki, "007", "ERR_MAKE_CHANNEL");
+			hn_senderr_sub(callbacki, "007", "ERR_MAKE_CHANNEL");
 			return (RETURN_NOTHING);
 		}
 	}
@@ -214,12 +245,6 @@ static unsigned int lcs_join(callbackp *callbacki)
 join:
 	join(user, chan, callbacki->g_ape);
 	
-	CHANLIST *chanl = user->chan_foot;
-	CHANNEL *chana;
-	char *unamea;
-	USERS *admin;
-	char tok[128];
-	bool joined = false;
 	snprintf(tok, sizeof(tok), "%s%s_", LCS_PIP_NAME, aname);
 	
 	while (chanl) {
@@ -249,9 +274,35 @@ join:
 done:
 	if (err != 0) {
 		sprintf(errcode, "%d", err);
-		hn_senderr(callbacki, errcode, "ERR_APP_NPASS");
+		hn_senderr_sub(callbacki, errcode, "ERR_APP_NPASS");
 	}
-	lcs_access_report(callbacki, aname, uname, err);
+	unsigned int jid = lcs_join_report(callbacki, aname,
+									   uname, unamea, url, title, err);
+	if (jid > 0 ) {
+		sprintf(tok, "%u", jid);
+		ADD_JID_FOR_USER(user, tok);
+	}
+	return (RETURN_NOTHING);
+}
+
+static unsigned int lcs_visit(callbackp *callbacki)
+{
+	char *url, *title;
+	unsigned int jid;
+	
+	JNEED_UINT(callbacki->param, "jid", jid, RETURN_BAD_PARAMS);
+	JNEED_STR(callbacki->param, "url", url, RETURN_BAD_PARAMS);
+	JNEED_STR(callbacki->param, "title", title, RETURN_BAD_PARAMS);
+
+	char sql[1024];
+	mevent_t *evt;
+	evt = mevent_init_plugin("rawdb", REQ_CMD_ACCESS, FLAGS_NONE);
+	snprintf(sql, sizeof(sql), "INSERT INTO visit (jid, url, title) "
+			 " VALUES (%u, '%s', '%s')", jid, url, title);
+	mevent_add_str(evt, NULL, "sqls", sql);
+	mevent_trigger(evt);
+	mevent_free(evt);
+	
 	return (RETURN_NOTHING);
 }
 
@@ -267,6 +318,7 @@ static void init_module(acetables *g_ape)
     add_periodical((1000*60*30), 0, tick_static, g_ape, g_ape);
 	
 	register_cmd("LCS_JOIN", 		lcs_join, 		NEED_SESSID, g_ape);
+	register_cmd("LCS_VISIT", 		lcs_visit, 		NEED_SESSID, g_ape);
 	//register_cmd("LCS_JOIN_A", 		lcs_join_a,		NEED_SESSID, g_ape);
 }
 
