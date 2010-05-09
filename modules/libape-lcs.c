@@ -109,7 +109,7 @@ static unsigned int lcs_join_report(callbackp *callbacki, char *aname,
 	memset(sql, 0x0, sizeof(sql));
 	/* TODO need escape */
 	snprintf(sql, sizeof(sql),
-			 "INSERT INTO join (aid, aname, uid, uname, unamea, "
+			 "INSERT INTO lcsjoin (aid, aname, uid, uname, unamea, "
 			 " ip, refer, url, title, retcode) "
 			 " VALUES (%u, '%s', %u, '%s', '%s', '%s', '%s', '%s', '%s', %d)",
 			 aid, aname, uid, uname, unamea,
