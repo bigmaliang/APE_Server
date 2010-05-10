@@ -111,7 +111,8 @@ static unsigned int lcs_join_report(callbackp *callbacki, char *aname,
 	snprintf(sql, sizeof(sql),
 			 "INSERT INTO lcsjoin (aid, aname, uid, uname, unamea, "
 			 " ip, refer, url, title, retcode) "
-			 " VALUES (%u, '%s', %u, '%s', '%s', '%s', '%s', '%s', '%s', %d)",
+			 " VALUES (%u, '%s', %u, '%s', '%s', '%s', '%s', '%s', '%s', %d) "
+			 " RETURNING id",
 			 aid, aname, uid, uname, unamea,
 			 callbacki->ip, refer, url, title, retcode);
 	mevent_add_str(evt, NULL, "sqls", sql);
@@ -204,8 +205,7 @@ static unsigned int lcs_join(callbackp *callbacki)
 	chan = getchanf(callbacki->g_ape, LCS_PIP_NAME"%s", aname);
 	if (!chan) {
 		chan = mkchanf(callbacki->g_ape,
-					   CHANNEL_AUTODESTROY | CHANNEL_QUIET,
-					   LCS_PIP_NAME"%s", aname);
+					   CHANNEL_AUTODESTROY, LCS_PIP_NAME"%s", aname);
 		if (!chan) {
 			alog_err("make channel %s failure", aname);
 			hn_senderr_sub(callbacki, "007", "ERR_MAKE_CHANNEL");
