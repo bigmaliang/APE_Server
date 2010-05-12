@@ -5,7 +5,6 @@
 #include "../src/hnpub.h"
 
 #include "mevent.h"
-#include "data.h"
 
 #include "mevent_aic.h"
 #include "mevent_rawdb.h"
