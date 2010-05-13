@@ -24,7 +24,6 @@ static ace_plugin_infos infos_module = {
 static int lcs_service_state(char *aname)
 {
 	mevent_t *evt;
-	struct data_cell *pc;
 	int ret = LCS_ST_STRANGER;
 	unsigned int aid = hash_string(aname);
 	
@@ -36,8 +35,7 @@ static int lcs_service_state(char *aname)
 		goto done;
 	}
 
-	pc = data_cell_search(evt->rcvdata, false, DATA_TYPE_U32, "state");
-	if (pc) ret = pc->v.ival;
+	REQ_FETCH_PARAM_U32(evt->hdfrcv, "state", ret);
 
 done:
 	mevent_free(evt);
@@ -87,7 +85,6 @@ static unsigned int lcs_join_report(callbackp *callbacki, char *aname,
 	
 	char sql[1024];
 	mevent_t *evt;
-	struct data_cell *pc;
 	evt = mevent_init_plugin("rawdb", REQ_CMD_ACCESS, FLAGS_SYNC);
 
 	unsigned int aid, uid;
@@ -114,7 +111,7 @@ static unsigned int lcs_join_report(callbackp *callbacki, char *aname,
 			 " RETURNING id",
 			 aid, aname, uid, uname, unamea,
 			 callbacki->ip, refer, url, title, retcode);
-	mevent_add_str(evt, NULL, "sqls", sql);
+	hdf_set_value(evt->hdfsnd, "sqls", sql);
 	if (PROCESS_NOK(mevent_trigger(evt))) {
 		alog_err("join report for %s %s %s failure",
 				 aname, uname, url);
@@ -137,23 +134,22 @@ static void tick_static(acetables *g_ape, int lastcall)
 
     mevent_t *evt;
     evt = mevent_init_plugin("rawdb", REQ_CMD_STAT, FLAGS_NONE);
-	mevent_add_array(evt, NULL, "sqls");
 
     memset(sql, 0x0, sizeof(sql));
     snprintf(sql, sizeof(sql), "INSERT INTO counter (type, count) "
              " VALUES (%d, %u);", ST_ONLINE, g_ape->nConnected);
-    mevent_add_str(evt, "sqls", "1", sql);
+    hdf_set_value(evt->hdfsnd, "sqls.1", sql);
 	
     memset(sql, 0x0, sizeof(sql));
     snprintf(sql, sizeof(sql), "INSERT INTO counter (type, count) "
              " VALUES (%d, %lu);", ST_MSG_TOTAL, st->msg_total);
-    mevent_add_str(evt, "sqls", "2", sql);
+    hdf_set_value(evt->hdfsnd, "sqls.2", sql);
 	st->msg_total = 0;
 	
     memset(sql, 0x0, sizeof(sql));
     snprintf(sql, sizeof(sql), "INSERT INTO counter (type, count) "
              " VALUES (%d, %lu);", ST_NUM_USER, st->num_user);
-    mevent_add_str(evt, "sqls", "3", sql);
+    hdf_set_value(evt->hdfsnd, "sqls.3", sql);
 	st->num_user = 0;
 	hashtbl_empty(GET_ONLINE_TBL(g_ape), NULL);
 	
@@ -298,7 +294,7 @@ static unsigned int lcs_visit(callbackp *callbacki)
 	evt = mevent_init_plugin("rawdb", REQ_CMD_ACCESS, FLAGS_NONE);
 	snprintf(sql, sizeof(sql), "INSERT INTO visit (jid, url, title) "
 			 " VALUES (%u, '%s', '%s')", jid, url, title);
-	mevent_add_str(evt, NULL, "sqls", sql);
+	hdf_set_value(evt->hdfsnd, "sqls", sql);
 	mevent_trigger(evt);
 	mevent_free(evt);
 	
