@@ -26,11 +26,11 @@ static int lcs_service_state(char *aname)
 	mevent_t *evt;
 	int ret = LCS_ST_STRANGER;
 	unsigned int aid = hash_string(aname);
-	
-	evt = mevent_init_plugin("aic", REQ_CMD_APPINFO, FLAGS_SYNC);
-	//mevent_add_str(evt, NULL, "aname", aname);
-	mevent_add_u32(evt, NULL, "aid", aid);
-	if (PROCESS_NOK(mevent_trigger(evt))) {
+
+	/* TODO init_plugin() every time? */
+	evt = mevent_init_plugin("aic");
+	hdf_set_int_value(evt->hdfsnd, "aid", aid);
+	if (PROCESS_NOK(mevent_trigger(evt, NULL, REQ_CMD_APPINFO, FLAGS_SYNC))) {
 		alog_err("get %s stat failure", aname);
 		goto done;
 	}
@@ -85,7 +85,7 @@ static unsigned int lcs_join_report(callbackp *callbacki, char *aname,
 	
 	char sql[1024];
 	mevent_t *evt;
-	evt = mevent_init_plugin("rawdb", REQ_CMD_ACCESS, FLAGS_SYNC);
+	evt = mevent_init_plugin("rawdb");
 
 	unsigned int aid, uid;
 	unsigned int ret = 0;
@@ -112,7 +112,7 @@ static unsigned int lcs_join_report(callbackp *callbacki, char *aname,
 			 aid, aname, uid, uname, unamea,
 			 callbacki->ip, refer, url, title, retcode);
 	hdf_set_value(evt->hdfsnd, "sqls", sql);
-	if (PROCESS_NOK(mevent_trigger(evt))) {
+	if (PROCESS_NOK(mevent_trigger(evt, NULL, REQ_CMD_ACCESS, FLAGS_SYNC))) {
 		alog_err("join report for %s %s %s failure",
 				 aname, uname, url);
 		goto done;
@@ -133,7 +133,7 @@ static void tick_static(acetables *g_ape, int lastcall)
     int ret;
 
     mevent_t *evt;
-    evt = mevent_init_plugin("rawdb", REQ_CMD_STAT, FLAGS_NONE);
+    evt = mevent_init_plugin("rawdb");
 
     memset(sql, 0x0, sizeof(sql));
     snprintf(sql, sizeof(sql), "INSERT INTO counter (type, count) "
@@ -153,7 +153,7 @@ static void tick_static(acetables *g_ape, int lastcall)
 	st->num_user = 0;
 	hashtbl_empty(GET_ONLINE_TBL(g_ape), NULL);
 	
-    ret = mevent_trigger(evt);
+    ret = mevent_trigger(evt, NULL, REQ_CMD_STAT, FLAGS_NONE);
     if (PROCESS_NOK(ret)) {
         alog_err("trigger statistic event failure %d", ret);
     }
@@ -291,11 +291,11 @@ static unsigned int lcs_visit(callbackp *callbacki)
 
 	char sql[1024];
 	mevent_t *evt;
-	evt = mevent_init_plugin("rawdb", REQ_CMD_ACCESS, FLAGS_NONE);
+	evt = mevent_init_plugin("rawdb");
 	snprintf(sql, sizeof(sql), "INSERT INTO visit (jid, url, title) "
 			 " VALUES (%u, '%s', '%s')", jid, url, title);
 	hdf_set_value(evt->hdfsnd, "sqls", sql);
-	mevent_trigger(evt);
+	mevent_trigger(evt, NULL, REQ_CMD_ACCESS, FLAGS_NONE);
 	mevent_free(evt);
 	
 	return (RETURN_NOTHING);
