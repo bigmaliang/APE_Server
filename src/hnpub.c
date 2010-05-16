@@ -47,18 +47,6 @@ void hn_senddata(callbackp *callbacki, char *code, char *msg)
     send_raw_inline(callbacki->client, callbacki->transport, raw, callbacki->g_ape);
 }
 
-unsigned int hash_string(const char *str)
-{
-        int hash = 5381; // DJB Hash
-        const char *s;
-	
-        for (s = str; *s != '\0'; s++) {
-                hash = ((hash << 5) + hash) + tolower(*s);
-        }
-	
-        return (hash & 0x7FFFFFFF);
-}
-
 int hn_isvaliduin(char *uin)
 {
 	if (uin == NULL)
