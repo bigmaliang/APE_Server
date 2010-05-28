@@ -336,18 +336,20 @@ static unsigned int lcs_visit(callbackp *callbacki)
 	char *url, *title;
 	unsigned int jid;
 	
+	mevent_t *evt = (mevent_t*)hashtbl_seek(GET_EVENT_TBL(callbacki->g_ape), "dyn");
+	if (!evt) return (RETURN_NOTHING);
+	
 	JNEED_UINT(callbacki->param, "jid", jid, RETURN_BAD_PARAMS);
 	JNEED_STR(callbacki->param, "url", url, RETURN_BAD_PARAMS);
 	JNEED_STR(callbacki->param, "title", title, RETURN_BAD_PARAMS);
 
-	char sql[1024];
-	mevent_t *evt;
-	evt = mevent_init_plugin("rawdb");
-	snprintf(sql, sizeof(sql), "INSERT INTO visit (jid, url, title) "
-			 " VALUES (%u, '%s', '%s')", jid, url, title);
-	hdf_set_value(evt->hdfsnd, "sqls", sql);
-	mevent_trigger(evt, NULL, REQ_CMD_ACCESS, FLAGS_NONE);
-	mevent_free(evt);
+	hdf_set_int_value(evt->hdfsnd, "jid", jid);
+	hdf_set_value(evt->hdfsnd, "url", url);
+	hdf_set_value(evt->hdfsnd, "title", title);
+	
+	if (PROCESS_NOK(mevent_trigger(evt, NULL, REQ_CMD_VISITSET, FLAGS_NONE))) {
+		alog_err("report visit failure %d", evt->errcode);
+	}
 	
 	return (RETURN_NOTHING);
 }
