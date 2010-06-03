@@ -224,8 +224,10 @@ static unsigned int lcs_join(callbackp *callbacki)
 	
 	JNEED_STR(callbacki->param, "aname", aname, RETURN_BAD_PARAMS);
 	JNEED_INT(callbacki->param, "utime", utime, RETURN_BAD_PARAMS);
-	url = JGET_STR(callbacki->param, "url");
-	title = JGET_STR(callbacki->param, "title");
+	JNEED_STR(callbacki->param, "url", url, RETURN_BAD_PARAMS);
+	JNEED_STR(callbacki->param, "title", title, RETURN_BAD_PARAMS);
+	//url = JGET_STR(callbacki->param, "url");
+	//title = JGET_STR(callbacki->param, "title");
 	uname = GET_UIN_FROM_USER(user);
 
 	/*
@@ -243,7 +245,8 @@ static unsigned int lcs_join(callbackp *callbacki)
 	chan = getchanf(callbacki->g_ape, LCS_PIP_NAME"%s", aname);
 	if (!chan) {
 		chan = mkchanf(callbacki->g_ape,
-					   CHANNEL_AUTODESTROY, LCS_PIP_NAME"%s", aname);
+					   CHANNEL_AUTODESTROY | CHANNEL_NONINTERACTIVE,
+					   LCS_PIP_NAME"%s", aname);
 		if (!chan) {
 			alog_err("make channel %s failure", aname);
 			hn_senderr_sub(callbacki, "007", "ERR_MAKE_CHANNEL");
@@ -327,7 +330,7 @@ done:
 	if (utime == 2) {
 		lcs_user_remember_me(callbacki, uname, aname);
 	}
-	
+
 	return (RETURN_NOTHING);
 }
 
