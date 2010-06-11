@@ -546,20 +546,23 @@ unsigned int cmd_raw_recently(callbackp *callbacki)
 	JNEED_STR(callbacki->param, "uin", otheruin, RETURN_BAD_PARAMS);
 	JNEED_INT(callbacki->param, "type", type, RETURN_BAD_PARAMS);
 
-	if (type == RRC_TYPE_SINGLE) {
-		if (strcmp(otheruin, "0")) {
-			post_raw_sub_recently_single(callbacki->g_ape,
-										 sub, uin, otheruin);
-			return (RETURN_NOTHING);
-		}
-	}
-
 	if (RRC_TYPE_NOK(type)) {
 		alog_err("type %d illgal", type);
 		return (RETURN_BAD_PARAMS);
 	}
 
-	post_raw_sub_recently(callbacki->g_ape, sub, otheruin, type);
+	if (type == RRC_TYPE_MIXED) {
+		if (strcmp(otheruin, "0")) {
+			post_raw_sub_recently_byme(callbacki->g_ape,
+									   sub, NULL, uin);
+		} else {
+			post_raw_sub_recently_byme(callbacki->g_ape,
+									   sub, otheruin, uin);
+		}
+	} else {
+		post_raw_sub_recently(callbacki->g_ape, sub, uin);
+	}
+
 	return (RETURN_NOTHING);
 }
 

@@ -198,7 +198,15 @@ void free_raw_recently(acetables *g_ape)
 	del_property(&g_ape->properties, "raw_recently_index");
 }
 
-void push_raw_recently_single(acetables *g_ape, RAW *raw, char *from, char *to)
+/*
+ * push
+ */
+void push_raw_recently(acetables *g_ape, RAW *raw, char *key)
+{
+	raw_queue_in(g_ape, raw, key, RRC_TYPE_NORMAL);
+}
+
+void push_raw_recently_byme(acetables *g_ape, RAW *raw, char *from, char *to)
 {
 	if (!raw || !from || !to) return;
 
@@ -212,73 +220,72 @@ void push_raw_recently_single(acetables *g_ape, RAW *raw, char *from, char *to)
 	
 	ASSEM_QUEUE_KEY(hkey, from, to);
 
-	raw_queue_in(g_ape, raw, hkey, RRC_TYPE_SINGLE);
+	raw_queue_in(g_ape, raw, hkey, RRC_TYPE_MIXED);
 }
 
-void push_raw_recently_group(acetables *g_ape, RAW *raw, char *key, int type)
+/*
+ * post
+ */
+void post_raw_recently(acetables *g_ape, USERS *user, char *key)
 {
-	raw_queue_in(g_ape, raw, key, type);
+	if (!user || !key) return;
+	
+	raw_queue_out(g_ape, user, key, RRC_TYPE_NORMAL);
 }
 
-void post_raw_recently_single(acetables *g_ape, USERS *user, char *from, char *to)
+void post_raw_sub_recently(acetables *g_ape, subuser *sub, char *key)
+{
+	if (!sub || !key) return;
+	
+	raw_queue_out_sub(g_ape, sub, key, RRC_TYPE_NORMAL);
+}
+
+void post_raw_recently_byme(acetables *g_ape, USERS *user, char *from, char *to)
 {
 	char hkey[128];
 
-	ASSEM_QUEUE_KEY(hkey, from, to);
+	if (!user || !to) return;
 
-	raw_queue_out(g_ape, user, hkey, RRC_TYPE_SINGLE);
-}
-
-void post_raw_recently(acetables *g_ape, USERS *user, char *key, int type)
-{
-	if (!user || !key || RRC_TYPE_NOK(type) || rrc_max_size[type] <= 0)
-		return;
-	
-	if (type == RRC_TYPE_SINGLE) {
-		HTBL *table;
-		
-		PREOP_RRC_INDEX(table);
-
-		Queue *index = hashtbl_seek(table, key);
-		QueueEntry *qe;
-		
-		if (index) {
-			queue_iterate(index, qe) {
-				post_raw_recently_single(g_ape, user, key, (char*)qe->data);
-			}
-		}
+	if (from) {
+		ASSEM_QUEUE_KEY(hkey, from, to);
+		raw_queue_out(g_ape, user, hkey, RRC_TYPE_MIXED);
 	} else {
-		raw_queue_out(g_ape, user, key, type);
-	}
-}
-
-void post_raw_sub_recently_single(acetables *g_ape, subuser *sub, char *from, char *to)
-{
-	char hkey[128];
-
-	ASSEM_QUEUE_KEY(hkey, from, to);
-
-	raw_queue_out_sub(g_ape, sub, hkey, RRC_TYPE_SINGLE);
-}
-
-void post_raw_sub_recently(acetables *g_ape, subuser *sub, char *key, int type)
-{
-	if (!sub || !key || RRC_TYPE_NOK(type) || rrc_max_size[type] <= 0)
-		return;
-	
-	if (type == RRC_TYPE_SINGLE) {
 		HTBL *table;
 		
 		PREOP_RRC_INDEX(table);
 
-		Queue *index = hashtbl_seek(table, key);
+		Queue *index = hashtbl_seek(table, to);
+		QueueEntry *qe;
+		
+		if (index) {
+			queue_iterate(index, qe) {
+				post_raw_recently_byme(g_ape, user, (char*)qe->data, to);
+			}
+		}
+	}
+}
+
+void post_raw_sub_recently_byme(acetables *g_ape, subuser *sub, char *from, char *to)
+{
+	char hkey[128];
+
+	if (!sub || !to) return;
+
+	if (from) {
+		ASSEM_QUEUE_KEY(hkey, from, to);
+		raw_queue_out_sub(g_ape, sub, hkey, RRC_TYPE_MIXED);
+	} else {
+		HTBL *table;
+		
+		PREOP_RRC_INDEX(table);
+
+		Queue *index = hashtbl_seek(table, to);
 		QueueEntry *qe;
 		if (index) {
 			queue_iterate(index, qe) {
-				post_raw_sub_recently_single(g_ape, sub, key, (char*)qe->data);
+				post_raw_sub_recently_byme(g_ape, sub, (char*)qe->data, to);
 			}
 		}
-	} else{
-		raw_queue_out_sub(g_ape, sub, key, type);
 	}
 }
+
