@@ -359,7 +359,8 @@ static unsigned int lcs_visit(callbackp *callbacki)
 
 static unsigned int lcs_send(callbackp *callbacki)
 {
-	char *pipe, *msg;
+	char *pipe, *msg, *uname = NULL;
+	USERS *user;
 	json_item *jlist;
 	RAW *newraw;
 
@@ -368,29 +369,44 @@ static unsigned int lcs_send(callbackp *callbacki)
 
 	jlist = json_new_object();
 	json_set_property_strZ(jlist, "msg", msg);
-	jlist = post_to_pipe(jlist, RAW_LCSDATA, pipe,
-						 callbacki->call_subuser, callbacki->g_ape, true);
-
-	newraw = forge_raw("RAW_RECENTLY", jlist);
-	POSTRAW_DONE(newraw);
+	
+	transpipe *spipe = get_pipe(pipe, callbacki->g_ape);
+	if (spipe && spipe->type == USER_PIPE) {
+		user = (USERS*)(spipe->pipe);
+		if (user) uname = GET_UIN_FROM_USER(user);
+		if (uname) {
+			jlist = post_to_pipe(jlist, RAW_LCSDATA, pipe,
+								 callbacki->call_subuser, callbacki->g_ape, true);
+			
+			newraw = forge_raw("RAW_RECENTLY", jlist);
+			push_raw_recently(callbacki->g_ape, newraw, uname);
+			POSTRAW_DONE(newraw);
+		} else {
+			alog_err("get uname failure");
+			hn_senderr_sub(callbacki, "120", "ERR_UNAME_NEXIST");
+		}
+	} else {
+		alog_err("get pipe failure");
+		hn_senderr_sub(callbacki, "121", "ERR_PIPE_ERROR");
+	}
 
 	return (RETURN_NOTHING);
 }
 
 static unsigned int lcs_msg(callbackp *callbacki)
 {
-	char *aname, *msg;
+	char *uname, *msg;
 	json_item *jlist;
 	RAW *newraw;
 
-	JNEED_STR(callbacki->param, "aname", aname, RETURN_BAD_PARAMS);
+	JNEED_STR(callbacki->param, "uname", uname, RETURN_BAD_PARAMS);
 	JNEED_STR(callbacki->param, "msg", msg, RETURN_BAD_PARAMS);
 
 	jlist = json_new_object();
 	json_set_property_strZ(jlist, "msg", msg);
 	newraw = forge_raw("RAW_MSG", jlist);
 
-	push_raw_recently_group(callbacki->g_ape, newraw, aname, RRC_TYPE_GROUP_FKQ);
+	push_raw_recently(callbacki->g_ape, newraw, uname);
 	POSTRAW_DONE(newraw);
 
 	return (RETURN_NOTHING);
