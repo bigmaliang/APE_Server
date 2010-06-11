@@ -357,6 +357,45 @@ static unsigned int lcs_visit(callbackp *callbacki)
 	return (RETURN_NOTHING);
 }
 
+static unsigned int lcs_send(callbackp *callbacki)
+{
+	char *pipe, *msg;
+	json_item *jlist;
+	RAW *newraw;
+
+	JNEED_STR(callbacki->param, "pipe", pipe, RETURN_BAD_PARAMS);
+	JNEED_STR(callbacki->param, "msg", msg, RETURN_BAD_PARAMS);
+
+	jlist = json_new_object();
+	json_set_property_strZ(jlist, "msg", msg);
+	jlist = post_to_pipe(jlist, RAW_LCSDATA, pipe,
+						 callbacki->call_subuser, callbacki->g_ape, true);
+
+	newraw = forge_raw("RAW_RECENTLY", jlist);
+	POSTRAW_DONE(newraw);
+
+	return (RETURN_NOTHING);
+}
+
+static unsigned int lcs_msg(callbackp *callbacki)
+{
+	char *aname, *msg;
+	json_item *jlist;
+	RAW *newraw;
+
+	JNEED_STR(callbacki->param, "aname", aname, RETURN_BAD_PARAMS);
+	JNEED_STR(callbacki->param, "msg", msg, RETURN_BAD_PARAMS);
+
+	jlist = json_new_object();
+	json_set_property_strZ(jlist, "msg", msg);
+	newraw = forge_raw("RAW_MSG", jlist);
+
+	push_raw_recently_group(callbacki->g_ape, newraw, aname, RRC_TYPE_GROUP_FKQ);
+	POSTRAW_DONE(newraw);
+
+	return (RETURN_NOTHING);
+}
+
 static void init_module(acetables *g_ape)
 {
 	/*
@@ -371,6 +410,8 @@ static void init_module(acetables *g_ape)
 	
 	register_cmd("LCS_JOIN", 		lcs_join, 		NEED_SESSID, g_ape);
 	register_cmd("LCS_VISIT", 		lcs_visit, 		NEED_SESSID, g_ape);
+	register_cmd("LCS_SEND", 		lcs_send, 		NEED_SESSID, g_ape);
+	register_cmd("LCS_MSG", 		lcs_msg, 		NEED_SESSID, g_ape);
 	//register_cmd("LCS_JOIN_A", 		lcs_join_a,		NEED_SESSID, g_ape);
 }
 
