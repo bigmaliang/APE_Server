@@ -42,6 +42,25 @@ static void lcs_event_init(acetables *g_ape)
 	}
 }
 
+static HDF* lcs_app_info(callbackp *callbacki, char *aname)
+{
+	HTBL *etbl = GET_EVENT_TBL(callbacki->g_ape);
+	mevent_t *evt = (mevent_t*)hashtbl_seek(etbl, "aic");
+	if (!evt) return NULL;
+	
+	hdf_set_value(evt->hdfsnd, "aname", aname);
+	if (PROCESS_NOK(mevent_trigger(evt, aname, REQ_CMD_APPINFO, FLAGS_SYNC))) {
+		alog_err("get %s stat failure %d", aname, evt->errcode);
+		return NULL;
+	}
+
+	HDF *hdf;
+	hdf_init(&hdf);
+	hdf_copy(hdf, NULL, evt->hdfrcv);
+
+	return hdf;
+}
+
 static int lcs_service_state(callbackp *callbacki, char *aname)
 {
 	HTBL *etbl = GET_EVENT_TBL(callbacki->g_ape);
@@ -167,6 +186,25 @@ static USERS* lcs_get_admin(CHANNEL *chan, int sn)
 	return NULL;
 }
 
+static bool lcs_check_login(callbackp *callbacki, char *aname, char *masn)
+{
+	HTBL *etbl = GET_EVENT_TBL(callbacki->g_ape);
+	mevent_t *evt = (mevent_t*)hashtbl_seek(etbl, "aic");
+	if (!evt) return false;
+
+	hdf_set_value(evt->hdfsnd, "aname", aname);
+	if (PROCESS_NOK(mevent_trigger(evt, aname, REQ_CMD_APPINFO, FLAGS_SYNC))) {
+		alog_err("get %s stat failure %d", aname, evt->errcode);
+		return LCS_ST_FREE;
+	}
+
+	char *masndb = hdf_get_value(evt->hdfrcv, "masn", NULL);
+	if (masndb && !strcmp(masndb, masn)) {
+		return true;
+	}
+	return false;
+}
+
 static void tick_static(acetables *g_ape, int lastcall)
 {
 	HTBL *etbl = GET_EVENT_TBL(g_ape);
@@ -245,8 +283,7 @@ static unsigned int lcs_join(callbackp *callbacki)
 	chan = getchanf(callbacki->g_ape, LCS_PIP_NAME"%s", aname);
 	if (!chan) {
 		chan = mkchanf(callbacki->g_ape,
-					   CHANNEL_AUTODESTROY | CHANNEL_NONINTERACTIVE,
-					   LCS_PIP_NAME"%s", aname);
+					   CHANNEL_AUTODESTROY, LCS_PIP_NAME"%s", aname);
 		if (!chan) {
 			alog_err("make channel %s failure", aname);
 			hn_senderr_sub(callbacki, "007", "ERR_MAKE_CHANNEL");
@@ -412,6 +449,96 @@ static unsigned int lcs_msg(callbackp *callbacki)
 	return (RETURN_NOTHING);
 }
 
+static unsigned int lcs_joinb(callbackp *callbacki)
+{
+	char *aname, *masn;
+	
+	USERS *user = callbacki->call_user;
+	CHANNEL *chan;
+	char errcode[64];
+	int olnum, err = 0, ret;
+	stLcs *st = GET_LCS_STAT(callbacki->g_ape);
+
+	JNEED_STR(callbacki->param, "aname", aname, RETURN_BAD_PARAMS);
+	JNEED_STR(callbacki->param, "masn", masn, RETURN_BAD_PARAMS);
+
+	/*
+	 * statistics
+	 */
+	USERS *tuser = GET_USER_FROM_ONLINE(callbacki->g_ape, aname);
+	if (tuser == NULL) {
+		st->num_user++;
+		SET_USER_FOR_ONLINE(callbacki->g_ape, aname, user);
+	}
+
+	/*
+	 * pre join
+	 */
+	HDF *apphdf = lcs_app_info(callbacki, aname);
+	if (!apphdf) {
+		alog_warn("%s info failure", aname);
+		hn_senderr_sub(callbacki, "210", "ERR_APP_INFO");
+		return (RETURN_NOTHING);
+	}
+	
+	if (strcmp(hdf_get_value(apphdf, "masn", "NULL"), masn)) {
+		alog_warn("%s attemp illgal login", aname);
+		hn_senderr_sub(callbacki, "211", "ERR_APP_LOGIN");
+		return (RETURN_NOTHING);
+	}
+
+	chan = getchanf(callbacki->g_ape, LCS_PIP_NAME"%s", aname);
+	if (!chan) {
+		chan = mkchanf(callbacki->g_ape,
+					   CHANNEL_AUTODESTROY, LCS_PIP_NAME"%s", aname);
+		if (!chan) {
+			alog_err("make channel %s failure", aname);
+			hn_senderr_sub(callbacki, "007", "ERR_MAKE_CHANNEL");
+			return (RETURN_NOTHING);
+		}
+	}
+	if (isonchannel(user, chan)) {
+		err = 0;
+		goto done;
+	}
+	olnum = get_channel_usernum(chan);
+	ret = hdf_get_int_value(apphdf, "state", LCS_ST_STRANGER);
+	switch (ret) {
+	case LCS_ST_BLACK:
+		err = 110;
+	case LCS_ST_STRANGER:
+		err = 111;
+		goto done;
+	case LCS_ST_FREE:
+	case LCS_ST_VIPED:
+		if (olnum > atoi(READ_CONF("max_online_free"))) {
+			err = 112;
+			goto done;
+		}
+	case LCS_ST_VIP:
+		if (olnum > atoi(READ_CONF("max_online_vip"))) {
+			err = 113;
+			goto done;
+		}
+	default:
+		break;
+	}
+	
+	/*
+	 * join
+	 */
+	SET_USER_ADMIN(user);
+	join(user, chan, callbacki->g_ape);
+	
+done:
+	if (err != 0) {
+		sprintf(errcode, "%d", err);
+		hn_senderr_sub(callbacki, errcode, "ERR_APP_NPASS");
+	}
+	
+	return (RETURN_NOTHING);
+}
+
 static void init_module(acetables *g_ape)
 {
 	/*
@@ -428,6 +555,8 @@ static void init_module(acetables *g_ape)
 	register_cmd("LCS_VISIT", 		lcs_visit, 		NEED_SESSID, g_ape);
 	register_cmd("LCS_SEND", 		lcs_send, 		NEED_SESSID, g_ape);
 	register_cmd("LCS_MSG", 		lcs_msg, 		NEED_SESSID, g_ape);
+
+	register_cmd("LCS_JOINB", 		lcs_joinb, 		NEED_SESSID, g_ape);
 	//register_cmd("LCS_JOIN_A", 		lcs_join_a,		NEED_SESSID, g_ape);
 }
 

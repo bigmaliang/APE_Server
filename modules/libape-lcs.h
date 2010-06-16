@@ -60,5 +60,13 @@ typedef struct {
 	(get_property(user->properties, "jid") != NULL ?			\
 	 (char*)get_property(user->properties, "jid")->val: NULL)
 
+#define SET_USER_ADMIN(user)										\
+	do {															\
+		if (get_property(user->properties, "isadmin") == NULL) {	\
+			add_property(&user->properties, "isadmin", "1",	NULL,	\
+						 EXTEND_STR, EXTEND_ISPUBLIC);				\
+		}															\
+	} while (0)
+
 
 #endif	/* __LIBAPE_LCS_H__ */
