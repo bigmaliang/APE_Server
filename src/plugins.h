@@ -51,7 +51,9 @@ struct _ace_plugins
 		unsigned short int c_mkchan;
 		unsigned short int c_rmchan;
 		unsigned short int c_join;
+		unsigned short int c_joinns;
 		unsigned short int c_left;
+		unsigned short int c_leftns;
 		unsigned short int c_tickuser;
 		unsigned short int c_post_raw_sub;
 		unsigned short int c_allocateuser;

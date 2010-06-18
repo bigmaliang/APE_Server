@@ -162,7 +162,8 @@ void join(USERS *user, CHANNEL *chan, acetables *g_ape)
 	RAW *newraw;
 	json_item *jlist;
 	CHANLIST *chanl;
-	
+
+	FIRE_EVENT_NONSTOP(joinns, user, chan, g_ape);
 	FIRE_EVENT_NULL(join, user, chan, g_ape);
 
 	bool alreadyon = false;
@@ -274,6 +275,7 @@ void left(USERS *user, CHANNEL *chan, acetables *g_ape) // Vider la liste chainé
 	RAW *newraw;
 	json_item *jlist;
 	
+	FIRE_EVENT_NONSTOP(leftns, user, chan, g_ape);
 	FIRE_EVENT_NULL(left, user, chan, g_ape);
 	
 	if (!isonchannel(user, chan)) {
