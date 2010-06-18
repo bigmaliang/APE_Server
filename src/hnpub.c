@@ -111,23 +111,26 @@ int anchor_cmp(void *a, void *b)
 /*
  * chat number
  */
-chatNum* chatnum_new(int fkq, int friend)
+chatNum* chatnum_new()
 {
-	chatNum *cnum = xmalloc(sizeof(*cnum));
-	
-	cnum->fkq = fkq;
-	cnum->friend = friend;
+	chatNum *r = xmalloc(sizeof(chatNum));
+	r->users = queue_new(0, free);
+	r->admins = queue_new(0, free);
 
-	return cnum;
+	return r;
 }
 
 void chatnum_free(void *p)
 {
 	chatNum *cnum = (chatNum*)p;
+
+	queue_destroy(cnum->users);
+	queue_destroy(cnum->admins);
 	
 	SFREE(cnum);
 }
 
+#if 0
 int hn_chatnum_fkq_cmp(void *a, void *b)
 {
 	HTBL_ITEM *sa, *sb;
@@ -153,3 +156,5 @@ int hn_chatnum_friend_cmp(void *a, void *b)
 
 	return cb->friend - ca->friend;
 }
+
+#endif

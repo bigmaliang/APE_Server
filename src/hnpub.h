@@ -6,6 +6,7 @@
 #include "raw.h"
 #include "extend.h"
 #include "channel.h"
+#include "queue.h"
 
 #define ANC_DFT_TITLE	"title"
 #define ANC_DFT_TARGET	"_blank"
@@ -17,8 +18,8 @@ typedef struct _anc {
 } anchor;
 
 typedef struct {
-	int friend;
-	int fkq;
+	Queue *users;
+	Queue *admins;
 } chatNum;
 
 void hn_senderr(callbackp *callbacki, char *code, char *msg);
@@ -32,10 +33,8 @@ anchor* anchor_new(const char *name, const char *href,
 void anchor_free(void *a);
 int anchor_cmp(void *a, void *b);
 
-chatNum* chatnum_new(int fkq, int friend);
+chatNum* chatnum_new();
 void chatnum_free(void *p);
-int hn_chatnum_friend_cmp(void *a, void *b);
-int hn_chatnum_fkq_cmp(void *a, void *b);
 
 #define SFREE(p)								\
 	do {										\
@@ -107,7 +106,7 @@ int hn_chatnum_fkq_cmp(void *a, void *b);
 	do {																\
 		if (get_property(g_ape->properties, "chatnum") == NULL) {		\
 			add_property(&g_ape->properties, "chatnum", hashtbl_init(), \
-						 queue_destroy, EXTEND_HTBL, EXTEND_ISPRIVATE);	\
+						 chatnum_free, EXTEND_HTBL, EXTEND_ISPRIVATE);	\
 		}																\
 	} while (0)
 #define GET_CHATNUM_TBL(ape)										\
