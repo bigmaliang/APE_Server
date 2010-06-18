@@ -203,6 +203,9 @@ QueueValue queue_peek_tail(Queue *queue);
 
 int queue_is_empty(Queue *queue);
 
+QueueEntry *queue_nth_entry(Queue *queue, int n);
+QueueValue queue_nth_data(Queue *queue, int n);
+
 /**
  * Find the postion of data
  *

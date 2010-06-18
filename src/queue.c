@@ -265,6 +265,38 @@ QueueValue queue_peek_tail(Queue *queue)
 	}
 }
 
+QueueEntry *queue_nth_entry(Queue *queue, int n)
+{
+	QueueEntry *entry;
+	int i;
+
+	if (n < 0) {
+		return NULL;
+	}
+
+	entry = queue->head;
+
+	for (i = 0; i < n; ++i) {
+		if (entry == NULL) {
+			return NULL;
+		}
+		entry = entry->next;
+	}
+
+	return entry;
+}
+
+QueueValue queue_nth_data(Queue *queue, int n)
+{
+	QueueEntry *entry = queue_nth_entry(queue, n);
+	
+	if (entry == NULL) {
+		return QUEUE_NULL;
+	} else {
+		return entry->data;
+	}
+}
+
 int queue_is_empty(Queue *queue)
 {
 	return queue->head == NULL;
