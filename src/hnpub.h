@@ -57,14 +57,14 @@ void chatnum_free(void *p);
 	(get_property(g_ape->properties, "userlist") != NULL ?			\
 	 (HTBL*)get_property(g_ape->properties, "userlist")->val: NULL)
 
-#define SET_USER_FOR_APE(ape, uin, user)								\
+#define SET_USER_FOR_APE(g_ape, uin, user)								\
 	do {																\
-		hashtbl_append(get_property(ape->properties, "userlist")->val,	\
+		hashtbl_append(get_property(g_ape->properties, "userlist")->val, \
 					   uin, user);										\
 	} while (0)
-#define GET_USER_FROM_APE(ape, uin)										\
-	(get_property(ape->properties, "userlist") != NULL ?				\
-	 hashtbl_seek(get_property(ape->properties, "userlist")->val, uin): NULL)
+#define GET_USER_FROM_APE(g_ape, uin)									\
+	(get_property(g_ape->properties, "userlist") != NULL ?				\
+	 (USERS*)hashtbl_seek(get_property(g_ape->properties, "userlist")->val, uin): NULL)
 
 
 

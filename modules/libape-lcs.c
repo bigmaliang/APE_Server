@@ -94,7 +94,7 @@ static chatNum* lcs_app_chatnum(callbackp *callbacki, char *aname)
 }
 
 static void lcs_app_onjoin(acetables *g_ape, char *aname, char *uname,
-						   bool admin)
+						   bool admin, CHANNEL *chan)
 {
 	HTBL *table = GET_CHATNUM_TBL(g_ape);
 	if (!table || !aname || !uname) return;
@@ -111,13 +111,25 @@ static void lcs_app_onjoin(acetables *g_ape, char *aname, char *uname,
 
 	if (admin) {
 		if (queue_find(c->admins, uname, hn_str_cmp) == -1) {
+			if (queue_is_empty(c->admins)) {
+				QueueEntry *qe;
+				char *uname;
+				USERS *user;
+				queue_iterate(c->users, qe) {
+					uname = (char*)qe->data;
+					if ((user = GET_USER_FROM_APE(g_ape, uname)) != NULL &&
+						!GET_USER_ADMIN(user)) {
+						join(user, chan, g_ape);
+					}
+				}
+			}
 			queue_push_head(c->admins, strdup(uname));
 		}
 	}
 }
 
 static void lcs_app_onleft(acetables *g_ape, char *aname, char *uname,
-						   bool admin)
+						   bool admin, CHANNEL *chan)
 {
 	HTBL *table = GET_CHATNUM_TBL(g_ape);
 	if (!table || !aname || !uname) return;
@@ -132,6 +144,7 @@ static void lcs_app_onleft(acetables *g_ape, char *aname, char *uname,
 
 	if (admin) {
 		queue_remove_entry(c->admins, uname, hn_str_cmp);
+		/* TODO join my users to another admin */
 	}
 }
 
@@ -139,6 +152,7 @@ static CHANNEL* lcs_app_get_adminchan(callbackp *callbacki, char *aname)
 {
 	if (!aname) return NULL;
 
+	CHANNEL *chan;
 	chatNum *c = lcs_app_chatnum(callbacki, aname);
 	if (!c) goto nobody;
 
@@ -151,7 +165,7 @@ static CHANNEL* lcs_app_get_adminchan(callbackp *callbacki, char *aname)
 	return getchanf(callbacki->g_ape, LCS_PIP_NAME"%s", admin);
 
 nobody:
-	CHANNEL *chan = mkchanf(callbacki->g_ape,
+	chan = mkchanf(callbacki->g_ape,
 							CHANNEL_AUTODESTROY, LCS_PIP_NAME"%s", aname);
 	if (!chan) return NULL;
 	
@@ -612,7 +626,7 @@ static void lcs_event_onjoin(USERS *user, CHANNEL *chan, acetables *g_ape)
 	bool admin = false;
 	if (GET_USER_ADMIN(user)) admin = true;
 	
-	lcs_app_onjoin(g_ape, aname, uname, admin);
+	lcs_app_onjoin(g_ape, aname, uname, admin, chan);
 }
 
 static void lcs_event_onleft(USERS *user, CHANNEL *chan, acetables *g_ape)
@@ -627,7 +641,7 @@ static void lcs_event_onleft(USERS *user, CHANNEL *chan, acetables *g_ape)
 	bool admin = false;
 	if (GET_USER_ADMIN(user)) admin = true;
 	
-	lcs_app_onleft(g_ape, aname, uname, admin);
+	lcs_app_onleft(g_ape, aname, uname, admin, chan);
 }
 
 static void init_module(acetables *g_ape)
