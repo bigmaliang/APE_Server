@@ -554,10 +554,10 @@ unsigned int cmd_raw_recently(callbackp *callbacki)
 	if (type == RRC_TYPE_MIXED) {
 		if (strcmp(otheruin, "0")) {
 			post_raw_sub_recently_byme(callbacki->g_ape,
-									   sub, NULL, uin);
+									   sub, otheruin, uin);
 		} else {
 			post_raw_sub_recently_byme(callbacki->g_ape,
-									   sub, otheruin, uin);
+									   sub, NULL, uin);
 		}
 	} else {
 		post_raw_sub_recently(callbacki->g_ape, sub, uin);

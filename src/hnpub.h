@@ -6,7 +6,6 @@
 #include "raw.h"
 #include "extend.h"
 #include "channel.h"
-#include "queue.h"
 
 #define ANC_DFT_TITLE	"title"
 #define ANC_DFT_TARGET	"_blank"
@@ -16,11 +15,6 @@ typedef struct _anc {
 	char *title;
 	char *target;
 } anchor;
-
-typedef struct {
-	Queue *users;
-	Queue *admins;
-} chatNum;
 
 void hn_senderr(callbackp *callbacki, char *code, char *msg);
 void hn_senderr_sub(callbackp *callbacki, char *code, char *msg);
@@ -32,9 +26,6 @@ anchor* anchor_new(const char *name, const char *href,
 				   const char *title, const char *target);
 void anchor_free(void *a);
 int anchor_cmp(void *a, void *b);
-
-chatNum* chatnum_new();
-void chatnum_free(void *p);
 
 #define SFREE(p)								\
 	do {										\
@@ -95,23 +86,6 @@ void chatnum_free(void *p);
 	do {																\
 		hashtbl_erase(get_property(ape->properties, "onlineuser")->val, uin); \
 	} while (0)
-
-
-
-
-/*
- * CHATNUM TABLE a appid => chatnum table where chatnum > 1
- */
-#define MAKE_CHATNUM_TBL(g_ape)											\
-	do {																\
-		if (get_property(g_ape->properties, "chatnum") == NULL) {		\
-			add_property(&g_ape->properties, "chatnum", hashtbl_init(), \
-						 chatnum_free, EXTEND_HTBL, EXTEND_ISPRIVATE);	\
-		}																\
-	} while (0)
-#define GET_CHATNUM_TBL(ape)										\
-	(get_property(ape->properties, "chatnum") != NULL ?				\
-	 (HTBL*)get_property(ape->properties, "chatnum")->val: NULL)
 
 
 

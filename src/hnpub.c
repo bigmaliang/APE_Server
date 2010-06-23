@@ -108,28 +108,6 @@ int anchor_cmp(void *a, void *b)
 	return strcmp(anca->href, ancb->href);
 }
 
-/*
- * chat number
- */
-chatNum* chatnum_new()
-{
-	chatNum *r = xmalloc(sizeof(chatNum));
-	r->users = queue_new(0, free);
-	r->admins = queue_new(0, free);
-
-	return r;
-}
-
-void chatnum_free(void *p)
-{
-	chatNum *cnum = (chatNum*)p;
-
-	queue_destroy(cnum->users);
-	queue_destroy(cnum->admins);
-	
-	SFREE(cnum);
-}
-
 #if 0
 int hn_chatnum_fkq_cmp(void *a, void *b)
 {
