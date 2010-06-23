@@ -15,6 +15,37 @@ typedef struct {
 	unsigned long num_user;
 } stLcs;
 
+typedef struct {
+	Queue *users;
+	Queue *admins;
+	Queue *dirtyusers;
+} appBar;
+
+appBar* abar_new();
+void abar_free(void *p);
+
+
+
+/*
+ * appBar table
+ */
+#define MAKE_ABAR_TBL(g_ape)											\
+	do {																\
+		if (get_property(g_ape->properties, "abar") == NULL) {			\
+			add_property(&g_ape->properties, "abar", hashtbl_init(),	\
+						 abar_free, EXTEND_HTBL, EXTEND_ISPRIVATE);		\
+		}																\
+	} while (0)
+#define GET_ABAR_TBL(ape)										\
+	(get_property(ape->properties, "abar") != NULL ?			\
+	 (HTBL*)get_property(ape->properties, "abar")->val: NULL)
+
+
+
+
+/*
+ * STATISTIC
+ */
 #define MAKE_LCS_STAT(g_ape, p)										\
 	do {															\
 		if (get_property(g_ape->properties, "lcsstatic") == NULL) {	\

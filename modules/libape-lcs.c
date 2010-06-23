@@ -22,6 +22,27 @@ static ace_plugin_infos infos_module = {
 /*
  * file range 
  */
+appBar* abar_new()
+{
+	appBar *r = xmalloc(sizeof(appBar));
+	r->users = queue_new(0, free);
+	r->admins = queue_new(0, free);
+	r->dirtyusers = queue_new(0, free);
+
+	return r;
+}
+
+void abar_free(void *p)
+{
+	appBar *cnum = (appBar*)p;
+
+	queue_destroy(cnum->users);
+	queue_destroy(cnum->admins);
+	queue_destroy(cnum->dirtyusers);
+	
+	SFREE(cnum);
+}
+
 static void lcs_event_init(acetables *g_ape)
 {
 	MAKE_EVENT_TBL(g_ape);
@@ -85,23 +106,23 @@ static bool lcs_user_appjoined(USERS *user, char *aname)
 	return false;
 }
 
-static chatNum* lcs_app_chatnum(callbackp *callbacki, char *aname)
+static appBar* lcs_app_bar(callbackp *callbacki, char *aname)
 {
-	HTBL *table = GET_CHATNUM_TBL(callbacki->g_ape);
+	HTBL *table = GET_ABAR_TBL(callbacki->g_ape);
 	if (!table || !aname) return NULL;
 
-	return (chatNum*)hashtbl_seek(table, aname);
+	return (appBar*)hashtbl_seek(table, aname);
 }
 
 static void lcs_app_onjoin(acetables *g_ape, char *aname, char *uname,
 						   bool admin, CHANNEL *chan)
 {
-	HTBL *table = GET_CHATNUM_TBL(g_ape);
+	HTBL *table = GET_ABAR_TBL(g_ape);
 	if (!table || !aname || !uname) return;
 
-	chatNum *c = (chatNum*)hashtbl_seek(table, aname);
+	appBar *c = (appBar*)hashtbl_seek(table, aname);
 	if (!c) {
-		c = chatnum_new();
+		c = abar_new();
 		hashtbl_append(table, aname, c);
 	}
 
@@ -131,12 +152,12 @@ static void lcs_app_onjoin(acetables *g_ape, char *aname, char *uname,
 static void lcs_app_onleft(acetables *g_ape, char *aname, char *uname,
 						   bool admin, CHANNEL *chan)
 {
-	HTBL *table = GET_CHATNUM_TBL(g_ape);
+	HTBL *table = GET_ABAR_TBL(g_ape);
 	if (!table || !aname || !uname) return;
 
-	chatNum *c = (chatNum*)hashtbl_seek(table, aname);
+	appBar *c = (appBar*)hashtbl_seek(table, aname);
 	if (!c) {
-		c = chatnum_new();
+		c = abar_new();
 		hashtbl_append(table, aname, c);
 	}
 
@@ -153,7 +174,7 @@ static CHANNEL* lcs_app_get_adminchan(callbackp *callbacki, char *aname)
 	if (!aname) return NULL;
 
 	CHANNEL *chan;
-	chatNum *c = lcs_app_chatnum(callbacki, aname);
+	appBar *c = lcs_app_bar(callbacki, aname);
 	if (!c) goto nobody;
 
 	int max = queue_length(c->admins);
@@ -166,7 +187,7 @@ static CHANNEL* lcs_app_get_adminchan(callbackp *callbacki, char *aname)
 
 nobody:
 	chan = mkchanf(callbacki->g_ape,
-							CHANNEL_AUTODESTROY, LCS_PIP_NAME"%s", aname);
+				   CHANNEL_AUTODESTROY, LCS_PIP_NAME"%s", aname);
 	if (!chan) return NULL;
 	
 	ADD_ANAME_FOR_CHANNEL(chan, aname);
@@ -207,7 +228,7 @@ static int lcs_user_join_get(callbackp *callbacki, char *uname, char *aname, cha
 	while (node) {
 		s = hdf_get_value(node, "oname", "");
 		if (strcmp(s, "")) {
-			*oname = s;
+			*oname = strdup(s);
 			return 0;
 		}
 		node = hdf_obj_next(node);
@@ -218,7 +239,7 @@ static int lcs_user_join_get(callbackp *callbacki, char *uname, char *aname, cha
 
 static unsigned int lcs_user_join_set(callbackp *callbacki, char *aname,
 									  char *uname, char *oname,
-									  char *url, char *title, int retcode)
+									  char *url, char *title, char *ref, int retcode)
 {
 	HTBL *etbl = GET_EVENT_TBL(callbacki->g_ape);
 	mevent_t *evt = (mevent_t*)hashtbl_seek(etbl, "dyn");
@@ -226,21 +247,11 @@ static unsigned int lcs_user_join_set(callbackp *callbacki, char *aname,
 	
 	if (!callbacki || !aname || !uname) return 0;
 
-	char *refer = "";
-	struct _http_header_line *hl = callbacki->hlines;
-	while (hl) {
-		if (!strcasecmp(hl->key.val, "refer")) {
-			refer = hl->value.val;
-			break;
-		}
-		hl = hl->next;
-	}
-
 	hdf_set_value(evt->hdfsnd, "uname", uname);
 	hdf_set_value(evt->hdfsnd, "aname", aname);
 	hdf_set_value(evt->hdfsnd, "oname", oname);
 	hdf_set_value(evt->hdfsnd, "ip", callbacki->ip);
-	hdf_set_value(evt->hdfsnd, "refer", refer);
+	hdf_set_value(evt->hdfsnd, "refer", ref ? ref : "");
 	hdf_set_value(evt->hdfsnd, "url", url);
 	hdf_set_value(evt->hdfsnd, "title", title);
 
@@ -266,6 +277,45 @@ static void lcs_user_remember_me(callbackp *callbacki, char *uname, char *aname)
 	if (PROCESS_NOK(mevent_trigger(evt, uname, REQ_CMD_USERJOIN, FLAGS_NONE))) {
 		alog_err("remember %s %s failure %d", uname, aname, evt->errcode);
 	}
+}
+
+static void lcs_user_action_notice(callbackp *callbacki, char *uname, char *aname,
+								   char *action, char *url, char *title, char *ref)
+{
+	if (!uname || !aname || !action) return;
+
+	json_item *jcopy, *jlist;
+	RAW *newraw;
+	USERS *auser;
+	
+	auser = GET_USER_FROM_APE(callbacki->g_ape, aname);
+	
+	/*
+	 * send visit to admin
+	 */
+	jlist = json_new_object();
+	json_set_property_strZ(jlist, "type", action);
+	json_set_property_strZ(jlist, "url", url ? url: "");
+	json_set_property_strZ(jlist, "title", title ? title: "");
+	json_set_property_strZ(jlist, "ref", ref ? ref: "");
+	json_set_property_strZ(jlist, "ip", callbacki->ip);
+	json_set_property_objZ(jlist, "from", get_json_object_user(callbacki->call_user));
+	//json_set_property_objZ(jlist, "to", get_json_object(auser));
+	json_set_property_strZ(jlist, "to_uin", aname);
+	jcopy = json_item_copy(jlist, NULL);
+	
+	newraw = forge_raw(RAW_LCSDATA, jlist);
+	if (auser) {
+		post_raw(newraw, auser, callbacki->g_ape);
+	}
+	POSTRAW_DONE(newraw);
+	
+	/*
+	 * push raw history
+	 */
+	newraw = forge_raw("RAW_RECENTLY", jcopy);
+	push_raw_recently_byme(callbacki->g_ape, newraw, uname, aname);
+	POSTRAW_DONE(newraw);
 }
 
 static bool lcs_check_login(callbackp *callbacki, char *aname, char *masn)
@@ -329,7 +379,7 @@ static unsigned int lcs_join(callbackp *callbacki)
 	char *uname, *aname;
 	int utime;
 	unsigned int jid;
-	chatNum *chatnum;
+	appBar *abar;
 	
 	USERS *user = callbacki->call_user;
 	CHANNEL *chan;
@@ -337,9 +387,17 @@ static unsigned int lcs_join(callbackp *callbacki)
 	int olnum = 0, errcode = 0, ret;
 	stLcs *st = GET_LCS_STAT(callbacki->g_ape);
 
-	char *oname = NULL, *url, *title;
+	char *oname = NULL, *url, *title, *ref = NULL;
 	char tok[128];
 
+	struct _http_header_line *hl = callbacki->hlines;
+	while (hl) {
+		if (!strcasecmp(hl->key.val, "refer")) {
+			ref = hl->value.val;
+			break;
+		}
+		hl = hl->next;
+	}
 	JNEED_STR(callbacki->param, "aname", aname, RETURN_BAD_PARAMS);
 	JNEED_INT(callbacki->param, "utime", utime, RETURN_BAD_PARAMS);
 	JNEED_STR(callbacki->param, "url", url, RETURN_BAD_PARAMS);
@@ -364,9 +422,9 @@ static unsigned int lcs_join(callbackp *callbacki)
 		goto done;
 	}
 
-	chatnum = lcs_app_chatnum(callbacki, aname);
-	if (chatnum) {
-		olnum = queue_length(chatnum->users);
+	abar = lcs_app_bar(callbacki, aname);
+	if (abar) {
+		olnum = queue_length(abar->users);
 	}
 	
 	ret = lcs_service_state(callbacki, aname);
@@ -424,7 +482,7 @@ done:
 	/*
 	 * user joined my site.
 	 */
-	jid = lcs_user_join_set(callbacki, aname, uname, oname, url, title, errcode);
+	jid = lcs_user_join_set(callbacki, aname, uname, oname, url, title, ref, errcode);
 	sprintf(tok, "%u", jid);
 	ADD_JID_FOR_USER(user, tok);
 
@@ -436,12 +494,17 @@ done:
 		lcs_user_remember_me(callbacki, uname, oname ? oname: aname);
 	}
 
+	lcs_user_action_notice(callbacki, uname, oname ? oname: aname,
+						   "join", url, title, ref);
+
+	SFREE(oname);
+	
 	return (RETURN_NOTHING);
 }
 
 static unsigned int lcs_visit(callbackp *callbacki)
 {
-	char *url, *title;
+	char *aname, *url, *title;
 	unsigned int jid;
 	
 	mevent_t *evt = (mevent_t*)hashtbl_seek(GET_EVENT_TBL(callbacki->g_ape), "dyn");
@@ -450,6 +513,7 @@ static unsigned int lcs_visit(callbackp *callbacki)
 	JNEED_UINT(callbacki->param, "jid", jid, RETURN_BAD_PARAMS);
 	JNEED_STR(callbacki->param, "url", url, RETURN_BAD_PARAMS);
 	JNEED_STR(callbacki->param, "title", title, RETURN_BAD_PARAMS);
+	JNEED_STR(callbacki->param, "aname", aname, RETURN_BAD_PARAMS);
 
 	hdf_set_int_value(evt->hdfsnd, "jid", jid);
 	hdf_set_value(evt->hdfsnd, "url", url);
@@ -458,6 +522,9 @@ static unsigned int lcs_visit(callbackp *callbacki)
 	if (PROCESS_NOK(mevent_trigger(evt, NULL, REQ_CMD_VISITSET, FLAGS_NONE))) {
 		alog_err("report visit failure %d", evt->errcode);
 	}
+
+	lcs_user_action_notice(callbacki, GET_UIN_FROM_USER(callbacki->call_user), aname,
+						   "visit", url, title, NULL);
 	
 	return (RETURN_NOTHING);
 }
@@ -465,15 +532,17 @@ static unsigned int lcs_visit(callbackp *callbacki)
 static unsigned int lcs_send(callbackp *callbacki)
 {
 	char *pipe, *msg, *uname = NULL;
-	USERS *user;
+	USERS *user = callbacki->call_user;;
 	json_item *jlist;
 	RAW *newraw;
+	char *from = GET_UIN_FROM_USER(user);
 
 	JNEED_STR(callbacki->param, "pipe", pipe, RETURN_BAD_PARAMS);
 	JNEED_STR(callbacki->param, "msg", msg, RETURN_BAD_PARAMS);
 
 	jlist = json_new_object();
 	json_set_property_strZ(jlist, "msg", msg);
+	json_set_property_strZ(jlist, "type", "send");
 	
 	transpipe *spipe = get_pipe(pipe, callbacki->g_ape);
 	if (spipe && spipe->type == USER_PIPE) {
@@ -484,11 +553,25 @@ static unsigned int lcs_send(callbackp *callbacki)
 								 callbacki->call_subuser, callbacki->g_ape, true);
 			
 			newraw = forge_raw("RAW_RECENTLY", jlist);
-			push_raw_recently(callbacki->g_ape, newraw, uname);
+			push_raw_recently_byme(callbacki->g_ape, newraw, from, uname);
 			POSTRAW_DONE(newraw);
 		} else {
 			alog_err("get uname failure");
 			hn_senderr_sub(callbacki, "120", "ERR_UNAME_NEXIST");
+		}
+	} else if (spipe && spipe->type == CHANNEL_PIPE) {
+		CHANNEL *chan = (CHANNEL*)spipe->pipe;
+		char *uname = GET_ANAME_FROM_CHANNEL(chan);
+		if (uname && !strcmp(uname, from)) {
+			jlist = post_to_pipe(jlist, RAW_LCSDATA, pipe,
+								 callbacki->call_subuser, callbacki->g_ape, true);
+			
+			newraw = forge_raw("RAW_RECENTLY", jlist);
+			push_raw_recently(callbacki->g_ape, newraw, uname);
+			POSTRAW_DONE(newraw);
+		} else {
+			alog_warn("%s wan't talk to %s", from, uname);
+			hn_senderr_sub(callbacki, "122", "ERR_NOT_OWNER");
 		}
 	} else {
 		alog_err("get pipe failure");
@@ -503,16 +586,26 @@ static unsigned int lcs_msg(callbackp *callbacki)
 	char *uname, *msg;
 	json_item *jlist;
 	RAW *newraw;
+	USERS *user = callbacki->call_user;
+	char *from = GET_UIN_FROM_USER(user);
 
 	JNEED_STR(callbacki->param, "uname", uname, RETURN_BAD_PARAMS);
 	JNEED_STR(callbacki->param, "msg", msg, RETURN_BAD_PARAMS);
 
 	jlist = json_new_object();
+	json_set_property_strZ(jlist, "type", "msg");
 	json_set_property_strZ(jlist, "msg", msg);
-	newraw = forge_raw("RAW_MSG", jlist);
+	json_set_property_objZ(jlist, "from", get_json_object_user(user));
+	json_set_property_strZ(jlist, "to_uin", uname);
+	newraw = forge_raw("RAW_RECENTLY", jlist);
 
-	push_raw_recently(callbacki->g_ape, newraw, uname);
+	push_raw_recently_byme(callbacki->g_ape, newraw, from, uname);
 	POSTRAW_DONE(newraw);
+
+	appBar *c = lcs_app_bar(callbacki, uname);
+	if (c && queue_find(c->dirtyusers, uname, hn_str_cmp) == -1) {
+		queue_push_head(c->users, strdup(from));
+	}
 
 	return (RETURN_NOTHING);
 }
@@ -572,9 +665,9 @@ static unsigned int lcs_joinb(callbackp *callbacki)
 		goto done;
 	}
 	
-	chatNum *chatnum = lcs_app_chatnum(callbacki, aname);
-	if (chatnum) {
-		olnum = queue_length(chatnum->users);
+	appBar *abar = lcs_app_bar(callbacki, aname);
+	if (abar) {
+		olnum = queue_length(abar->users);
 	}
 
 	ret = hdf_get_int_value(apphdf, "state", LCS_ST_STRANGER);
@@ -614,6 +707,46 @@ done:
 	return (RETURN_NOTHING);
 }
 
+static unsigned int lcs_dearusers(callbackp *callbacki)
+{
+	char *uname = GET_UIN_FROM_USER(callbacki->call_user);
+	json_item *jdear, *jdlist = json_new_array();
+
+	appBar *c = lcs_app_bar(callbacki, uname);
+	if (c && !queue_is_empty(c->dirtyusers)) {
+		QueueEntry *qe;
+		queue_iterate(c->dirtyusers, qe) {
+			uname = (char*)qe->data;
+			jdear = json_new_object();
+			json_set_property_intZ(jdear, uname, 1);
+			json_set_element_obj(jdlist, jdear);
+		}
+	}
+	
+	RAW *newraw = forge_raw("LCS_DEARUSERS", jdlist);
+	post_raw_sub(newraw, callbacki->call_subuser, callbacki->g_ape);
+	POSTRAW_DONE(newraw);
+
+	return (RETURN_NOTHING);
+}
+
+static unsigned int lcs_recently(callbackp *callbacki)
+{
+	char *uname = GET_UIN_FROM_USER(callbacki->call_user);
+	char *otheruin;
+	int type;
+
+	JNEED_STR(callbacki->param, "uin", otheruin, RETURN_BAD_PARAMS);
+	JNEED_INT(callbacki->param, "type", type, RETURN_BAD_PARAMS);
+	
+	appBar *c = lcs_app_bar(callbacki, uname);
+	if (c && type == RRC_TYPE_MIXED) {
+		queue_remove_entry(c->dirtyusers, otheruin, hn_str_cmp);
+	}
+
+	return cmd_raw_recently(callbacki);
+}
+
 static void lcs_event_onjoin(USERS *user, CHANNEL *chan, acetables *g_ape)
 {
 	if (!user || !chan) return;
@@ -651,7 +784,7 @@ static void init_module(acetables *g_ape)
 	 */
 	MAKE_USER_TBL(g_ape);		/* erased in deluser() */
 	MAKE_ONLINE_TBL(g_ape);		/* erased in deluser() */
-	MAKE_CHATNUM_TBL(g_ape);
+	MAKE_ABAR_TBL(g_ape);
 	MAKE_LCS_STAT(g_ape, calloc(1, sizeof(stLcs)));
 	lcs_event_init(g_ape);
     add_periodical((1000*60*30), 0, tick_static, g_ape, g_ape);
@@ -660,6 +793,8 @@ static void init_module(acetables *g_ape)
 	register_cmd("LCS_VISIT", 		lcs_visit, 		NEED_SESSID, g_ape);
 	register_cmd("LCS_SEND", 		lcs_send, 		NEED_SESSID, g_ape);
 	register_cmd("LCS_MSG", 		lcs_msg, 		NEED_SESSID, g_ape);
+	register_cmd("LCS_DEARUSERS",	lcs_dearusers,	NEED_SESSID, g_ape);
+	register_cmd("LCS_RECENTLY",	lcs_recently,	NEED_SESSID, g_ape);
 
 	register_cmd("LCS_JOINB", 		lcs_joinb, 		NEED_SESSID, g_ape);
 	//register_cmd("LCS_JOIN_A", 		lcs_join_a,		NEED_SESSID, g_ape);
