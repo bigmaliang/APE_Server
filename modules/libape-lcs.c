@@ -639,12 +639,14 @@ static unsigned int lcs_joinb(callbackp *callbacki)
 	if (!apphdf) {
 		alog_warn("%s info failure", aname);
 		hn_senderr_sub(callbacki, "210", "ERR_APP_INFO");
+		hdf_destroy(&apphdf);
 		return (RETURN_NOTHING);
 	}
 	
 	if (strcmp(hdf_get_value(apphdf, "masn", "NULL"), masn)) {
 		alog_warn("%s attemp illgal login", aname);
 		hn_senderr_sub(callbacki, "211", "ERR_APP_LOGIN");
+		hdf_destroy(&apphdf);
 		return (RETURN_NOTHING);
 	}
 
@@ -655,6 +657,7 @@ static unsigned int lcs_joinb(callbackp *callbacki)
 		if (!chan) {
 			alog_err("make channel %s failure", aname);
 			hn_senderr_sub(callbacki, "007", "ERR_MAKE_CHANNEL");
+			hdf_destroy(&apphdf);
 			return (RETURN_NOTHING);
 		}
 		char *pname = hdf_get_value(apphdf, "pname", aname);
@@ -704,6 +707,7 @@ done:
 		hn_senderr_sub(callbacki, errstr, "ERR_APP_NPASS");
 	}
 	
+	hdf_destroy(&apphdf);
 	return (RETURN_NOTHING);
 }
 
