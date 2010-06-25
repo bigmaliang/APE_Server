@@ -186,12 +186,16 @@ static CHANNEL* lcs_app_get_adminchan(callbackp *callbacki, char *aname)
 	return getchanf(callbacki->g_ape, LCS_PIP_NAME"%s", admin);
 
 nobody:
-	chan = mkchanf(callbacki->g_ape,
-				   CHANNEL_AUTODESTROY, LCS_PIP_NAME"%s", aname);
-	if (!chan) return NULL;
+	chan = getchanf(callbacki->g_ape, LCS_PIP_NAME"%s", aname);
+	if (!chan) {
+		chan = mkchanf(callbacki->g_ape,
+					   CHANNEL_AUTODESTROY, LCS_PIP_NAME"%s", aname);
+		if (chan) {
+			ADD_ANAME_FOR_CHANNEL(chan, aname);
+			ADD_PNAME_FOR_CHANNEL(chan, aname);
+		}
+	}
 	
-	ADD_ANAME_FOR_CHANNEL(chan, aname);
-	ADD_PNAME_FOR_CHANNEL(chan, aname);
 	return chan;
 }
 
@@ -279,16 +283,15 @@ static void lcs_user_remember_me(callbackp *callbacki, char *uname, char *aname)
 	}
 }
 
-static void lcs_user_action_notice(callbackp *callbacki, char *uname, char *aname,
-								   char *action, char *url, char *title, char *ref)
+static void lcs_user_action_notice(acetables *g_ape, USERS *user, char *aname,
+								   char *action, char *url, char *title,
+								   char *ref, char *ip)
 {
-	if (!uname || !aname || !action) return;
+	if (!user || !aname || !action) return;
 
 	json_item *jcopy, *jlist;
 	RAW *newraw;
-	USERS *auser;
-	
-	auser = GET_USER_FROM_APE(callbacki->g_ape, aname);
+	USERS *auser = GET_USER_FROM_APE(g_ape, aname);
 	
 	/*
 	 * send visit to admin
@@ -298,15 +301,15 @@ static void lcs_user_action_notice(callbackp *callbacki, char *uname, char *anam
 	json_set_property_strZ(jlist, "url", url ? url: "");
 	json_set_property_strZ(jlist, "title", title ? title: "");
 	json_set_property_strZ(jlist, "ref", ref ? ref: "");
-	json_set_property_strZ(jlist, "ip", callbacki->ip);
-	json_set_property_objZ(jlist, "from", get_json_object_user(callbacki->call_user));
+	json_set_property_strZ(jlist, "ip", ip ? ip: "");
+	json_set_property_objZ(jlist, "from", get_json_object_user(user));
 	//json_set_property_objZ(jlist, "to", get_json_object(auser));
 	json_set_property_strZ(jlist, "to_uin", aname);
 	jcopy = json_item_copy(jlist, NULL);
 	
 	newraw = forge_raw(RAW_LCSDATA, jlist);
 	if (auser) {
-		post_raw(newraw, auser, callbacki->g_ape);
+		post_raw(newraw, auser, g_ape);
 	}
 	POSTRAW_DONE(newraw);
 	
@@ -314,7 +317,7 @@ static void lcs_user_action_notice(callbackp *callbacki, char *uname, char *anam
 	 * push raw history
 	 */
 	newraw = forge_raw("RAW_RECENTLY", jcopy);
-	push_raw_recently_byme(callbacki->g_ape, newraw, uname, aname);
+	push_raw_recently_byme(g_ape, newraw, GET_UIN_FROM_USER(user), aname);
 	POSTRAW_DONE(newraw);
 }
 
@@ -389,6 +392,8 @@ static unsigned int lcs_join(callbackp *callbacki)
 
 	char *oname = NULL, *url, *title, *ref = NULL;
 	char tok[128];
+
+	bool oname_needfree = true;
 
 	struct _http_header_line *hl = callbacki->hlines;
 	while (hl) {
@@ -466,7 +471,9 @@ static unsigned int lcs_join(callbackp *callbacki)
 	chan = lcs_app_get_adminchan(callbacki, aname);
 	if (chan) {
 		join(user, chan, callbacki->g_ape);
+		SFREE(oname);
 		oname = GET_ANAME_FROM_CHANNEL(chan);
+		oname_needfree = false;
 	} else {
 		/* no admin on, and make aname_channel failure */
 		errcode = 7;
@@ -494,10 +501,12 @@ done:
 		lcs_user_remember_me(callbacki, uname, oname ? oname: aname);
 	}
 
-	lcs_user_action_notice(callbacki, uname, oname ? oname: aname,
-						   "join", url, title, ref);
+	lcs_user_action_notice(callbacki->g_ape, callbacki->call_user,
+						   oname ? oname: aname,
+						   "join", url, title, ref, (char*)callbacki->ip);
 
-	SFREE(oname);
+	if (oname_needfree) SFREE(oname);
+
 	
 	return (RETURN_NOTHING);
 }
@@ -523,8 +532,8 @@ static unsigned int lcs_visit(callbackp *callbacki)
 		alog_err("report visit failure %d", evt->errcode);
 	}
 
-	lcs_user_action_notice(callbacki, GET_UIN_FROM_USER(callbacki->call_user), aname,
-						   "visit", url, title, NULL);
+	lcs_user_action_notice(callbacki->g_ape, callbacki->call_user, aname,
+						   "visit", url, title, NULL, (char*)callbacki->ip);
 	
 	return (RETURN_NOTHING);
 }
@@ -770,7 +779,7 @@ static void lcs_event_onleft(USERS *user, CHANNEL *chan, acetables *g_ape)
 {
 	if (!user || !chan) return;
 
-	if (strncmp(chan->name, LCS_PIP_NAME, strlen(LCS_PIP_NAME))) return;
+	if (strncasecmp(chan->name, LCS_PIP_NAME, strlen(LCS_PIP_NAME))) return;
 
 	char *aname = GET_PNAME_FROM_CHANNEL(chan);
 	char *uname = GET_UIN_FROM_USER(user);
@@ -779,6 +788,14 @@ static void lcs_event_onleft(USERS *user, CHANNEL *chan, acetables *g_ape)
 	if (GET_USER_ADMIN(user)) admin = true;
 	
 	lcs_app_onleft(g_ape, aname, uname, admin, chan);
+
+	/*
+	 * this can be done in userLeft JSF event
+	 * but, for history raw, do this way.
+	 */
+	if (!admin) {
+		lcs_user_action_notice(g_ape, user, aname, "left", NULL, NULL, NULL, NULL);
+	}
 }
 
 static void init_module(acetables *g_ape)
