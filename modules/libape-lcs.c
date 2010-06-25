@@ -86,20 +86,19 @@ static bool lcs_user_appjoined(USERS *user, char *aname)
 {
 	CHANLIST *clist;
 	CHANNEL *chan;
-	char tok[MAX_CHAN_LEN];
-	int toklen;
-	
+	char *aname_c;
 
 	if (!user || aname) return false;
-
-	snprintf(tok, sizeof(tok), LCS_PIP_NAME"%s", aname);
-	toklen = strlen(tok);
 
 	clist = user->chan_foot;
 
 	while (clist != NULL) {
 		chan = clist->chaninfo;
-		if (chan && !strncmp(chan->name, tok, toklen)) return true;
+		if (chan) {
+			aname_c = GET_PNAME_FROM_CHANNEL(chan);
+			if (aname_c && !strcmp(aname_c, aname))
+				return true;
+		}
 		clist = clist->next;
 	}
 
@@ -613,7 +612,7 @@ static unsigned int lcs_msg(callbackp *callbacki)
 
 	appBar *c = lcs_app_bar(callbacki, uname);
 	if (c && queue_find(c->dirtyusers, uname, hn_str_cmp) == -1) {
-		queue_push_head(c->users, strdup(from));
+		queue_push_head(c->dirtyusers, strdup(from));
 	}
 
 	return (RETURN_NOTHING);
@@ -764,7 +763,7 @@ static void lcs_event_onjoin(USERS *user, CHANNEL *chan, acetables *g_ape)
 {
 	if (!user || !chan) return;
 
-	if (strncmp(chan->name, LCS_PIP_NAME, strlen(LCS_PIP_NAME))) return;
+	if (strncasecmp(chan->name, LCS_PIP_NAME, strlen(LCS_PIP_NAME))) return;
 
 	char *aname = GET_PNAME_FROM_CHANNEL(chan);
 	char *uname = GET_UIN_FROM_USER(user);
