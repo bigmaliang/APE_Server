@@ -54,6 +54,16 @@ static void ape_disconnect(ape_socket *co, acetables *g_ape)
 		
 		if (co->fd == ((subuser *)(co->attach))->client->fd) {
 
+			if (((subuser *)(co->attach))->state == ALIVE) {
+				/*
+				 * user left or refreshed this page, so, del this subuser
+				 * (
+				 * following subuser request should have a increased host,
+				 * don't need reuse this subuser. so, don't wait them USRLEFT_SEC
+				 * )
+				 */
+				((subuser*)(co->attach))->idle = 0;
+			}
 			((subuser *)(co->attach))->headers.sent = 0;
 			((subuser *)(co->attach))->state = ADIED;
 			http_headers_free(((subuser *)(co->attach))->headers.content);

@@ -580,8 +580,10 @@ subuser *getsubuser(USERS *user, const char *channel)
 
 void delsubuser(subuser **current, acetables *g_ape)
 {
-	subuser *del = *current;
 	
+	subuser *del = *current;
+	USERS *user = (*current)->user;
+
 	FIRE_EVENT_NONSTOP(delsubuser, del, g_ape);
 	((*current)->user->nsub)--;
 	
@@ -602,7 +604,13 @@ void delsubuser(subuser **current, acetables *g_ape)
 	} else {
 		free(del);
 	}
-	
+
+	/*
+	 * If this is the last subuser, del the user 
+	 */
+	if (user->nsub <= 0) {
+		user->idle = time(NULL) - (TIMEOUT_SEC - USRLEFT_SEC);
+	}
 }
 
 void clear_subusers(USERS *user, acetables *g_ape)

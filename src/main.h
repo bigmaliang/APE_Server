@@ -43,6 +43,7 @@
 #define MAX_RAW_LEN 	1024
 
 #define TIMEOUT_SEC 45
+#define USRLEFT_SEC 5
 
 #define SERVER_NAME "APE.Server"
 #define _VERSION "1.01dev"
