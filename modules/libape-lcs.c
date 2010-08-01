@@ -77,7 +77,9 @@ static HDF* lcs_app_info(callbackp *callbacki, char *aname)
 
 	HDF *hdf;
 	hdf_init(&hdf);
-	hdf_copy(hdf, NULL, evt->hdfrcv);
+	if (evt->hdfrcv) {
+		hdf_copy(hdf, NULL, evt->hdfrcv);
+	}
 
 	return hdf;
 }
