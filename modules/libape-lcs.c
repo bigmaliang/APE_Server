@@ -107,9 +107,9 @@ static bool lcs_user_appjoined(USERS *user, char *aname)
 	return false;
 }
 
-static appBar* lcs_app_bar(callbackp *callbacki, char *aname)
+static appBar* lcs_app_bar(acetables *g_ape, char *aname)
 {
-	HTBL *table = GET_ABAR_TBL(callbacki->g_ape);
+	HTBL *table = GET_ABAR_TBL(g_ape);
 	if (!table || !aname) return NULL;
 
 	return (appBar*)hashtbl_seek(table, aname);
@@ -175,7 +175,7 @@ static CHANNEL* lcs_app_get_adminchan(callbackp *callbacki, char *aname)
 	if (!aname) return NULL;
 
 	CHANNEL *chan;
-	appBar *c = lcs_app_bar(callbacki, aname);
+	appBar *c = lcs_app_bar(callbacki->g_ape, aname);
 	if (!c) goto nobody;
 
 	int max = queue_length(c->admins);
@@ -278,6 +278,7 @@ static void lcs_user_action_notice(acetables *g_ape, USERS *user, char *aname,
 	json_item *jcopy, *jlist;
 	RAW *newraw;
 	USERS *auser = GET_USER_FROM_APE(g_ape, aname);
+	char *from = GET_UIN_FROM_USER(user);
 	
 	/*
 	 * send visit to admin
@@ -303,8 +304,19 @@ static void lcs_user_action_notice(acetables *g_ape, USERS *user, char *aname,
 	 * push raw history
 	 */
 	newraw = forge_raw("RAW_RECENTLY", jcopy);
-	push_raw_recently_byme(g_ape, newraw, GET_UIN_FROM_USER(user), aname);
+	push_raw_recently_byme(g_ape, newraw, from, aname);
 	POSTRAW_DONE(newraw);
+
+	if (!auser) {
+		appBar *c = lcs_app_bar(g_ape, aname);
+		if (!c) {
+			c = abar_new();
+			hashtbl_append(GET_ABAR_TBL(g_ape), aname, c);
+		}
+		if (c && queue_find(c->dirtyusers, from, hn_str_cmp) == -1) {
+			queue_push_head(c->dirtyusers, strdup(from));
+		}
+	}
 }
 
 static void tick_static(acetables *g_ape, int lastcall)
@@ -395,7 +407,7 @@ static unsigned int lcs_join(callbackp *callbacki)
 		goto done;
 	}
 
-	abar = lcs_app_bar(callbacki, aname);
+	abar = lcs_app_bar(callbacki->g_ape, aname);
 	if (abar) {
 		olnum = queue_length(abar->users);
 	}
@@ -599,7 +611,7 @@ static unsigned int lcs_msg(callbackp *callbacki)
 	push_raw_recently_byme(callbacki->g_ape, newraw, from, uname);
 	POSTRAW_DONE(newraw);
 
-	appBar *c = lcs_app_bar(callbacki, uname);
+	appBar *c = lcs_app_bar(callbacki->g_ape, uname);
 	if (c && queue_find(c->dirtyusers, from, hn_str_cmp) == -1) {
 		queue_push_head(c->dirtyusers, strdup(from));
 	}
@@ -665,7 +677,7 @@ static unsigned int lcs_joinb(callbackp *callbacki)
 		goto done;
 	}
 	
-	appBar *abar = lcs_app_bar(callbacki, aname);
+	appBar *abar = lcs_app_bar(callbacki->g_ape, aname);
 	if (abar) {
 		olnum = queue_length(abar->users);
 	}
@@ -713,7 +725,7 @@ static unsigned int lcs_dearusers(callbackp *callbacki)
 	char *uname = GET_UIN_FROM_USER(callbacki->call_user);
 	json_item *jdear, *jdlist = json_new_array();
 
-	appBar *c = lcs_app_bar(callbacki, uname);
+	appBar *c = lcs_app_bar(callbacki->g_ape, uname);
 	if (c && !queue_is_empty(c->dirtyusers)) {
 		QueueEntry *qe;
 		queue_iterate(c->dirtyusers, qe) {
@@ -740,7 +752,7 @@ static unsigned int lcs_recently(callbackp *callbacki)
 	JNEED_STR(callbacki->param, "uin", otheruin, RETURN_BAD_PARAMS);
 	JNEED_INT(callbacki->param, "type", type, RETURN_BAD_PARAMS);
 	
-	appBar *c = lcs_app_bar(callbacki, uname);
+	appBar *c = lcs_app_bar(callbacki->g_ape, uname);
 	if (c && type == RRC_TYPE_MIXED) {
 		queue_remove_entry(c->dirtyusers, otheruin, hn_str_cmp);
 	}
