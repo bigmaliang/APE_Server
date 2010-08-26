@@ -20,7 +20,7 @@ ifdef LINUX_BUILD
 
 CFLAGS = -g -Wall -shared -fPIC -rdynamic
 
-INC_EVENT = -I ../../moon/lib/mevent -I ../../moon/event/plugin -I /usr/include/ClearSilver
+INC_EVENT = -I ../../moon/lib/mevent -I ../../moon/event/plugin -I /usr/local/include/ClearSilver
 LIB_EVENT = -L ../../moon/lib/mevent -lmevent -l neo_utl
 
 all: modules
