@@ -264,7 +264,7 @@ static void lcs_user_remember_me(callbackp *callbacki, char *uname, char *aname)
 	hdf_set_value(evt->hdfsnd, "uname", uname);
 	hdf_set_value(evt->hdfsnd, "aname", aname);
 	hdf_set_value(evt->hdfsnd, "ip", callbacki->ip);
-	if (PROCESS_NOK(mevent_trigger(evt, uname, REQ_CMD_USERJOIN, FLAGS_NONE))) {
+	if (PROCESS_NOK(mevent_trigger(evt, uname, REQ_CMD_APPUSERIN, FLAGS_NONE))) {
 		alog_err("remember %s %s failure %d", uname, aname, evt->errcode);
 	}
 }
