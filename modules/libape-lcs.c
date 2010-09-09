@@ -760,11 +760,12 @@ static unsigned int lcs_recently(callbackp *callbacki)
 	return cmd_raw_recently(callbacki);
 }
 
-static void lcs_event_onjoin(USERS *user, CHANNEL *chan, acetables *g_ape)
+static int lcs_event_onjoin(USERS *user, CHANNEL *chan, acetables *g_ape)
 {
-	if (!user || !chan) return;
+	if (!user || !chan) return RET_PLUGIN_CONTINUE;
 
-	if (strncasecmp(chan->name, LCS_PIP_NAME, strlen(LCS_PIP_NAME))) return;
+	if (strncasecmp(chan->name, LCS_PIP_NAME, strlen(LCS_PIP_NAME)))
+		return RET_PLUGIN_CONTINUE;
 
 	char *aname = GET_PNAME_FROM_CHANNEL(chan);
 	char *uname = GET_UIN_FROM_USER(user);
@@ -773,13 +774,16 @@ static void lcs_event_onjoin(USERS *user, CHANNEL *chan, acetables *g_ape)
 	if (GET_USER_ADMIN(user)) admin = true;
 	
 	lcs_app_onjoin(g_ape, aname, uname, admin, chan);
+
+	return RET_PLUGIN_CONTINUE;
 }
 
-static void lcs_event_onleft(USERS *user, CHANNEL *chan, acetables *g_ape)
+static int lcs_event_onleft(USERS *user, CHANNEL *chan, acetables *g_ape)
 {
-	if (!user || !chan) return;
+	if (!user || !chan) return RET_PLUGIN_CONTINUE;
 
-	if (strncasecmp(chan->name, LCS_PIP_NAME, strlen(LCS_PIP_NAME))) return;
+	if (strncasecmp(chan->name, LCS_PIP_NAME, strlen(LCS_PIP_NAME)))
+		return RET_PLUGIN_CONTINUE;
 
 	char *aname = GET_PNAME_FROM_CHANNEL(chan);
 	char *uname = GET_UIN_FROM_USER(user);
@@ -796,6 +800,8 @@ static void lcs_event_onleft(USERS *user, CHANNEL *chan, acetables *g_ape)
 	if (!admin) {
 		lcs_user_action_notice(g_ape, user, aname, "left", NULL, NULL, NULL, NULL);
 	}
+	
+	return RET_PLUGIN_CONTINUE;
 }
 
 static void init_module(acetables *g_ape)
@@ -826,10 +832,8 @@ static ace_callbacks callbacks = {
 	NULL,				/* Called when a user is disconnected */
 	NULL,				/* Called when new chan is created */
 	NULL,				/* Called when a chan removed */
-	NULL,				/* Called when a user join a channel */
-	lcs_event_onjoin,
-	NULL,				/* Called when a user leave a channel */
-	lcs_event_onleft,
+	lcs_event_onjoin,	/* Called when a user join a channel */
+	lcs_event_onleft,	/* Called when a user leave a channel */
 	NULL,				/* Called at each tick, passing a subuser */
 	NULL,				/* Called when a subuser receiv a message */
 	NULL,				/* Called when a user allocated */
