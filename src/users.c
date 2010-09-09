@@ -497,7 +497,7 @@ subuser *addsubuser(ape_socket *client, const char *channel, USERS *user, acetab
 
 	}
 	
-	FIRE_EVENT_NONSTOP(addsubuser, sub, g_ape);
+	HOOK_EVENT(addsubuser, sub, g_ape);
 	
 	return sub;
 }

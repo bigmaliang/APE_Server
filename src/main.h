@@ -235,6 +235,27 @@ struct _ape_socket {
 /* http://tools.ietf.org/html/draft-hixie-thewebsocketprotocol-55 : The first three lines in each case are hard-coded (the exact case and order matters); */
 #define WEBSOCKET_HARDCODED_HEADERS "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\n"
 
+enum {
+	RET_PLUGIN_CONTINUE = 0,
+	RET_PLUGIN_STOP
+} plugin_ret;
+
+/* HOOK/POST: at the end of caller function */
+#define HOOK_EVENT(event, arg...) \
+	if (g_ape->plugins != NULL) { \
+		ace_plugins *cplug = g_ape->plugins; \
+		while (cplug != NULL) { \
+			if (cplug->cb != NULL && cplug->cb->c_post_##event != NULL && cplug->fire.c_##event == 0) { \
+				cplug->fire.c_##event = 1; \
+				cplug->cb->c_post_##event(arg); \
+				cplug->fire.c_##event = 0; \
+				break; \
+			} \
+			cplug = cplug->next; \
+		} \
+	}
+ 
+/* if c_##event() != NULL return; else continue... */
 #define FIRE_EVENT(event, ret, arg...) \
 	if (g_ape->plugins != NULL) { \
 		ace_plugins *cplug = g_ape->plugins; \
@@ -243,11 +264,6 @@ struct _ape_socket {
 				cplug->fire.c_##event = 1; \
 				ret = cplug->cb->c_##event(arg); \
 				cplug->fire.c_##event = 0; \
-				\
-				if (ret == NULL) { \
-					return NULL; \
-				} \
-				\
 				break; \
 			} \
 			cplug = cplug->next; \
@@ -257,7 +273,25 @@ struct _ape_socket {
 		return ret; \
 	}
  
+/* if c_##event() == RET_PLUGIN_STOP return; else continue... */
 #define FIRE_EVENT_NULL(event, arg...) \
+	if (g_ape->plugins != NULL) { \
+		ace_plugins *cplug = g_ape->plugins; \
+		while (cplug != NULL) { \
+			if (cplug->cb != NULL && cplug->cb->c_##event != NULL && cplug->fire.c_##event == 0) { \
+				cplug->fire.c_##event = 1; \
+				if (cplug->cb->c_##event(arg) == RET_PLUGIN_STOP) {	\
+					cplug->fire.c_##event = 0;							\
+					return;												\
+				}														\
+				cplug->fire.c_##event = 0;								\
+				break; \
+			} \
+			cplug = cplug->next; \
+		} \
+	}
+
+#define FIRE_EVENT_STOP(event, arg...) \
 	if (g_ape->plugins != NULL) { \
 		ace_plugins *cplug = g_ape->plugins; \
 		while (cplug != NULL) { \
@@ -284,6 +318,7 @@ struct _ape_socket {
 			cplug = cplug->next; \
 		} \
 	}
+
 #endif
 
 
