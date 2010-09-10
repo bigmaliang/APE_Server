@@ -170,7 +170,7 @@ typedef struct _acetables
 	struct _socks_bufout *bufout;
 	struct _ace_plugins *plugins;
 	struct _fdevent *events;
-	struct _ape_socket *co;
+	struct _ape_socket **co;
 	struct _extend *properties;
 	
 	const char *confs_path;
@@ -206,7 +206,6 @@ struct _ape_socket {
 	ape_parser parser;
 
 	ape_buffer buffer_in;
-	ape_buffer buffer_out;
 
 	char ip_client[16];
 	long int idle;
@@ -233,7 +232,8 @@ struct _ape_socket {
 #define CONTENT_NOTFOUND "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\"><html><head><title>APE Server</title></head><body><h1>APE Server</h1><p>No command given.</p><hr><address>http://www.ape-project.org/ - Server "_VERSION" (Build "__DATE__" "__TIME__")</address></body></html>"
 
 /* http://tools.ietf.org/html/draft-hixie-thewebsocketprotocol-55 : The first three lines in each case are hard-coded (the exact case and order matters); */
-#define WEBSOCKET_HARDCODED_HEADERS "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\n"
+#define WEBSOCKET_HARDCODED_HEADERS_OLD "HTTP/1.1 101 Web Socket Protocol Handshake\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\n"
+#define WEBSOCKET_HARDCODED_HEADERS_NEW "HTTP/1.1 101 WebSocket Protocol Handshake\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\n"
 
 enum {
 	RET_PLUGIN_CONTINUE = 0,

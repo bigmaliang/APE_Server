@@ -420,14 +420,14 @@ static json_item *jsobj_to_ape_json(JSContext *cx, JSObject *json_obj)
 			case JSTYPE_OBJECT:
 				
 				/* hmm "null" is an empty object */
-	            if (JSVAL_TO_OBJECT(vp) == NULL) {
-		            if (!isarray) {
-		                    json_set_property_intN(ape_json, JS_GetStringBytes(key), JS_GetStringLength(key), 0);
-		            } else {
-		                    json_set_element_int(ape_json, 0);
-		            }
-		            break;
-	            }			
+				if (JSVAL_TO_OBJECT(vp) == NULL) {
+				    if (!isarray) {
+					    json_set_property_null(ape_json, JS_GetStringBytes(key), JS_GetStringLength(key));
+				    } else {
+					    json_set_element_null(ape_json);
+				    }
+				    break;
+				}			
 				if ((val_obj = jsobj_to_ape_json(cx, JSVAL_TO_OBJECT(vp))) != NULL) {
 					if (!isarray) {
 						json_set_property_objN(ape_json, JS_GetStringBytes(key), JS_GetStringLength(key), val_obj);
@@ -456,17 +456,19 @@ static json_item *jsobj_to_ape_json(JSContext *cx, JSObject *json_obj)
 					JS_ValueToNumber(cx, vp, &dp);
 				
 					if (!isarray) {
-						json_set_property_intN(ape_json, JS_GetStringBytes(key), JS_GetStringLength(key), (long int)dp);
+						/* json_set_property_intN(ape_json, JS_GetStringBytes(key), JS_GetStringLength(key), (long int)dp); */
+						json_set_property_floatN(ape_json, JS_GetStringBytes(key), JS_GetStringLength(key), dp);
 					} else {
-						json_set_element_int(ape_json, (long int)dp);
+						/* json_set_element_int(ape_json, (long int)dp); */
+						json_set_element_float(ape_json, dp);
 					}
 				}
 				break;
 			case JSTYPE_BOOLEAN:
 				if (!isarray) {
-					json_set_property_intN(ape_json, JS_GetStringBytes(key), JS_GetStringLength(key), (vp == JSVAL_TRUE));
+					json_set_property_boolean(ape_json, JS_GetStringBytes(key), JS_GetStringLength(key), (vp == JSVAL_TRUE));
 				} else {
-					json_set_element_int(ape_json, (vp == JSVAL_TRUE));
+					json_set_element_boolean(ape_json, (vp == JSVAL_TRUE));
 				}
 				break;
 			default:
@@ -474,6 +476,10 @@ static json_item *jsobj_to_ape_json(JSContext *cx, JSObject *json_obj)
 				break;
 		}
 	}
+	if (!isarray) {
+		JS_DestroyIdArray(cx, enumjson);
+	}
+	
 	return ape_json;
 }
 
@@ -2505,13 +2511,11 @@ APE_JS_NATIVE(ape_sm_mysql_constructor)
 	MYSAC *my;
 	int fd;
 	struct _ape_mysql_data *myhandle;
-	ape_socket *co;
 	
 	if (!JS_ConvertArguments(cx, argc, argv, "ssss", &host, &login, &pass, &db)) {
 		return JS_TRUE;
 	}
 	
-	co = g_ape->co;
 	myhandle = xmalloc(sizeof(*myhandle));
 
 	my = mysac_new(1024*1024);
@@ -2531,27 +2535,15 @@ APE_JS_NATIVE(ape_sm_mysql_constructor)
 	JS_SetPrivate(cx, obj, myhandle);
 	
 	fd = mysac_get_fd(my);
-	
-	co[fd].buffer_in.data = NULL;
-	co[fd].buffer_in.size = 0;
-	co[fd].buffer_in.length = 0;
 
-	co[fd].attach = NULL;
-	co[fd].idle = 0;
-	co[fd].burn_after_writing = 0;
-	co[fd].fd = fd;
+	prepare_ape_socket (fd, g_ape);
 
-	co[fd].stream_type = STREAM_DELEGATE;
+	g_ape->co[fd]->fd = fd;
+	g_ape->co[fd]->stream_type = STREAM_DELEGATE;
 
-	co[fd].callbacks.on_accept = NULL;
-	co[fd].callbacks.on_connect = NULL;
-	co[fd].callbacks.on_disconnect = NULL;
-	co[fd].callbacks.on_read_lf = NULL;
-	co[fd].callbacks.on_data_completly_sent = NULL;
-
-	co[fd].callbacks.on_read = ape_mysql_io_read;
-	co[fd].callbacks.on_write = ape_mysql_io_write;
-	co[fd].data = myhandle;
+	g_ape->co[fd]->callbacks.on_read = ape_mysql_io_read;
+	g_ape->co[fd]->callbacks.on_write = ape_mysql_io_write;
+	g_ape->co[fd]->data = myhandle;
 
 	events_add(g_ape->events, fd, EVENT_READ|EVENT_WRITE);
 	
@@ -2985,6 +2977,27 @@ static void init_module(acetables *g_ape) // Called when module is loaded
 	
 }
 
+static void free_module(acetables *g_ape) // Called when module is unloaded
+{
+	// TODO free other allocated objects
+
+	ape_sm_compiled *asc = ASMR->scripts;
+	ape_sm_compiled *prev_asc;
+
+	while (asc != NULL) {
+		free(asc->filename);
+		JS_DestroyContext(asc->cx);
+		prev_asc = asc;
+		asc = asc->next;
+		free(prev_asc);
+	}
+
+	JS_DestroyContext(ASMC);
+	JS_DestroyRuntime(ASMR->runtime);
+
+	free(ASMR);
+}
+
 static USERS *ape_cb_add_user(USERS *allocated, acetables *g_ape)
 {
 	jsval params[1];	
@@ -3180,5 +3193,5 @@ static ace_callbacks callbacks = {
 	ape_cb_delsubuser
 };
 
-APE_INIT_PLUGIN(MODULE_NAME, init_module, callbacks)
+APE_INIT_PLUGIN(MODULE_NAME, init_module, free_module, callbacks)
 

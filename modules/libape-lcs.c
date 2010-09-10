@@ -860,4 +860,4 @@ static ace_callbacks callbacks = {
 	NULL
 };
 
-APE_INIT_PLUGIN(MODULE_NAME, init_module, callbacks)
+APE_INIT_PLUGIN(MODULE_NAME, init_module, NULL, callbacks)
