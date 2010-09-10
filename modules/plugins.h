@@ -52,19 +52,34 @@
 typedef struct _ace_callbacks ace_callbacks;
 
 struct _ace_callbacks
-{		
-	USERS *(*c_adduser)(USERS *, acetables *);
-	int (*c_deluser)(USERS *, int istmp, acetables *);
+{
+	USERS   *(*c_allocateuser)(ape_socket *, const char *, const char *, acetables *);
+	USERS   *(*c_adduser)(USERS *, acetables *);
+	int      (*c_deluser)(USERS *, int istmp, acetables *);
+	subuser *(*c_addsubuser)(acetables *);
+	void     (*c_delsubuser)(subuser *, acetables *);
+	
+	int      (*c_post_raw_sub)(RAW *, subuser *, acetables *);
 	CHANNEL *(*c_mkchan)(char *, int, acetables *);
-	int (*c_rmchan)(CHANNEL *, acetables *);
-	int (*c_join)(USERS *, CHANNEL *, acetables *);
-	int (*c_left)(USERS *, CHANNEL *, acetables *);
-	void (*c_tickuser)(subuser *, acetables *);
-	int (*c_post_raw_sub)(RAW *, subuser *, acetables *);
-	USERS *(*c_allocateuser)(ape_socket *, const char *, const char *, acetables *);
-	void (*c_addsubuser)(subuser *, acetables *);
-	void (*c_delsubuser)(subuser *, acetables *);
+	int      (*c_rmchan)(CHANNEL *, acetables *);
+	int      (*c_join)(USERS *, CHANNEL *, acetables *);
+	int      (*c_left)(USERS *, CHANNEL *, acetables *);
+	
+
+	void (*c_post_allocateuser)(USERS *, acetables*);
+	void (*c_post_adduser)(USERS *, acetables *);
+	void (*c_post_deluser)(USERS *, acetables *);
 	void (*c_post_addsubuser)(subuser *, acetables *);
+	void (*c_post_delsubuser)(subuser *, acetables *);
+	
+	void (*c_post_post_raw_sub)(RAW *, subuser *, acetables *);
+	void (*c_post_mkchan)(CHANNEL *, acetables *);
+	void (*c_post_rmchan)(CHANNEL *, acetables *);
+	void (*c_post_join)(USERS *, CHANNEL *, acetables *);
+	void (*c_post_left)(USERS *, CHANNEL *, acetables *);
+
+
+	void (*c_tickuser)(subuser *, acetables *);
 };
 
 typedef struct _plug_config plug_config;

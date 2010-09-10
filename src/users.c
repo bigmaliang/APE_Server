@@ -170,6 +170,8 @@ USERS *adduser(ape_socket *client, const char *host, const char *ip, USERS *allo
 		hashtbl_append(g_ape->hSessid, nuser->sessid, (void *)nuser);
 
 		addsubuser(client, host, nuser, g_ape);
+
+		HOOK_EVENT(allocateuser, nuser, g_ape);
 	} else {
 		FIRE_EVENT(adduser, nuser, allocated, g_ape);
 		
@@ -177,6 +179,8 @@ USERS *adduser(ape_socket *client, const char *host, const char *ip, USERS *allo
 		nuser->istmp = 0;
 		
 		g_ape->nConnected++;
+
+		HOOK_EVENT(adduser, nuser, g_ape);
 		
 		alog_info("New user - (ip : %s)", nuser->ip);
 	}
@@ -192,11 +196,11 @@ void deluser(USERS *user, acetables *g_ape)
 		return;
 	}
 
+	FIRE_EVENT_NULL(deluser, user, user->istmp, g_ape);
+
 	left_all(user, g_ape);
 
 	char *uin = GET_UIN_FROM_USER(user);
-
-	FIRE_EVENT_NULL(deluser, user, user->istmp, g_ape);
 
 	/* kill all users connections */
 	
@@ -226,6 +230,8 @@ void deluser(USERS *user, acetables *g_ape)
 
 	destroy_pipe(user->pipe, g_ape);
 	
+	HOOK_EVENT(deluser, user, g_ape);
+
 	/* TODO Add Event */
 	free(user);
 
@@ -440,8 +446,10 @@ void sendback_session(USERS *user, session *sess, acetables *g_ape)
 
 subuser *addsubuser(ape_socket *client, const char *channel, USERS *user, acetables *g_ape)
 {
-	subuser *sub;
-		
+	subuser *sub = NULL;
+
+	FIRE_EVENT(addsubuser, sub, g_ape);
+	
 	if (getsubuser(user, channel) != NULL || strlen(channel) > MAX_HOST_LENGTH) {
 		return NULL;
 	}
@@ -611,6 +619,8 @@ void delsubuser(subuser **current, acetables *g_ape)
 	if (user->nsub <= 0) {
 		user->idle = time(NULL) - (TIMEOUT_SEC - USRLEFT_SEC);
 	}
+
+	HOOK_EVENT(delsubuser, del, g_ape);
 }
 
 void clear_subusers(USERS *user, acetables *g_ape)

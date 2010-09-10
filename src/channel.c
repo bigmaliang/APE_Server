@@ -76,6 +76,8 @@ CHANNEL *mkchan(char *chan, int flags, acetables *g_ape)
 	/* just to test */
 	//proxy_attach(proxy_init("olol", "localhost", 1337, g_ape), new_chan->pipe->pubid, 0, g_ape);
 
+	HOOK_EVENT(mkchan, new_chan, g_ape);
+
 	return new_chan;
 	
 }
@@ -151,6 +153,8 @@ void rmchan(CHANNEL *chan, acetables *g_ape)
 	clear_properties(&chan->properties);
 	
 	destroy_pipe(chan->pipe, g_ape);
+
+	HOOK_EVENT(rmchan, chan, g_ape);
 
 	free(chan);
 	chan = NULL;
@@ -238,6 +242,8 @@ void join(USERS *user, CHANNEL *chan, acetables *g_ape)
 	newraw = forge_raw(RAW_CHANNEL, jlist);
 	post_raw(newraw, user, g_ape);
 	POSTRAW_DONE(newraw);
+	
+	HOOK_EVENT(join, user, chan, g_ape);
 	
 	#if 0
 	if (user->flags & FLG_AUTOOP) {
@@ -334,7 +340,8 @@ void left(USERS *user, CHANNEL *chan, acetables *g_ape) // Vider la liste chainé
 		prev = list;
 		list = list->next;
 	}
-	
+
+	HOOK_EVENT(left, user, chan, g_ape);
 }
 
 userslist *getlist(const char *chan, acetables *g_ape)

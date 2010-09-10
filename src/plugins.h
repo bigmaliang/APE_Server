@@ -46,17 +46,19 @@ struct _ace_plugin_infos
 struct _ace_plugins
 {
 	struct {
+		unsigned short int c_allocateuser;
 		unsigned short int c_adduser;
 		unsigned short int c_deluser;
+		unsigned short int c_addsubuser;
+		unsigned short int c_delsubuser;
+		
+		unsigned short int c_post_raw_sub;
 		unsigned short int c_mkchan;
 		unsigned short int c_rmchan;
 		unsigned short int c_join;
 		unsigned short int c_left;
+		
 		unsigned short int c_tickuser;
-		unsigned short int c_post_raw_sub;
-		unsigned short int c_allocateuser;
-		unsigned short int c_addsubuser;
-		unsigned short int c_delsubuser;
 	} fire;
 	
 	/* Module Handle */

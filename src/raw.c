@@ -126,6 +126,8 @@ void post_raw_sub(RAW *raw, subuser *sub, acetables *g_ape)
 	(sub->raw_pools.nraw)++;
 
 	(raw->refcount)++;
+
+	HOOK_EVENT(post_raw_sub, raw, sub, g_ape);
 }
 
 /* Post raw to a user and propagate it to all of it's subuser */
