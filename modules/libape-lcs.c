@@ -828,17 +828,36 @@ static void init_module(acetables *g_ape)
 }
 
 static ace_callbacks callbacks = {
-	NULL,				/* Called when new user is added */
-	NULL,				/* Called when a user is disconnected */
-	NULL,				/* Called when new chan is created */
-	NULL,				/* Called when a chan removed */
-	lcs_event_onjoin,	/* Called when a user join a channel */
-	lcs_event_onleft,	/* Called when a user leave a channel */
-	NULL,				/* Called at each tick, passing a subuser */
-	NULL,				/* Called when a subuser receiv a message */
-	NULL,				/* Called when a user allocated */
-	NULL,				/* Called when a subuser is added */
-	NULL   				/* Called when a subuser is disconnected */
+	/* pre user event fired */
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	
+	/* pre channel event fired */
+	NULL,
+	NULL,
+	NULL,
+	lcs_event_onjoin,
+	lcs_event_onleft,
+
+	/* post user event hooked */
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+
+	/* post channel event hooked */
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+
+	/* tickuser */
+	NULL
 };
 
 APE_INIT_PLUGIN(MODULE_NAME, init_module, callbacks)
