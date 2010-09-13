@@ -403,11 +403,12 @@ unsigned int cmd_connect(callbackp *callbacki)
 		}
 	}
 	
+	ADD_UIN_FOR_USER(callbacki->call_user, uin);
+	
 	nuser = adduser(NULL, NULL, NULL, callbacki->call_user, callbacki->g_ape);
 	
 	callbacki->call_user = nuser;
 	
-	ADD_UIN_FOR_USER(nuser, uin);
 	SET_USER_FOR_APE(callbacki->g_ape, uin, nuser);
 
 	subuser_restor(getsubuser(callbacki->call_user, callbacki->host), callbacki->g_ape);
