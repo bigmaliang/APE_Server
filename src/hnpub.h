@@ -19,6 +19,7 @@ typedef struct _anc {
 void hn_senderr(callbackp *callbacki, char *code, char *msg);
 void hn_senderr_sub(callbackp *callbacki, char *code, char *msg);
 void hn_senddata(callbackp *callbacki, char *code, char *msg);
+void hn_sendraw(callbackp *callbacki, char *rawname, char *msg);
 int hn_isvaliduin(char *uin);
 int hn_str_cmp(void *a, void *b);
 

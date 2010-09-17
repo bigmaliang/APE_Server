@@ -592,10 +592,10 @@ void delsubuser(subuser **current, acetables *g_ape)
 	subuser *del = *current;
 	USERS *user = (*current)->user;
 
-	FIRE_EVENT_NONSTOP(delsubuser, del, g_ape);
+	FIRE_EVENT_NULL(delsubuser, del, g_ape);
 	((*current)->user->nsub)--;
 	
-	*current = (*current)->next;	
+	*current = (*current)->next;
 	
 	destroy_raw_pool(del->raw_pools.low.rawhead);
 	destroy_raw_pool(del->raw_pools.high.rawhead);
