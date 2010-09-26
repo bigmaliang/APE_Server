@@ -171,7 +171,7 @@ void json_aff(json_item *cx, int depth);
 
 #define JNEED_STR(item, key, val, ret)						\
 	do {													\
-		if (item == NULL || json_lookup(item, key) == NULL) \
+		if (item == NULL || json_lookup(item, key) == NULL || json_lookup(item, key)->jval.vu.str.value == NULL) \
 			return (ret);									\
 		val = json_lookup(item, key)->jval.vu.str.value;	\
 	} while(0)
