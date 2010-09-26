@@ -398,7 +398,7 @@ unsigned int cmd_connect(callbackp *callbacki)
 							callbacki->g_ape->srv)) == 1) {
 			deluser(GET_USER_FROM_APE(callbacki->g_ape, uin), callbacki->g_ape);
 		} else {
-			hn_senderr(callbacki, "006", "ERR_UIN_USED");
+			hn_senderr(callbacki, 6, "ERR_UIN_USED");
 			return (RETURN_NOTHING);
 		}
 	}
