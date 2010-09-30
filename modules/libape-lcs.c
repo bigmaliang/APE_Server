@@ -366,7 +366,6 @@ static unsigned int lcs_join(callbackp *callbacki)
 	USERS *user = callbacki->call_user;
 	CHANNEL *chan;
 	HDF *apphdf = NULL;
-	char errstr[64];
 	int olnum = 0, errcode = 0, ret;
 	stLcs *st = GET_LCS_STAT(callbacki->g_ape);
 
@@ -487,8 +486,7 @@ static unsigned int lcs_join(callbackp *callbacki)
 
 done:
 	if (errcode != 0) {
-		sprintf(errstr, "%d", errcode);
-		hn_senderr_sub(callbacki, errstr, "ERR_APP_NPASS");
+		hn_senderr_sub(callbacki, errcode, "ERR_APP_NPASS");
 	} else {
 		/*
 		 * add user to chatlist
@@ -566,7 +564,7 @@ static unsigned int lcs_send(callbackp *callbacki)
 			POSTRAW_DONE(newraw);
 		} else {
 			alog_err("get uname failure");
-			hn_senderr_sub(callbacki, "120", "ERR_UNAME_NEXIST");
+			hn_senderr_sub(callbacki, 120, "ERR_UNAME_NEXIST");
 		}
 	} else if (spipe && spipe->type == CHANNEL_PIPE) {
 		CHANNEL *chan = (CHANNEL*)spipe->pipe;
@@ -580,11 +578,11 @@ static unsigned int lcs_send(callbackp *callbacki)
 			POSTRAW_DONE(newraw);
 		} else {
 			alog_warn("%s wan't talk to %s", from, uname);
-			hn_senderr_sub(callbacki, "122", "ERR_NOT_OWNER");
+			hn_senderr_sub(callbacki, 122, "ERR_NOT_OWNER");
 		}
 	} else {
 		alog_err("get pipe failure");
-		hn_senderr_sub(callbacki, "121", "ERR_PIPE_ERROR");
+		hn_senderr_sub(callbacki, 121, "ERR_PIPE_ERROR");
 	}
 
 	return (RETURN_NOTHING);
@@ -625,7 +623,6 @@ static unsigned int lcs_joinb(callbackp *callbacki)
 	
 	USERS *user = callbacki->call_user;
 	CHANNEL *chan;
-	char errstr[64];
 	int olnum = 0, errcode = 0, ret;
 	stLcs *st = GET_LCS_STAT(callbacki->g_ape);
 
@@ -647,14 +644,14 @@ static unsigned int lcs_joinb(callbackp *callbacki)
 	HDF *apphdf = lcs_app_info(callbacki, aname);
 	if (!apphdf) {
 		alog_warn("%s info failure", aname);
-		hn_senderr_sub(callbacki, "210", "ERR_APP_INFO");
+		hn_senderr_sub(callbacki, 210, "ERR_APP_INFO");
 		hdf_destroy(&apphdf);
 		return (RETURN_NOTHING);
 	}
 	
 	if (strcmp(hdf_get_value(apphdf, "masn", "NULL"), masn)) {
 		alog_warn("%s attemp illgal login", aname);
-		hn_senderr_sub(callbacki, "211", "ERR_APP_LOGIN");
+		hn_senderr_sub(callbacki, 211, "ERR_APP_LOGIN");
 		hdf_destroy(&apphdf);
 		return (RETURN_NOTHING);
 	}
@@ -665,7 +662,7 @@ static unsigned int lcs_joinb(callbackp *callbacki)
 					   CHANNEL_AUTODESTROY, LCS_PIP_NAME"%s", aname);
 		if (!chan) {
 			alog_err("make channel %s failure", aname);
-			hn_senderr_sub(callbacki, "007", "ERR_MAKE_CHANNEL");
+			hn_senderr_sub(callbacki, 7, "ERR_MAKE_CHANNEL");
 			hdf_destroy(&apphdf);
 			return (RETURN_NOTHING);
 		}
@@ -712,8 +709,7 @@ static unsigned int lcs_joinb(callbackp *callbacki)
 	
 done:
 	if (errcode != 0) {
-		sprintf(errstr, "%d", errcode);
-		hn_senderr_sub(callbacki, errstr, "ERR_APP_NPASS");
+		hn_senderr_sub(callbacki, errcode, "ERR_APP_NPASS");
 	}
 	
 	hdf_destroy(&apphdf);
