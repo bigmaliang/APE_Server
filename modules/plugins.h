@@ -44,6 +44,7 @@
 #include "../src/config.h"
 #include "../src/queue.h"
 #include "../src/list.h"
+#include "../src/hnpub.h"
 
 #include <stdarg.h>
 
