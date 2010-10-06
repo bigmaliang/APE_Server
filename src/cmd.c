@@ -538,21 +538,14 @@ unsigned int cmd_join(callbackp *callbacki)
 
 unsigned int cmd_raw_recently(callbackp *callbacki)
 {
-	char *uin, *otheruin;
-	int type;
+	char *uin, *otheruin = NULL;
 	USERS *user = callbacki->call_user;
 	subuser *sub = callbacki->call_subuser;
 
 	uin = GET_UIN_FROM_USER(user);
-	JNEED_STR(callbacki->param, "uin", otheruin, RETURN_BAD_PARAMS);
-	JNEED_INT(callbacki->param, "type", type, RETURN_BAD_PARAMS);
+	otheruin = JGET_STR(callbacki->param, "uin");
 
-	if (RRC_TYPE_NOK(type)) {
-		alog_err("type %d illgal", type);
-		return (RETURN_BAD_PARAMS);
-	}
-
-	if (type == RRC_TYPE_MIXED) {
+	if (otheruin) {
 		if (strcmp(otheruin, "0")) {
 			post_raw_sub_recently_byme(callbacki->g_ape,
 									   sub, otheruin, uin);

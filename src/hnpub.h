@@ -126,4 +126,21 @@ int anchor_cmp(void *a, void *b);
 	(get_property(user->properties, "friend") != NULL ?				\
 	 (HTBL*)get_property(user->properties, "friend")->val: NULL)
 
+
+
+
+/*
+ * EVENT PROPERTIES
+ */
+#define MAKE_EVENT_TBL(g_ape)											\
+	do {																\
+		if (get_property(g_ape->properties, "eventlist") == NULL) {		\
+			add_property(&g_ape->properties, "eventlist", hashtbl_init(), mevent_free, \
+						 EXTEND_HTBL, EXTEND_ISPRIVATE);				\
+		}																\
+	} while (0)
+#define GET_EVENT_TBL(g_ape)											\
+	(get_property(g_ape->properties, "eventlist") != NULL ?				\
+	 (HTBL*)get_property(g_ape->properties, "eventlist")->val: NULL)
+
 #endif
