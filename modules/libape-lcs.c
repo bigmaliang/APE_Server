@@ -634,6 +634,9 @@ static unsigned int lcs_dearusers(callbackp *callbacki)
 			json_set_property_intZ(jdear, uname, 1);
 			json_set_element_obj(jdlist, jdear);
 		}
+		/* reset dirty users. we don't use lcs_recently anymore. */
+		queue_destroy(c->dirtyusers);
+		c->dirtyusers = queue_new(0, free);
 	}
 	
 	RAW *newraw = forge_raw("LCS_DEARUSERS", jdlist);
