@@ -672,7 +672,7 @@ static int lcs_event_onjoin(USERS *user, CHANNEL *chan, acetables *g_ape)
 	if (strncasecmp(chan->name, LCS_PIP_NAME, strlen(LCS_PIP_NAME)))
 		return RET_PLUGIN_CONTINUE;
 
-	char *aname = GET_PNAME_FROM_CHANNEL(chan);
+	char *aname = GET_ANAME_FROM_CHANNEL(chan);
 	char *uname = GET_UIN_FROM_USER(user);
 
 	bool admin = false;
@@ -690,7 +690,7 @@ static int lcs_event_onleft(USERS *user, CHANNEL *chan, acetables *g_ape)
 	if (strncasecmp(chan->name, LCS_PIP_NAME, strlen(LCS_PIP_NAME)))
 		return RET_PLUGIN_CONTINUE;
 
-	char *aname = GET_PNAME_FROM_CHANNEL(chan);
+	char *aname = GET_ANAME_FROM_CHANNEL(chan);
 	char *uname = GET_UIN_FROM_USER(user);
 
 	bool admin = false;
