@@ -10,6 +10,7 @@
 #include "mevent_rawdb.h"
 #include "mevent_msg.h"
 
+char* lcs_app_secy(acetables *g_ape, char *aname);
 HDF* lcs_app_info(acetables *g_ape, char *aname);
 
 int lcs_user_join_get(acetables *g_ape, char *uname, char *aname, char **oname);

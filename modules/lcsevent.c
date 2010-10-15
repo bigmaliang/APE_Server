@@ -2,6 +2,22 @@
 #include "libape-lcs.h"
 #include "lcsevent.h"
 
+char* lcs_app_secy(acetables *g_ape, char *aname)
+{
+	char *res = NULL;
+	
+	HTBL *etbl = GET_EVENT_TBL(g_ape);
+	mevent_t *evt = (mevent_t*)hashtbl_seek(etbl, "aic");
+	if (!evt) return NULL;
+
+	hdf_set_value(evt->hdfsnd, "aname", aname);
+	AEVENT_TRIGGER(NULL, evt, aname, REQ_CMD_APP_GETSECY, FLAGS_SYNC);
+
+	hdf_get_copy(evt->hdfrcv, "aname", &res, aname);
+
+	return res;
+}
+
 HDF* lcs_app_info(acetables *g_ape, char *aname)
 {
 	HTBL *etbl = GET_EVENT_TBL(g_ape);
@@ -33,8 +49,8 @@ int lcs_user_join_get(acetables *g_ape, char *uname, char *aname, char **oname)
 	HDF *node = hdf_get_obj(evt->hdfrcv, "0");
 	char *s;
 	while (node) {
-		s = hdf_get_value(node, "oname", "");
-		if (strcmp(s, "")) {
+		s = hdf_get_value(node, "oname", NULL);
+		if (s && *s) {
 			*oname = strdup(s);
 			return hdf_get_int_value(node, "id", 0);
 		}

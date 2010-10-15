@@ -142,7 +142,7 @@ static void lcs_app_onleft(acetables *g_ape, char *aname, char *uname,
 	}
 }
 
-static CHANNEL* lcs_app_get_adminchan(callbackp *callbacki, char *aname)
+static CHANNEL* lcs_app_get_adminchan(callbackp *callbacki, char *aname, char *secy)
 {
 	if (!aname) return NULL;
 
@@ -159,12 +159,13 @@ static CHANNEL* lcs_app_get_adminchan(callbackp *callbacki, char *aname)
 	return getchanf(callbacki->g_ape, LCS_PIP_NAME"%s", admin);
 
 nobody:
-	chan = getchanf(callbacki->g_ape, LCS_PIP_NAME"%s", aname);
+	secy = secy ? secy: aname;
+	chan = getchanf(callbacki->g_ape, LCS_PIP_NAME"%s", secy);
 	if (!chan) {
 		chan = mkchanf(callbacki->g_ape,
-					   CHANNEL_AUTODESTROY, LCS_PIP_NAME"%s", aname);
+					   CHANNEL_AUTODESTROY, LCS_PIP_NAME"%s", secy);
 		if (chan) {
-			ADD_ANAME_FOR_CHANNEL(chan, aname);
+			ADD_ANAME_FOR_CHANNEL(chan, secy);
 			ADD_PNAME_FOR_CHANNEL(chan, aname);
 		}
 	}
@@ -265,7 +266,7 @@ static void tick_static(acetables *g_ape, int lastcall)
  */
 static unsigned int lcs_join(callbackp *callbacki)
 {
-	char *uname, *aname;
+	char *uname, *aname, *secy;
 	int utime;
 	unsigned int jid;
 	appBar *abar;
@@ -318,6 +319,8 @@ static unsigned int lcs_join(callbackp *callbacki)
 		olnum = queue_length(abar->users);
 	}
 
+	secy = lcs_app_secy(callbacki->g_ape, aname);
+	
 	apphdf = lcs_app_info(callbacki->g_ape, aname);
 	if (!apphdf) {
 		alog_warn("%s info failure", aname);
@@ -373,7 +376,8 @@ static unsigned int lcs_join(callbackp *callbacki)
 	/*
 	 * last joined cahnnel donot open, join another
 	 */
-	chan = lcs_app_get_adminchan(callbacki, aname);
+	chan = lcs_app_get_adminchan(callbacki, aname, secy);
+	SFREE(secy);
 	if (chan) {
 		join(user, chan, callbacki->g_ape);
 		SFREE(oname);
