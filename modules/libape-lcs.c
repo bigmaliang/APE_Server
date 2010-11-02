@@ -518,10 +518,13 @@ static unsigned int lcs_msg(callbackp *callbacki)
 	POSTRAW_DONE(newraw);
 
 	appBar *c = lcs_app_bar(callbacki->g_ape, uname);
-	if (c && queue_find(c->dirtyusers, from, hn_str_cmp) == -1) {
-		queue_push_head(c->dirtyusers, strdup(from));
+	if (!c) {
+		c = abar_new();
+		hashtbl_append(GET_ABAR_TBL(callbacki->g_ape), uname, c);
 	}
-
+	if (c && queue_find(c->dirtyusers, from, hn_str_cmp) == -1)
+		queue_push_head(c->dirtyusers, strdup(from));
+	
 	return (RETURN_NOTHING);
 }
 
