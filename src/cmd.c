@@ -392,6 +392,7 @@ unsigned int cmd_connect(callbackp *callbacki)
 	char *uin;
 	
 	JNEED_STR(callbacki->param, "uin", uin, RETURN_BAD_PARAMS);
+	hn_unescape((unsigned char*)uin, strlen(uin), '%');
 
 	if (GET_USER_FROM_APE(callbacki->g_ape, uin) != NULL) {
 		if (atoi(CONFIG_VAL(Server, enable_user_reconnect,

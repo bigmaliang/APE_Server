@@ -22,6 +22,7 @@ void hn_senddata(callbackp *callbacki, int code, char *msg);
 void hn_sendraw(callbackp *callbacki, char *rawname, char *msg);
 int hn_isvaliduin(char *uin);
 int hn_str_cmp(void *a, void *b);
+unsigned char *hn_unescape (unsigned char *s, int buflen, char esc_char);
 
 anchor* anchor_new(const char *name, const char *href,
 				   const char *title, const char *target);
