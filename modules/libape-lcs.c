@@ -676,13 +676,13 @@ static int lcs_event_onjoin(USERS *user, CHANNEL *chan, acetables *g_ape)
 	if (strncasecmp(chan->name, LCS_PIP_NAME, strlen(LCS_PIP_NAME)))
 		return RET_PLUGIN_CONTINUE;
 
-	char *aname = GET_PNAME_FROM_CHANNEL(chan);
+	char *pname = GET_PNAME_FROM_CHANNEL(chan);
 	char *uname = GET_UIN_FROM_USER(user);
 
 	bool admin = false;
 	if (GET_USER_ADMIN(user)) admin = true;
 	
-	lcs_app_onjoin(g_ape, aname, uname, admin, chan);
+	lcs_app_onjoin(g_ape, pname, uname, admin, chan);
 
 	return RET_PLUGIN_CONTINUE;
 }
@@ -694,13 +694,14 @@ static int lcs_event_onleft(USERS *user, CHANNEL *chan, acetables *g_ape)
 	if (strncasecmp(chan->name, LCS_PIP_NAME, strlen(LCS_PIP_NAME)))
 		return RET_PLUGIN_CONTINUE;
 
-	char *aname = GET_PNAME_FROM_CHANNEL(chan);
+	char *pname = GET_PNAME_FROM_CHANNEL(chan);
+	char *aname = GET_ANAME_FROM_CHANNEL(chan);
 	char *uname = GET_UIN_FROM_USER(user);
 
 	bool admin = false;
 	if (GET_USER_ADMIN(user)) admin = true;
 	
-	lcs_app_onleft(g_ape, aname, uname, admin, chan);
+	lcs_app_onleft(g_ape, pname, uname, admin, chan);
 
 	/*
 	 * this can be done in userLeft JSF event
