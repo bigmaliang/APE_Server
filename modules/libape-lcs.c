@@ -536,6 +536,7 @@ static unsigned int lcs_joinb(callbackp *callbacki)
 
 	JNEED_STR(callbacki->param, "aname", aname, RETURN_BAD_PARAMS);
 	JNEED_STR(callbacki->param, "masn", masn, RETURN_BAD_PARAMS);
+	neos_unescape(aname, strlen(aname), '%');
 
 	/*
 	 * statistics
