@@ -315,6 +315,7 @@ void left(USERS *user, CHANNEL *chan, acetables *g_ape) // Vider la liste chainé
 			
 			newraw = forge_raw(RAW_LEFT, jlist);
 			post_raw(newraw, user, g_ape);
+			POSTRAW_DONE(newraw);
 			
 			if (prev != NULL) {
 				prev->next = list->next;
