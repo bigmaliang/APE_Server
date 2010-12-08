@@ -258,7 +258,7 @@ static void tick_static(acetables *g_ape, int lastcall)
 	st->num_user = 0;
 	hashtbl_empty(GET_ONLINE_TBL(g_ape), NULL);
 
-	AEVENT_TRIGGER_VOID(evt, NULL, REQ_CMD_STAT, FLAGS_NONE);
+	MEVENT_TRIGGER_VOID(evt, NULL, REQ_CMD_STAT, FLAGS_NONE);
 }
 
 /*
@@ -436,7 +436,7 @@ static unsigned int lcs_visit(callbackp *callbacki)
 	hdf_set_int_value(evt->hdfsnd, "jid", jid);
 	hdf_set_value(evt->hdfsnd, "url", url);
 	hdf_set_value(evt->hdfsnd, "title", title);
-	AEVENT_TRIGGER_NRET(evt, NULL, REQ_CMD_VISITSET, FLAGS_NONE);
+	MEVENT_TRIGGER_NRET(evt, NULL, REQ_CMD_VISITSET, FLAGS_NONE);
 
 	lcs_user_action_notice(callbacki->g_ape, callbacki->call_user, aname,
 						   "visit", url, title, NULL, (char*)callbacki->ip);
