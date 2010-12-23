@@ -268,7 +268,6 @@ static unsigned int lcs_join(callbackp *callbacki)
 {
 	char *uname, *aname, *secy;
 	int utime;
-	unsigned int jid;
 	appBar *abar;
 	
 	USERS *user = callbacki->call_user;
@@ -278,7 +277,6 @@ static unsigned int lcs_join(callbackp *callbacki)
 	stLcs *st = GET_LCS_STAT(callbacki->g_ape);
 
 	char *oname = NULL, *url, *title, *ref = NULL;
-	char tok[128];
 
 	bool oname_needfree = true;
 
@@ -294,8 +292,6 @@ static unsigned int lcs_join(callbackp *callbacki)
 	JNEED_INT(callbacki->param, "utime", utime, RETURN_BAD_PARAMS);
 	JNEED_STR(callbacki->param, "url", url, RETURN_BAD_PARAMS);
 	JNEED_STR(callbacki->param, "title", title, RETURN_BAD_PARAMS);
-	//url = JGET_STR(callbacki->param, "url");
-	//title = JGET_STR(callbacki->param, "title");
 	uname = GET_UIN_FROM_USER(user);
 
 	/*
@@ -353,8 +349,8 @@ static unsigned int lcs_join(callbackp *callbacki)
 	/*
 	 * get user joined channel last time, and try to join again
 	 */
-	jid = lcs_user_join_get(callbacki->g_ape, uname, aname, &oname);
-	if (jid > 0) {
+	oname = lcs_get_admin(callbacki->g_ape, uname, aname);
+	if (oname) {
 		chan = getchanf(callbacki->g_ape, LCS_PIP_NAME"%s", oname);
 		/*
 		 * no admins on, join last admin's channel
@@ -367,8 +363,6 @@ static unsigned int lcs_join(callbackp *callbacki)
 		}
 		if (chan) {
 			join(user, chan, callbacki->g_ape);
-			sprintf(tok, "%u", jid);
-			ADD_JID_FOR_USER(user, tok);
 			goto done;
 		}
 	}
@@ -391,9 +385,8 @@ static unsigned int lcs_join(callbackp *callbacki)
 	/*
 	 * user joined my site.
 	 */
-	jid = lcs_user_join_set(callbacki, aname, uname, oname, url, title, ref, errcode);
-	sprintf(tok, "%u", jid);
-	ADD_JID_FOR_USER(user, tok);
+	lcs_add_track(callbacki->g_ape, aname, uname, oname,
+				  (char*)callbacki->ip, url, title, ref, TYPE_JOIN);
 
 done:
 	if (errcode != 0) {
@@ -403,12 +396,12 @@ done:
 		 * add user to chatlist
 		 * keep it track with oname, or aname when oname NULL
 		 */
-		if (!(hdf_get_int_value(apphdf, "tune", 0) & LCS_TUNE_QUIET) ||
-			(utime >= 2)) {
-			lcs_user_remember_me(callbacki, uname, oname ? oname: aname);
+		if ( (utime == 1 &&
+			  !(hdf_get_int_value(apphdf, "tune", 0) & LCS_TUNE_QUIET)) ||
+			 utime == 2) {
+			lcs_remember_user(callbacki, uname, oname ? oname: aname);
 		}
 	}
-
 
 	lcs_user_action_notice(callbacki->g_ape, callbacki->call_user,
 						   oname ? oname: aname,
@@ -423,21 +416,15 @@ done:
 static unsigned int lcs_visit(callbackp *callbacki)
 {
 	char *aname, *url, *title;
-	unsigned int jid;
+	char *uname = GET_UIN_FROM_USER(callbacki->call_user);
 	
-	mevent_t *evt = (mevent_t*)hashtbl_seek(GET_EVENT_TBL(callbacki->g_ape), "dyn");
-	if (!evt) return (RETURN_NOTHING);
-	
-	JNEED_UINT(callbacki->param, "jid", jid, RETURN_BAD_PARAMS);
+	JNEED_STR(callbacki->param, "aname", aname, RETURN_BAD_PARAMS);
 	JNEED_STR(callbacki->param, "url", url, RETURN_BAD_PARAMS);
 	JNEED_STR(callbacki->param, "title", title, RETURN_BAD_PARAMS);
-	JNEED_STR(callbacki->param, "aname", aname, RETURN_BAD_PARAMS);
 
-	hdf_set_int_value(evt->hdfsnd, "jid", jid);
-	hdf_set_value(evt->hdfsnd, "url", url);
-	hdf_set_value(evt->hdfsnd, "title", title);
-	MEVENT_TRIGGER_NRET(evt, NULL, REQ_CMD_VISITSET, FLAGS_NONE);
-
+	lcs_add_track(callbacki->g_ape, aname, uname, NULL,
+				  (char*)callbacki->ip, url, title, NULL, TYPE_VISIT);
+	
 	lcs_user_action_notice(callbacki->g_ape, callbacki->call_user, aname,
 						   "visit", url, title, NULL, (char*)callbacki->ip);
 	

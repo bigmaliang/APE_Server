@@ -63,17 +63,6 @@ void abar_free(void *p);
 /*
  * USER PROPERTIES
  */
-#define ADD_JID_FOR_USER(user, jid)								\
-	do {														\
-		if (get_property(user->properties, "jid") == NULL) {	\
-			add_property(&user->properties, "jid", jid,	NULL,	\
-						 EXTEND_STR, EXTEND_ISPUBLIC);			\
-		}														\
-	} while (0)
-#define GET_JID_FROM_USER(user)									\
-	(get_property(user->properties, "jid") != NULL ?			\
-	 (char*)get_property(user->properties, "jid")->val: NULL)
-
 #define SET_USER_ADMIN(user)										\
 	do {															\
 		if (get_property(user->properties, "isadmin") == NULL) {	\

@@ -36,7 +36,7 @@ HDF* lcs_app_info(acetables *g_ape, char *aname)
 	return hdf;
 }
 
-int lcs_user_join_get(acetables *g_ape, char *uname, char *aname, char **oname)
+char* lcs_get_admin(acetables *g_ape, char *uname, char *aname)
 {
 	HTBL *etbl = GET_EVENT_TBL(g_ape);
 	mevent_t *evt = (mevent_t*)hashtbl_seek(etbl, "dyn");
@@ -44,55 +44,50 @@ int lcs_user_join_get(acetables *g_ape, char *uname, char *aname, char **oname)
 
 	hdf_set_value(evt->hdfsnd, "uname", uname);
 	hdf_set_value(evt->hdfsnd, "aname", aname);
-	MEVENT_TRIGGER(0, evt, uname, REQ_CMD_JOINGET, FLAGS_SYNC);
+	MEVENT_TRIGGER(0, evt, uname, REQ_CMD_GETADMIN, FLAGS_SYNC);
 
-	HDF *node = hdf_get_obj(evt->hdfrcv, "0");
-	char *s;
-	while (node) {
-		s = hdf_get_value(node, "oname", NULL);
-		if (s && *s) {
-			*oname = strdup(s);
-			return hdf_get_int_value(node, "id", 0);
-		}
-		node = hdf_obj_next(node);
-	}
+	char *oname = hdf_get_value(evt->hdfrcv, "oname", NULL);
 
-	return 0;
+	if (oname) oname = strdup(oname);
+	return oname;
 }
 
-unsigned int lcs_user_join_set(callbackp *callbacki, char *aname,
-							   char *uname, char *oname,
-							   char *url, char *title, char *ref, int retcode)
-{
-	HTBL *etbl = GET_EVENT_TBL(callbacki->g_ape);
-	mevent_t *evt = (mevent_t*)hashtbl_seek(etbl, "dyn");
-	if (!evt) return 0;
-	
-	if (!callbacki || !aname || !uname) return 0;
-
-	hdf_set_value(evt->hdfsnd, "uname", uname);
-	hdf_set_value(evt->hdfsnd, "aname", aname);
-	hdf_set_value(evt->hdfsnd, "oname", oname);
-	hdf_set_value(evt->hdfsnd, "ip", callbacki->ip);
-	hdf_set_value(evt->hdfsnd, "refer", ref ? ref : "");
-	hdf_set_value(evt->hdfsnd, "url", url);
-	hdf_set_value(evt->hdfsnd, "title", title);
-	hdf_set_int_value(evt->hdfsnd, "retcode", retcode);
-	MEVENT_TRIGGER(0, evt, uname, REQ_CMD_JOINSET, FLAGS_SYNC);
-	
-	return hdf_get_int_value(evt->hdfrcv, "id", 0);
-}
-
-void lcs_user_remember_me(callbackp *callbacki, char *uname, char *aname)
+void lcs_remember_user(callbackp *callbacki, char *uname, char *aname)
 {
 	HTBL *etbl = GET_EVENT_TBL(callbacki->g_ape);
 	mevent_t *evt = (mevent_t*)hashtbl_seek(etbl, "aic");
-	if (!evt) return;
+	mevent_t *evtp = (mevent_t*)hashtbl_seek(etbl, "place");
+	if (!evt || !evtp) return;
+
+	hdf_set_value(evtp->hdfsnd, "ip", callbacki->ip);
+	MEVENT_TRIGGER_VOID(evtp, (char*)callbacki->ip, REQ_CMD_PLACEGET, FLAGS_SYNC);
+	char *city = hdf_get_valuef(evtp->hdfrcv, "%s.c", callbacki->ip);
+	if (!city) city = "Mars";
 
 	hdf_set_value(evt->hdfsnd, "uname", uname);
 	hdf_set_value(evt->hdfsnd, "aname", aname);
 	hdf_set_value(evt->hdfsnd, "ip", callbacki->ip);
+	hdf_set_value(evt->hdfsnd, "addr", city);
 	MEVENT_TRIGGER_VOID(evt, uname, REQ_CMD_APPUSERIN, FLAGS_NONE);
+}
+
+void lcs_add_track(acetables *g_ape, char *aname, char *uname, char *oname,
+				   char *ip, char *url, char *title, char *refer, int type)
+{
+	HTBL *etbl = GET_EVENT_TBL(g_ape);
+	mevent_t *evt = (mevent_t*)hashtbl_seek(etbl, "dyn");
+	if (!evt) return;
+
+	hdf_set_value(evt->hdfsnd, "aname", aname);
+	hdf_set_value(evt->hdfsnd, "uname", uname);
+	hdf_set_value(evt->hdfsnd, "oname", oname);
+	hdf_set_value(evt->hdfsnd, "ip", ip);
+	hdf_set_value(evt->hdfsnd, "url", url);
+	hdf_set_value(evt->hdfsnd, "title", title);
+	if (refer) hdf_set_value(evt->hdfsnd, "refer", refer);
+	hdf_set_int_value(evt->hdfsnd, "type", type);
+	
+	MEVENT_TRIGGER_VOID(evt, uname, REQ_CMD_ADDTRACK, FLAGS_NONE);
 }
 
 void lcs_set_msg(acetables *g_ape, char *msg, char *from, char *to, int type)
