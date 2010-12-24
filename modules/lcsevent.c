@@ -44,7 +44,7 @@ char* lcs_get_admin(acetables *g_ape, char *uname, char *aname)
 
 	hdf_set_value(evt->hdfsnd, "uname", uname);
 	hdf_set_value(evt->hdfsnd, "aname", aname);
-	MEVENT_TRIGGER(0, evt, uname, REQ_CMD_GETADMIN, FLAGS_SYNC);
+	MEVENT_TRIGGER(NULL, evt, uname, REQ_CMD_GETADMIN, FLAGS_SYNC);
 
 	char *oname = hdf_get_value(evt->hdfrcv, "oname", NULL);
 
@@ -61,8 +61,7 @@ void lcs_remember_user(callbackp *callbacki, char *uname, char *aname)
 
 	hdf_set_value(evtp->hdfsnd, "ip", callbacki->ip);
 	MEVENT_TRIGGER_VOID(evtp, (char*)callbacki->ip, REQ_CMD_PLACEGET, FLAGS_SYNC);
-	char *city = hdf_get_valuef(evtp->hdfrcv, "%s.c", callbacki->ip);
-	if (!city) city = "Mars";
+	char *city = hdf_get_value(evtp->hdfrcv, "0.c", "Mars");
 
 	hdf_set_value(evt->hdfsnd, "uname", uname);
 	hdf_set_value(evt->hdfsnd, "aname", aname);
