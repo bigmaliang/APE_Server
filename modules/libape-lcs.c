@@ -415,14 +415,15 @@ done:
 
 static unsigned int lcs_visit(callbackp *callbacki)
 {
-	char *aname, *url, *title;
+	char *aname, *pname, *url, *title;
 	char *uname = GET_UIN_FROM_USER(callbacki->call_user);
 	
 	JNEED_STR(callbacki->param, "aname", aname, RETURN_BAD_PARAMS);
+	JNEED_STR(callbacki->param, "pname", pname, RETURN_BAD_PARAMS);
 	JNEED_STR(callbacki->param, "url", url, RETURN_BAD_PARAMS);
 	JNEED_STR(callbacki->param, "title", title, RETURN_BAD_PARAMS);
-
-	lcs_add_track(callbacki->g_ape, aname, uname, NULL,
+	
+	lcs_add_track(callbacki->g_ape, pname, uname, NULL,
 				  (char*)callbacki->ip, url, title, NULL, TYPE_VISIT);
 	
 	lcs_user_action_notice(callbacki->g_ape, callbacki->call_user, aname,
