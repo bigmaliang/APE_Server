@@ -423,7 +423,7 @@ static unsigned int lcs_visit(callbackp *callbacki)
 	JNEED_STR(callbacki->param, "url", url, RETURN_BAD_PARAMS);
 	JNEED_STR(callbacki->param, "title", title, RETURN_BAD_PARAMS);
 	
-	lcs_add_track(callbacki->g_ape, pname, uname, NULL,
+	lcs_add_track(callbacki->g_ape, pname, uname, aname,
 				  (char*)callbacki->ip, url, title, NULL, TYPE_VISIT);
 	
 	lcs_user_action_notice(callbacki->g_ape, callbacki->call_user, aname,
