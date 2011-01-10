@@ -365,6 +365,8 @@ static unsigned int lcs_join(callbackp *callbacki)
 			join(user, chan, callbacki->g_ape);
 			goto done;
 		}
+	} else {
+		SET_USER_FRESH(user);
 	}
 		
 	/*
@@ -458,6 +460,12 @@ static unsigned int lcs_send(callbackp *callbacki)
 			newraw = forge_raw("RAW_RECENTLY", jlist);
 			lcs_set_msg(callbacki->g_ape, newraw->data, from, uname, MSG_TYPE_SEND);
 			POSTRAW_DONE(newraw);
+			/*
+			 * remember fresh user who said
+			 */
+			if (GET_USER_FRESH(user)) {
+				lcs_remember_user(callbacki, from, uname);
+			}
 		} else {
 			alog_err("get uname failure");
 			hn_senderr_sub(callbacki, 120, "ERR_UNAME_NEXIST");
@@ -516,8 +524,16 @@ static unsigned int lcs_msg(callbackp *callbacki)
 			c = abar_new();
 			hashtbl_append(GET_ABAR_TBL(callbacki->g_ape), uname, c);
 		}
-		if (c && queue_find(c->dirtyusers, from, hn_str_cmp) == -1)
+		if (c && queue_find(c->dirtyusers, from, hn_str_cmp) == -1) {
 			queue_push_head(c->dirtyusers, strdup(from));
+		}
+
+		/*
+		 * remember fresh user who said
+		 */
+		if (GET_USER_FRESH(user)) {
+			lcs_remember_user(callbacki, from, uname);
+		}
 	}
 	
 	return (RETURN_NOTHING);

@@ -40,7 +40,7 @@ char* lcs_get_admin(acetables *g_ape, char *uname, char *aname)
 {
 	HTBL *etbl = GET_EVENT_TBL(g_ape);
 	mevent_t *evt = (mevent_t*)hashtbl_seek(etbl, "dyn");
-	if (!evt) return 0;
+	if (!evt) return NULL;
 
 	hdf_set_value(evt->hdfsnd, "uname", uname);
 	hdf_set_value(evt->hdfsnd, "aname", aname);
