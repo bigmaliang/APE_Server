@@ -219,16 +219,14 @@ static void lcs_user_action_notice(acetables *g_ape, USERS *user, char *aname,
 	lcs_set_msg(g_ape, newraw->data, from, aname, type);
 	POSTRAW_DONE(newraw);
 
-	if (!auser) {
-		appBar *c = lcs_app_bar(g_ape, aname);
-		if (!c) {
-			c = abar_new();
-			hashtbl_append(GET_ABAR_TBL(g_ape), aname, c);
-		}
-		if (c && queue_find(c->dirtyusers, from, hn_str_cmp) == -1) {
-			queue_push_head(c->dirtyusers, strdup(from));
-		}
-	}
+	/*
+	 * don't update dirtyusers here,
+	 * because if (fromIsFresh && !said)
+	 *   we can't display there area and can't delete them
+	 *     (we hasn't remember them yet)
+	 * else if (!fromIsFresh), who care there visit? we dirtied them in send and msg.
+	 * TODO we can remember the number of dry-visited-users for future use.
+	 */
 }
 
 static void tick_static(acetables *g_ape, int lastcall)
@@ -527,7 +525,6 @@ static unsigned int lcs_msg(callbackp *callbacki)
 		if (c && queue_find(c->dirtyusers, from, hn_str_cmp) == -1) {
 			queue_push_head(c->dirtyusers, strdup(from));
 		}
-
 		/*
 		 * remember fresh user who said
 		 */

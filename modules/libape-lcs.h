@@ -70,9 +70,9 @@ void abar_free(void *p);
 						 EXTEND_STR, EXTEND_ISPUBLIC);				\
 		}															\
 	} while (0)
-#define GET_USER_ADMIN(g_ape)										\
-	(get_property(g_ape->properties, "isadmin") != NULL ?			\
-	 (char*)get_property(g_ape->properties, "isadmin")->val: NULL)
+#define GET_USER_ADMIN(user)										\
+	(get_property(user->properties, "isadmin") != NULL ?			\
+	 (char*)get_property(user->properties, "isadmin")->val: NULL)
 
 #define SET_USER_FRESH(user)										\
 	do {															\
@@ -81,9 +81,9 @@ void abar_free(void *p);
 						 EXTEND_STR, EXTEND_ISPUBLIC);				\
 		}															\
 	} while (0)
-#define GET_USER_FRESH(g_ape)										\
-	(get_property(g_ape->properties, "fresh") != NULL ?				\
-	 (char*)get_property(g_ape->properties, "fresh")->val: NULL)
+#define GET_USER_FRESH(user)									\
+	(get_property(user->properties, "fresh") != NULL ?			\
+	 (char*)get_property(user->properties, "fresh")->val: NULL)
 
 
 
