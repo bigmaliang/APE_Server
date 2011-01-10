@@ -169,6 +169,9 @@ void json_aff(json_item *cx, int depth);
 #define JGET_STR(item, key)												\
 	(char *)(item != NULL && (json_lookup(item, key)) != NULL ? json_lookup(item, key)->jval.vu.str.value : NULL)
 
+#define JGET_INT(item, key)						\
+	(item != NULL && (json_lookup(item, key)) != NULL ? json_lookup(item, key)->jval.vu.integer_value : 0)
+
 #define JNEED_STR(item, key, val, ret)						\
 	do {													\
 		if (item == NULL || json_lookup(item, key) == NULL || json_lookup(item, key)->jval.vu.str.value == NULL) \
