@@ -491,9 +491,11 @@ static unsigned int lcs_msg(callbackp *callbacki)
 	RAW *newraw;
 	USERS *user = callbacki->call_user;
 	char *from = GET_UIN_FROM_USER(user);
+	int admin = 0;
 
 	JNEED_STR(callbacki->param, "uname", uname, RETURN_BAD_PARAMS);
 	JNEED_STR(callbacki->param, "msg", msg, RETURN_BAD_PARAMS);
+	admin = JGET_INT(callbacki->param, "imAdmin");
 
 	jlist = json_new_object();
 	json_set_property_strZ(jlist, "type", "msg");
@@ -505,13 +507,18 @@ static unsigned int lcs_msg(callbackp *callbacki)
 	lcs_set_msg(callbacki->g_ape, newraw->data, from, uname, MSG_TYPE_OFFLINE_MSG);
 	POSTRAW_DONE(newraw);
 
-	appBar *c = lcs_app_bar(callbacki->g_ape, uname);
-	if (!c) {
-		c = abar_new();
-		hashtbl_append(GET_ABAR_TBL(callbacki->g_ape), uname, c);
+	/*
+	 * just update uname's dirtyusers for camer msg not admin, avoid mem leak
+	 */
+	if (admin == 0) {
+		appBar *c = lcs_app_bar(callbacki->g_ape, uname);
+		if (!c) {
+			c = abar_new();
+			hashtbl_append(GET_ABAR_TBL(callbacki->g_ape), uname, c);
+		}
+		if (c && queue_find(c->dirtyusers, from, hn_str_cmp) == -1)
+			queue_push_head(c->dirtyusers, strdup(from));
 	}
-	if (c && queue_find(c->dirtyusers, from, hn_str_cmp) == -1)
-		queue_push_head(c->dirtyusers, strdup(from));
 	
 	return (RETURN_NOTHING);
 }
@@ -642,21 +649,6 @@ static unsigned int lcs_dearusers(callbackp *callbacki)
 	return (RETURN_NOTHING);
 }
 
-static unsigned int lcs_recently(callbackp *callbacki)
-{
-	char *uname = GET_UIN_FROM_USER(callbacki->call_user);
-	char *otheruin = NULL;
-
-	otheruin = JGET_STR(callbacki->param, "uin");
-	
-	appBar *c = lcs_app_bar(callbacki->g_ape, uname);
-	if (c && otheruin) {
-		queue_remove_entry(c->dirtyusers, otheruin, hn_str_cmp);
-	}
-
-	return cmd_raw_recently(callbacki);
-}
-
 static int lcs_event_onjoin(USERS *user, CHANNEL *chan, acetables *g_ape)
 {
 	if (!user || !chan) return RET_PLUGIN_CONTINUE;
@@ -719,10 +711,8 @@ static void init_module(acetables *g_ape)
 	register_cmd("LCS_SEND", 		lcs_send, 		NEED_SESSID, g_ape);
 	register_cmd("LCS_MSG", 		lcs_msg, 		NEED_SESSID, g_ape);
 	register_cmd("LCS_DEARUSERS",	lcs_dearusers,	NEED_SESSID, g_ape);
-	register_cmd("LCS_RECENTLY",	lcs_recently,	NEED_SESSID, g_ape);
 
 	register_cmd("LCS_JOINB", 		lcs_joinb, 		NEED_SESSID, g_ape);
-	//register_cmd("LCS_JOIN_A", 		lcs_join_a,		NEED_SESSID, g_ape);
 }
 
 static void free_module(acetables *g_ape)
