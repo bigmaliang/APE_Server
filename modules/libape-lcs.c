@@ -461,8 +461,10 @@ static unsigned int lcs_send(callbackp *callbacki)
 			/*
 			 * remember fresh user who said
 			 */
-			if (GET_USER_FRESH(user)) {
+			if (GET_USER_FRESH(callbacki->call_user)) {
 				lcs_remember_user(callbacki, from, uname);
+			} else if (GET_USER_FRESH(user)) {
+				lcs_remember_user(callbacki, uname, from);
 			}
 		} else {
 			alog_err("get uname failure");
@@ -527,12 +529,14 @@ static unsigned int lcs_msg(callbackp *callbacki)
 		}
 		/*
 		 * remember fresh user who said
+		 * unlike send, we just remember camer said instead of (camer-and-admin) said
+		 * because we can't GET_USER_FRESH(offlineUser)
 		 */
 		if (GET_USER_FRESH(user)) {
 			lcs_remember_user(callbacki, from, uname);
 		}
 	}
-	
+
 	return (RETURN_NOTHING);
 }
 
