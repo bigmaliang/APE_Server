@@ -34,6 +34,20 @@ void hn_senderr_sub(callbackp *callbacki, int code, char *msg)
 	POSTRAW_DONE(raw);
 }
 
+void hn_senddata_sub(callbackp *callbacki, int code, char *msg)
+{
+    if (callbacki == NULL || msg == NULL)
+        return;
+    
+    RAW *raw;
+    json_item *ej = json_new_object();
+    json_set_property_intZ(ej, "code", code);
+    json_set_property_strZ(ej, "value", msg);
+    raw = forge_raw(RAW_DATA, ej);
+	post_raw_sub(raw, callbacki->call_subuser, callbacki->g_ape);
+	POSTRAW_DONE(raw);
+}
+
 void hn_senddata(callbackp *callbacki, int code, char *msg)
 {
     if (callbacki == NULL || msg == NULL)

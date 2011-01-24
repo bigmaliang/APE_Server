@@ -18,6 +18,7 @@ typedef struct _anc {
 
 void hn_senderr(callbackp *callbacki, int code, char *msg);
 void hn_senderr_sub(callbackp *callbacki, int code, char *msg);
+void hn_senddata_sub(callbackp *callbacki, int code, char *msg);
 void hn_senddata(callbackp *callbacki, int code, char *msg);
 void hn_sendraw(callbackp *callbacki, char *rawname, char *msg);
 int hn_isvaliduin(char *uin);
@@ -105,6 +106,14 @@ int anchor_cmp(void *a, void *b);
 #define GET_UIN_FROM_USER(user)									\
 	(get_property(user->properties, "uin") != NULL ?			\
 	 (char*)get_property(user->properties, "uin")->val: NULL)
+
+#define GET_VHOST_FROM_USER(user)								\
+	(get_property(user->properties, "vhost") != NULL ?			\
+	 (char*)get_property(user->properties, "vhost")->val: "-1")
+#define INC_VHOST_FOR_USER(user, vhost)						\
+	add_property(&user->properties, "vhost", vhost, NULL,	\
+				 EXTEND_STR, EXTEND_ISPUBLIC);
+
 #define ADD_NICK_FOR_USER(user, nick)							\
 	do {														\
 		if (get_property(user->properties, "nick") == NULL) {	\
