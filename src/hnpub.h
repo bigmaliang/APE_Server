@@ -16,11 +16,14 @@ typedef struct _anc {
 	char *target;
 } anchor;
 
-void hn_senderr(callbackp *callbacki, char *code, char *msg);
-void hn_senderr_sub(callbackp *callbacki, char *code, char *msg);
-void hn_senddata(callbackp *callbacki, char *code, char *msg);
+void hn_senderr(callbackp *callbacki, int code, char *msg);
+void hn_senderr_sub(callbackp *callbacki, int code, char *msg);
+void hn_senddata_sub(callbackp *callbacki, int code, char *msg);
+void hn_senddata(callbackp *callbacki, int code, char *msg);
+void hn_sendraw(callbackp *callbacki, char *rawname, char *msg);
 int hn_isvaliduin(char *uin);
 int hn_str_cmp(void *a, void *b);
+unsigned char *hn_unescape (unsigned char *s, int buflen, char esc_char);
 
 anchor* anchor_new(const char *name, const char *href,
 				   const char *title, const char *target);
@@ -103,6 +106,14 @@ int anchor_cmp(void *a, void *b);
 #define GET_UIN_FROM_USER(user)									\
 	(get_property(user->properties, "uin") != NULL ?			\
 	 (char*)get_property(user->properties, "uin")->val: NULL)
+
+#define GET_VHOST_FROM_USER(user)								\
+	(get_property(user->properties, "vhost") != NULL ?			\
+	 (char*)get_property(user->properties, "vhost")->val: "-1")
+#define INC_VHOST_FOR_USER(user, vhost)						\
+	add_property(&user->properties, "vhost", vhost, NULL,	\
+				 EXTEND_STR, EXTEND_ISPUBLIC);
+
 #define ADD_NICK_FOR_USER(user, nick)							\
 	do {														\
 		if (get_property(user->properties, "nick") == NULL) {	\
@@ -124,5 +135,22 @@ int anchor_cmp(void *a, void *b);
 #define GET_USER_FRIEND_TBL(user)									\
 	(get_property(user->properties, "friend") != NULL ?				\
 	 (HTBL*)get_property(user->properties, "friend")->val: NULL)
+
+
+
+
+/*
+ * EVENT PROPERTIES
+ */
+#define MAKE_EVENT_TBL(g_ape)											\
+	do {																\
+		if (get_property(g_ape->properties, "eventlist") == NULL) {		\
+			add_property(&g_ape->properties, "eventlist", hashtbl_init(), mevent_free, \
+						 EXTEND_HTBL, EXTEND_ISPRIVATE);				\
+		}																\
+	} while (0)
+#define GET_EVENT_TBL(g_ape)											\
+	(get_property(g_ape->properties, "eventlist") != NULL ?				\
+	 (HTBL*)get_property(g_ape->properties, "eventlist")->val: NULL)
 
 #endif

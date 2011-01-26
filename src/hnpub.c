@@ -7,43 +7,69 @@
 #include "hnpub.h"
 #include "utils.h"
 
-void hn_senderr(callbackp *callbacki, char *code, char *msg)
+void hn_senderr(callbackp *callbacki, int code, char *msg)
 {
-    if (callbacki == NULL || code == NULL || msg == NULL)
+    if (callbacki == NULL || msg == NULL)
         return;
     
     RAW *raw;
     json_item *ej = json_new_object();
-    json_set_property_strZ(ej, "code", code);
+    json_set_property_intZ(ej, "code", code);
     json_set_property_strZ(ej, "value", msg);
     raw = forge_raw(RAW_ERR, ej);
     send_raw_inline(callbacki->client, callbacki->transport, raw, callbacki->g_ape);
 }
 
-void hn_senderr_sub(callbackp *callbacki, char *code, char *msg)
+void hn_senderr_sub(callbackp *callbacki, int code, char *msg)
 {
-    if (callbacki == NULL || code == NULL || msg == NULL)
+    if (callbacki == NULL || msg == NULL)
         return;
     
     RAW *raw;
     json_item *ej = json_new_object();
-    json_set_property_strZ(ej, "code", code);
+    json_set_property_intZ(ej, "code", code);
     json_set_property_strZ(ej, "value", msg);
     raw = forge_raw(RAW_ERR, ej);
 	post_raw_sub(raw, callbacki->call_subuser, callbacki->g_ape);
 	POSTRAW_DONE(raw);
 }
 
-void hn_senddata(callbackp *callbacki, char *code, char *msg)
+void hn_senddata_sub(callbackp *callbacki, int code, char *msg)
 {
-    if (callbacki == NULL || code == NULL || msg == NULL)
+    if (callbacki == NULL || msg == NULL)
         return;
     
     RAW *raw;
     json_item *ej = json_new_object();
-    json_set_property_strZ(ej, "code", code);
+    json_set_property_intZ(ej, "code", code);
     json_set_property_strZ(ej, "value", msg);
     raw = forge_raw(RAW_DATA, ej);
+	post_raw_sub(raw, callbacki->call_subuser, callbacki->g_ape);
+	POSTRAW_DONE(raw);
+}
+
+void hn_senddata(callbackp *callbacki, int code, char *msg)
+{
+    if (callbacki == NULL || msg == NULL)
+        return;
+    
+    RAW *raw;
+    json_item *ej = json_new_object();
+    json_set_property_intZ(ej, "code", code);
+    json_set_property_strZ(ej, "value", msg);
+    raw = forge_raw(RAW_DATA, ej);
+    send_raw_inline(callbacki->client, callbacki->transport, raw, callbacki->g_ape);
+}
+
+void hn_sendraw(callbackp *callbacki, char *rawname, char *msg)
+{
+    if (callbacki == NULL || rawname == NULL || msg == NULL)
+        return;
+    
+    RAW *raw;
+    json_item *ej = json_new_object();
+    json_set_property_strZ(ej, "value", msg);
+    raw = forge_raw(rawname, ej);
     send_raw_inline(callbacki->client, callbacki->transport, raw, callbacki->g_ape);
 }
 
@@ -69,6 +95,32 @@ int hn_str_cmp(void *a, void *b)
 	
 	return strcmp(sa, sb);
 }
+
+unsigned char *hn_unescape (unsigned char *s, int buflen, char esc_char)
+{
+  int i = 0, o = 0;
+
+  if (s == NULL) return s;
+  while (i < buflen)
+  {
+    if (s[i] == esc_char && (i+2 < buflen) &&
+	isxdigit(s[i+1]) && isxdigit(s[i+2]))
+    {
+      unsigned char num;
+      num = (s[i+1] >= 'A') ? ((s[i+1] & 0xdf) - 'A') + 10 : (s[i+1] - '0');
+      num *= 16;
+      num += (s[i+2] >= 'A') ? ((s[i+2] & 0xdf) - 'A') + 10 : (s[i+2] - '0');
+      s[o++] = num;
+      i+=3;
+    }
+    else {
+      s[o++] = s[i++];
+    }
+  }
+  if (i && o) s[o] = '\0';
+  return s;
+}
+
 
 /*
  * anchor

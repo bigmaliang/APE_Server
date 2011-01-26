@@ -50,11 +50,10 @@
 	(get_property(g_ape->properties, "raw_recently_index") != NULL ?	\
 	 (HTBL*)get_property(g_ape->properties, "raw_recently_index")->val: NULL)
 
-#define PREOP_RRC_QUEUE(table, hkey)									\
+#define PREOP_RRC_QUEUE(table, key)										\
 	do {																\
-		if (!g_ape || !key || RRC_TYPE_NOK(type) || rrc_max_size[type] <= 0) \
+		if (!g_ape || !key || rrc_max_msg <= 0) \
 			return;														\
-		snprintf(hkey, sizeof(hkey), "%s_%d", key, type);				\
 		table = GET_RRC_QUEUE_TBL(g_ape);								\
 		if (!table)														\
 			return;														\
@@ -76,38 +75,37 @@
 		snprintf(hkey, sizeof(hkey), "%s_%s", to, from);	\
 	}
 
-static int rrc_max_size[RRC_TYPE_MAX];
+static int rrc_max_user = 0;
+static int rrc_max_msg = 0;
 
 /*
  * raw_queue_xxx 
  */
-static void raw_queue_in(acetables *g_ape, RAW *raw, char *key, int type)
+static void raw_queue_in(acetables *g_ape, RAW *raw, char *key)
 {
 	HTBL *table;
-	char hkey[128];
 
 	if (!raw) return;
 	
-	PREOP_RRC_QUEUE(table, hkey);
+	PREOP_RRC_QUEUE(table, key);
 
-	Queue *queue = hashtbl_seek(table, hkey);
+	Queue *queue = hashtbl_seek(table, key);
 	if (!queue) {
-		queue = queue_new(rrc_max_size[type], free_raw);
-		hashtbl_append(table, hkey, queue);
+		queue = queue_new(rrc_max_msg, free_raw);
+		hashtbl_append(table, key, queue);
 	}
 
 	copy_raw_z(raw);
 	queue_fixlen_push_tail(queue, raw);
 }
 
-static void raw_queue_out(acetables *g_ape, USERS *user, char *key, int type)
+static void raw_queue_out(acetables *g_ape, USERS *user, char *key)
 {
 	HTBL *table;
-	char hkey[128];
 
-	PREOP_RRC_QUEUE(table, hkey);
+	PREOP_RRC_QUEUE(table, key);
 	
-	Queue *queue = hashtbl_seek(table, hkey);
+	Queue *queue = hashtbl_seek(table, key);
 	QueueEntry *qe;
 	if (queue) {
 		queue_iterate(queue, qe) {
@@ -116,14 +114,13 @@ static void raw_queue_out(acetables *g_ape, USERS *user, char *key, int type)
 	}
 }
 
-static void raw_queue_out_sub(acetables *g_ape, subuser *sub, char *key, int type)
+static void raw_queue_out_sub(acetables *g_ape, subuser *sub, char *key)
 {
 	HTBL *table;
-	char hkey[128];
 
-	PREOP_RRC_QUEUE(table, hkey);
+	PREOP_RRC_QUEUE(table, key);
 	
-	Queue *queue = hashtbl_seek(table, hkey);
+	Queue *queue = hashtbl_seek(table, key);
 	QueueEntry *qe;
 	if (queue) {
 		queue_iterate(queue, qe) {
@@ -171,22 +168,12 @@ static void rrc_index_update(HTBL *table, char *from, char *to, int max)
  */
 void init_raw_recently(acetables *g_ape)
 {
-	apeconfig *conf = ape_config_get_section(g_ape->srv, "RawRecently");
+	rrc_max_user = atoi(CONFIG_VAL(RawRecently, max_num_user, g_ape->srv));
+	rrc_max_msg = atoi(CONFIG_VAL(RawRecently, max_num_msg, g_ape->srv));
 	
-	if (conf) {
-		struct _apeconfig_def *def = conf->def;
-		int count = 0;
-		while (def != NULL && count < RRC_TYPE_MAX) {
-			if (!strncmp(def->key, "max_size_", strlen("max_size_"))) {
-				rrc_max_size[count++] = atoi(def->val);
-			}
-			def = def->next;
-		}
-		
-		if (count > 0) {
-			ADD_RRC_QUEUE_TBL(g_ape);
-			ADD_RRC_INDEX_TBL(g_ape);
-		}
+	if (rrc_max_user > 0 && rrc_max_msg > 0) {
+		ADD_RRC_QUEUE_TBL(g_ape);
+		ADD_RRC_INDEX_TBL(g_ape);
 	}
 }
 
@@ -198,12 +185,142 @@ void free_raw_recently(acetables *g_ape)
 	del_property(&g_ape->properties, "raw_recently_index");
 }
 
+#if 0
+void load_raw_recently(acetables *g_ape)
+{
+	HTBL *table;
+	int nTok;
+	char *tkn[256], hkey[128], *msgraw, *from, *to;
+
+	HDF *node, *chi;
+	HTBL *etbl = GET_EVENT_TBL(g_ape);
+	mevent_t *evt = (mevent_t*)hashtbl_seek(etbl, "msg");
+	if (!evt) return;
+
+	alog_dbg("load raw recently ...");
+
+	PREOP_RRC_INDEX(table);
+
+	if (PROCESS_NOK(mevent_trigger(evt, NULL, REQ_CMD_INDEXGET, FLAGS_SYNC))) {
+		alog_err("load index error");
+		return;
+	}
+
+	hdf_init(&node);
+	hdf_copy(node, NULL, evt->hdfrcv);
+	node = hdf_get_child(node, "index");
+	while (node) {
+		to = hdf_get_value(node, "msgto", NULL);
+		from = hdf_get_value(node, "msgfrom", NULL);
+		if (!to || !from) goto conti;
+		nTok = explode(';', from, tkn, rrc_max_user);
+		for (int i = 0; i < nTok; i++) {
+			rrc_index_update(table, tkn[i], to, rrc_max_user);
+
+			ASSEM_QUEUE_KEY(hkey, tkn[i], to);
+			hdf_set_value(evt->hdfsnd, "msgkey", hkey);
+			if (PROCESS_OK(mevent_trigger(evt, hkey, REQ_CMD_MSGGET, FLAGS_SYNC))) {
+				chi = hdf_get_child(evt->hdfrcv, "raws");
+				while (chi) {
+					msgraw = hdf_get_value(chi, "msgraw", NULL);
+					if (msgraw) {
+						RAW *new_raw = calloc(1, sizeof(*new_raw));
+						new_raw->len = strlen(msgraw);
+						new_raw->next = NULL;
+						new_raw->priority = RAW_PRI_LO;
+						new_raw->refcount = 0;
+						new_raw->data = strdup(msgraw);
+					
+						raw_queue_in(g_ape, new_raw, hkey);
+					}
+					chi = hdf_obj_next(chi);
+				}
+			}
+		}
+
+	conti:
+		node = hdf_obj_next(node);
+	}
+	hdf_destroy(&node);
+
+	alog_dbg("load raw recently done ...");
+}
+
+void save_raw_recently(acetables *g_ape)
+{
+	HTBL *table;
+	HTBL_ITEM *item;
+	Queue *queue;
+	QueueEntry *qe;
+	char *from, *to, *msg;
+
+	HTBL *etbl = GET_EVENT_TBL(g_ape);
+	mevent_t *evt = (mevent_t*)hashtbl_seek(etbl, "msg");
+	if (!evt) return;
+
+	/* ============================ */
+	alog_dbg("save index table...");
+
+	PREOP_RRC_INDEX(table);
+	item = table->first;
+	
+	STRING str;
+	while (item) {
+		string_init(&str);
+		
+		to = item->key;
+		queue = (Queue*)(item->addrs);
+		if (queue) {
+			queue_iterate(queue, qe) {
+				from = (char*)(qe->data);
+				string_append(&str, from);
+				string_append(&str, ":");
+			}
+			
+			hdf_set_value(evt->hdfsnd, "msgto", to);
+			hdf_set_value(evt->hdfsnd, "msgfrom", str.buf);
+
+			if (PROCESS_NOK(mevent_trigger(evt, to, REQ_CMD_INDEXSET, FLAGS_NONE))) {
+				alog_err("save index failure %d", evt->errcode);
+			}
+		}
+		
+		string_clear(&str);
+		item = item->lnext;
+	}
+	alog_dbg("save index table done");
+
+	/* ============================ */
+	alog_dbg("save queue table...");
+
+	table = GET_RRC_QUEUE_TBL(g_ape);
+	item = table->first;
+	while (item) {
+		queue = (Queue*)(item->addrs);
+		if (queue) {
+			queue_iterate(queue, qe) {
+				msg = (char*)(qe->data);
+				hdf_set_value(evt->hdfsnd, "msgkey", item->key);
+				hdf_set_value(evt->hdfsnd, "msgraw", msg);
+				if (PROCESS_NOK(mevent_trigger(evt, to, REQ_CMD_MSGSET, FLAGS_NONE))) {
+					alog_err("save msg failure %d", evt->errcode);
+				}
+			}
+		}
+
+		item = item->lnext;
+	}
+	
+	alog_dbg("save queue table done");
+}
+#endif
+
 /*
  * push
  */
 void push_raw_recently(acetables *g_ape, RAW *raw, char *key)
 {
-	raw_queue_in(g_ape, raw, key, RRC_TYPE_NORMAL);
+	raw_queue_in(g_ape, raw, key);
 }
 
 void push_raw_recently_byme(acetables *g_ape, RAW *raw, char *from, char *to)
@@ -215,12 +332,11 @@ void push_raw_recently_byme(acetables *g_ape, RAW *raw, char *from, char *to)
 	
 	PREOP_RRC_INDEX(table);
 
-	rrc_index_update(table, from, to,
-					 atoi(CONFIG_VAL(RawRecently, max_num_user, g_ape->srv)));
+	rrc_index_update(table, from, to, rrc_max_user);
 	
 	ASSEM_QUEUE_KEY(hkey, from, to);
 
-	raw_queue_in(g_ape, raw, hkey, RRC_TYPE_MIXED);
+	raw_queue_in(g_ape, raw, hkey);
 }
 
 /*
@@ -230,14 +346,14 @@ void post_raw_recently(acetables *g_ape, USERS *user, char *key)
 {
 	if (!user || !key) return;
 	
-	raw_queue_out(g_ape, user, key, RRC_TYPE_NORMAL);
+	raw_queue_out(g_ape, user, key);
 }
 
 void post_raw_sub_recently(acetables *g_ape, subuser *sub, char *key)
 {
 	if (!sub || !key) return;
 	
-	raw_queue_out_sub(g_ape, sub, key, RRC_TYPE_NORMAL);
+	raw_queue_out_sub(g_ape, sub, key);
 }
 
 void post_raw_recently_byme(acetables *g_ape, USERS *user, char *from, char *to)
@@ -248,7 +364,7 @@ void post_raw_recently_byme(acetables *g_ape, USERS *user, char *from, char *to)
 
 	if (from) {
 		ASSEM_QUEUE_KEY(hkey, from, to);
-		raw_queue_out(g_ape, user, hkey, RRC_TYPE_MIXED);
+		raw_queue_out(g_ape, user, hkey);
 	} else {
 		HTBL *table;
 		
@@ -273,7 +389,7 @@ void post_raw_sub_recently_byme(acetables *g_ape, subuser *sub, char *from, char
 
 	if (from) {
 		ASSEM_QUEUE_KEY(hkey, from, to);
-		raw_queue_out_sub(g_ape, sub, hkey, RRC_TYPE_MIXED);
+		raw_queue_out_sub(g_ape, sub, hkey);
 	} else {
 		HTBL *table;
 		

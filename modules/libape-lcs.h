@@ -61,36 +61,8 @@ void abar_free(void *p);
 
 
 /*
- * EVENT PROPERTIES
- */
-#define MAKE_EVENT_TBL(g_ape)											\
-	do {																\
-		if (get_property(g_ape->properties, "eventlist") == NULL) {		\
-			add_property(&g_ape->properties, "eventlist", hashtbl_init(), mevent_free, \
-						 EXTEND_HTBL, EXTEND_ISPRIVATE);				\
-		}																\
-	} while (0)
-#define GET_EVENT_TBL(g_ape)											\
-	(get_property(g_ape->properties, "eventlist") != NULL ?				\
-	 (HTBL*)get_property(g_ape->properties, "eventlist")->val: NULL)
-
-
-
-
-/*
  * USER PROPERTIES
  */
-#define ADD_JID_FOR_USER(user, jid)								\
-	do {														\
-		if (get_property(user->properties, "jid") == NULL) {	\
-			add_property(&user->properties, "jid", jid,	NULL,	\
-						 EXTEND_STR, EXTEND_ISPUBLIC);			\
-		}														\
-	} while (0)
-#define GET_JID_FROM_USER(user)									\
-	(get_property(user->properties, "jid") != NULL ?			\
-	 (char*)get_property(user->properties, "jid")->val: NULL)
-
 #define SET_USER_ADMIN(user)										\
 	do {															\
 		if (get_property(user->properties, "isadmin") == NULL) {	\
@@ -98,9 +70,20 @@ void abar_free(void *p);
 						 EXTEND_STR, EXTEND_ISPUBLIC);				\
 		}															\
 	} while (0)
-#define GET_USER_ADMIN(g_ape)										\
-	(get_property(g_ape->properties, "isadmin") != NULL ?			\
-	 (char*)get_property(g_ape->properties, "isadmin")->val: NULL)
+#define GET_USER_ADMIN(user)										\
+	(get_property(user->properties, "isadmin") != NULL ?			\
+	 (char*)get_property(user->properties, "isadmin")->val: NULL)
+
+#define SET_USER_FRESH(user)										\
+	do {															\
+		if (get_property(user->properties, "fresh") == NULL) {		\
+			add_property(&user->properties, "fresh", "1",	NULL,	\
+						 EXTEND_STR, EXTEND_ISPUBLIC);				\
+		}															\
+	} while (0)
+#define GET_USER_FRESH(user)									\
+	(get_property(user->properties, "fresh") != NULL ?			\
+	 (char*)get_property(user->properties, "fresh")->val: NULL)
 
 
 

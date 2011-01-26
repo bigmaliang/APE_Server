@@ -28,16 +28,6 @@
 #include "extend.h"
 #include "users.h"
 
-/* raw_recently_type, sync with ape.conf */
-enum {
-	RRC_TYPE_NORMAL = 0,
-	RRC_TYPE_MIXED,
-	RRC_TYPE_MAX
-};
-
-#define RRC_TYPE_OK(type) (type >= 0 && type < RRC_TYPE_MAX)
-#define RRC_TYPE_NOK(type) (type < 0 || type >= RRC_TYPE_MAX)
-
 void init_raw_recently(acetables *g_ape);
 void free_raw_recently(acetables *g_ape);
 

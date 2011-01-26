@@ -1,14 +1,7 @@
 #include "plugins.h"
-#include "global_plugins.h"
+
 #include "libape-lcs.h"
-
-#include "../src/hnpub.h"
-
-#include "mevent.h"
-
-#include "mevent_aic.h"
-#include "mevent_dyn.h"
-#include "mevent_rawdb.h"
+#include "lcsevent.h"
 
 #define MODULE_NAME "lcs"
 
@@ -61,27 +54,6 @@ static void lcs_event_init(acetables *g_ape)
 		}
 		nTok--;
 	}
-}
-
-static HDF* lcs_app_info(callbackp *callbacki, char *aname)
-{
-	HTBL *etbl = GET_EVENT_TBL(callbacki->g_ape);
-	mevent_t *evt = (mevent_t*)hashtbl_seek(etbl, "aic");
-	if (!evt) return NULL;
-	
-	hdf_set_value(evt->hdfsnd, "aname", aname);
-	if (PROCESS_NOK(mevent_trigger(evt, aname, REQ_CMD_APPINFO, FLAGS_SYNC))) {
-		alog_err("get %s stat failure %d", aname, evt->errcode);
-		return NULL;
-	}
-
-	HDF *hdf;
-	hdf_init(&hdf);
-	if (evt->hdfrcv) {
-		hdf_copy(hdf, NULL, evt->hdfrcv);
-	}
-
-	return hdf;
 }
 
 static bool lcs_user_appjoined(USERS *user, char *aname)
@@ -170,7 +142,7 @@ static void lcs_app_onleft(acetables *g_ape, char *aname, char *uname,
 	}
 }
 
-static CHANNEL* lcs_app_get_adminchan(callbackp *callbacki, char *aname)
+static CHANNEL* lcs_app_get_adminchan(callbackp *callbacki, char *aname, char *secy)
 {
 	if (!aname) return NULL;
 
@@ -187,86 +159,18 @@ static CHANNEL* lcs_app_get_adminchan(callbackp *callbacki, char *aname)
 	return getchanf(callbacki->g_ape, LCS_PIP_NAME"%s", admin);
 
 nobody:
-	chan = getchanf(callbacki->g_ape, LCS_PIP_NAME"%s", aname);
+	secy = secy ? secy: aname;
+	chan = getchanf(callbacki->g_ape, LCS_PIP_NAME"%s", secy);
 	if (!chan) {
 		chan = mkchanf(callbacki->g_ape,
-					   CHANNEL_AUTODESTROY, LCS_PIP_NAME"%s", aname);
+					   CHANNEL_AUTODESTROY, LCS_PIP_NAME"%s", secy);
 		if (chan) {
-			ADD_ANAME_FOR_CHANNEL(chan, aname);
+			ADD_ANAME_FOR_CHANNEL(chan, secy);
 			ADD_PNAME_FOR_CHANNEL(chan, aname);
 		}
 	}
 	
 	return chan;
-}
-
-static int lcs_user_join_get(callbackp *callbacki, char *uname, char *aname, char **oname)
-{
-	HTBL *etbl = GET_EVENT_TBL(callbacki->g_ape);
-	mevent_t *evt = (mevent_t*)hashtbl_seek(etbl, "dyn");
-	if (!evt) return 0;
-
-	hdf_set_value(evt->hdfsnd, "uname", uname);
-	hdf_set_value(evt->hdfsnd, "aname", aname);
-	if (PROCESS_NOK(mevent_trigger(evt, uname, REQ_CMD_JOINGET, FLAGS_SYNC))) {
-		alog_err("get %s %s info failure %d", uname, aname, evt->errcode);
-		return 0;
-	}
-
-	HDF *node = hdf_get_obj(evt->hdfrcv, "0");
-	char *s;
-	while (node) {
-		s = hdf_get_value(node, "oname", "");
-		if (strcmp(s, "")) {
-			*oname = strdup(s);
-			return hdf_get_int_value(node, "id", 0);
-		}
-		node = hdf_obj_next(node);
-	}
-
-	return 0;
-}
-
-static unsigned int lcs_user_join_set(callbackp *callbacki, char *aname,
-									  char *uname, char *oname,
-									  char *url, char *title, char *ref, int retcode)
-{
-	HTBL *etbl = GET_EVENT_TBL(callbacki->g_ape);
-	mevent_t *evt = (mevent_t*)hashtbl_seek(etbl, "dyn");
-	if (!evt) return 0;
-	
-	if (!callbacki || !aname || !uname) return 0;
-
-	hdf_set_value(evt->hdfsnd, "uname", uname);
-	hdf_set_value(evt->hdfsnd, "aname", aname);
-	hdf_set_value(evt->hdfsnd, "oname", oname);
-	hdf_set_value(evt->hdfsnd, "ip", callbacki->ip);
-	hdf_set_value(evt->hdfsnd, "refer", ref ? ref : "");
-	hdf_set_value(evt->hdfsnd, "url", url);
-	hdf_set_value(evt->hdfsnd, "title", title);
-
-	hdf_set_int_value(evt->hdfsnd, "retcode", retcode);
-	
-	if (PROCESS_NOK(mevent_trigger(evt, uname, REQ_CMD_JOINSET, FLAGS_SYNC))) {
-		alog_err("set for %s %s failure", uname, aname);
-		return 0;
-	}
-
-	return hdf_get_int_value(evt->hdfrcv, "id", 0);
-}
-
-static void lcs_user_remember_me(callbackp *callbacki, char *uname, char *aname)
-{
-	HTBL *etbl = GET_EVENT_TBL(callbacki->g_ape);
-	mevent_t *evt = (mevent_t*)hashtbl_seek(etbl, "aic");
-	if (!evt) return;
-
-	hdf_set_value(evt->hdfsnd, "uname", uname);
-	hdf_set_value(evt->hdfsnd, "aname", aname);
-	hdf_set_value(evt->hdfsnd, "ip", callbacki->ip);
-	if (PROCESS_NOK(mevent_trigger(evt, uname, REQ_CMD_APPUSERIN, FLAGS_NONE))) {
-		alog_err("remember %s %s failure %d", uname, aname, evt->errcode);
-	}
 }
 
 static void lcs_user_action_notice(acetables *g_ape, USERS *user, char *aname,
@@ -279,6 +183,7 @@ static void lcs_user_action_notice(acetables *g_ape, USERS *user, char *aname,
 	RAW *newraw;
 	USERS *auser = GET_USER_FROM_APE(g_ape, aname);
 	char *from = GET_UIN_FROM_USER(user);
+	int type = MSG_TYPE_UNKNOWN;
 	
 	/*
 	 * send visit to admin
@@ -303,20 +208,25 @@ static void lcs_user_action_notice(acetables *g_ape, USERS *user, char *aname,
 	/*
 	 * push raw history
 	 */
+	if (!strcmp(action, "join")) {
+		type = MSG_TYPE_JOIN;
+	} else if (!strcmp(action, "visit")) {
+		type = MSG_TYPE_VISIT;
+	} else if (!strcmp(action, "left")) {
+		type = MSG_TYPE_LEFT;
+	}
 	newraw = forge_raw("RAW_RECENTLY", jcopy);
-	push_raw_recently_byme(g_ape, newraw, from, aname);
+	lcs_set_msg(g_ape, newraw->data, from, aname, type);
 	POSTRAW_DONE(newraw);
 
-	if (!auser) {
-		appBar *c = lcs_app_bar(g_ape, aname);
-		if (!c) {
-			c = abar_new();
-			hashtbl_append(GET_ABAR_TBL(g_ape), aname, c);
-		}
-		if (c && queue_find(c->dirtyusers, from, hn_str_cmp) == -1) {
-			queue_push_head(c->dirtyusers, strdup(from));
-		}
-	}
+	/*
+	 * don't update dirtyusers here,
+	 * because if (fromIsFresh && !said)
+	 *   we can't display there area and can't delete them
+	 *     (we hasn't remember them yet)
+	 * else if (!fromIsFresh), who care there visit? we dirtied them in send and msg.
+	 * TODO we can remember the number of dry-visited-users for future use.
+	 */
 }
 
 static void tick_static(acetables *g_ape, int lastcall)
@@ -327,7 +237,6 @@ static void tick_static(acetables *g_ape, int lastcall)
 	
     stLcs *st = GET_LCS_STAT(g_ape);
     char sql[1024];
-    int ret;
 
     memset(sql, 0x0, sizeof(sql));
     snprintf(sql, sizeof(sql), "INSERT INTO counter (type, count) "
@@ -346,11 +255,8 @@ static void tick_static(acetables *g_ape, int lastcall)
     hdf_set_value(evt->hdfsnd, "sqls.3", sql);
 	st->num_user = 0;
 	hashtbl_empty(GET_ONLINE_TBL(g_ape), NULL);
-	
-    ret = mevent_trigger(evt, NULL, REQ_CMD_STAT, FLAGS_NONE);
-    if (PROCESS_NOK(ret)) {
-        alog_err("trigger statistic event failure %d", ret);
-    }
+
+	MEVENT_TRIGGER_VOID(evt, NULL, REQ_CMD_STAT, FLAGS_NONE);
 }
 
 /*
@@ -358,20 +264,17 @@ static void tick_static(acetables *g_ape, int lastcall)
  */
 static unsigned int lcs_join(callbackp *callbacki)
 {
-	char *uname, *aname;
+	char *uname, *aname, *secy;
 	int utime;
-	unsigned int jid;
 	appBar *abar;
 	
 	USERS *user = callbacki->call_user;
 	CHANNEL *chan;
 	HDF *apphdf = NULL;
-	char errstr[64];
 	int olnum = 0, errcode = 0, ret;
 	stLcs *st = GET_LCS_STAT(callbacki->g_ape);
 
 	char *oname = NULL, *url, *title, *ref = NULL;
-	char tok[128];
 
 	bool oname_needfree = true;
 
@@ -387,8 +290,6 @@ static unsigned int lcs_join(callbackp *callbacki)
 	JNEED_INT(callbacki->param, "utime", utime, RETURN_BAD_PARAMS);
 	JNEED_STR(callbacki->param, "url", url, RETURN_BAD_PARAMS);
 	JNEED_STR(callbacki->param, "title", title, RETURN_BAD_PARAMS);
-	//url = JGET_STR(callbacki->param, "url");
-	//title = JGET_STR(callbacki->param, "title");
 	uname = GET_UIN_FROM_USER(user);
 
 	/*
@@ -412,7 +313,9 @@ static unsigned int lcs_join(callbackp *callbacki)
 		olnum = queue_length(abar->users);
 	}
 
-	apphdf = lcs_app_info(callbacki, aname);
+	secy = lcs_app_secy(callbacki->g_ape, aname);
+	
+	apphdf = lcs_app_info(callbacki->g_ape, aname);
 	if (!apphdf) {
 		alog_warn("%s info failure", aname);
 		errcode = 111;
@@ -444,8 +347,8 @@ static unsigned int lcs_join(callbackp *callbacki)
 	/*
 	 * get user joined channel last time, and try to join again
 	 */
-	jid = lcs_user_join_get(callbacki, uname, aname, &oname);
-	if (jid > 0) {
+	oname = lcs_get_admin(callbacki->g_ape, uname, aname);
+	if (oname) {
 		chan = getchanf(callbacki->g_ape, LCS_PIP_NAME"%s", oname);
 		/*
 		 * no admins on, join last admin's channel
@@ -458,16 +361,17 @@ static unsigned int lcs_join(callbackp *callbacki)
 		}
 		if (chan) {
 			join(user, chan, callbacki->g_ape);
-			sprintf(tok, "%u", jid);
-			ADD_JID_FOR_USER(user, tok);
 			goto done;
 		}
+	} else {
+		SET_USER_FRESH(user);
 	}
 		
 	/*
 	 * last joined cahnnel donot open, join another
 	 */
-	chan = lcs_app_get_adminchan(callbacki, aname);
+	chan = lcs_app_get_adminchan(callbacki, aname, secy);
+	SFREE(secy);
 	if (chan) {
 		join(user, chan, callbacki->g_ape);
 		SFREE(oname);
@@ -481,25 +385,23 @@ static unsigned int lcs_join(callbackp *callbacki)
 	/*
 	 * user joined my site.
 	 */
-	jid = lcs_user_join_set(callbacki, aname, uname, oname, url, title, ref, errcode);
-	sprintf(tok, "%u", jid);
-	ADD_JID_FOR_USER(user, tok);
+	lcs_add_track(callbacki->g_ape, aname, uname, oname,
+				  (char*)callbacki->ip, url, title, ref, TYPE_JOIN);
 
 done:
 	if (errcode != 0) {
-		sprintf(errstr, "%d", errcode);
-		hn_senderr_sub(callbacki, errstr, "ERR_APP_NPASS");
+		hn_senderr_sub(callbacki, errcode, "ERR_APP_NPASS");
 	} else {
 		/*
 		 * add user to chatlist
 		 * keep it track with oname, or aname when oname NULL
 		 */
-		if (!(hdf_get_int_value(apphdf, "tune", 0) & LCS_TUNE_QUIET) ||
-			(utime >= 2)) {
-			lcs_user_remember_me(callbacki, uname, oname ? oname: aname);
+		if ( (utime == 1 &&
+			  !(hdf_get_int_value(apphdf, "tune", 0) & LCS_TUNE_QUIET)) ||
+			 utime == 2) {
+			lcs_remember_user(callbacki, uname, oname ? oname: aname);
 		}
 	}
-
 
 	lcs_user_action_notice(callbacki->g_ape, callbacki->call_user,
 						   oname ? oname: aname,
@@ -513,25 +415,17 @@ done:
 
 static unsigned int lcs_visit(callbackp *callbacki)
 {
-	char *aname, *url, *title;
-	unsigned int jid;
+	char *aname, *pname, *url, *title;
+	char *uname = GET_UIN_FROM_USER(callbacki->call_user);
 	
-	mevent_t *evt = (mevent_t*)hashtbl_seek(GET_EVENT_TBL(callbacki->g_ape), "dyn");
-	if (!evt) return (RETURN_NOTHING);
-	
-	JNEED_UINT(callbacki->param, "jid", jid, RETURN_BAD_PARAMS);
+	JNEED_STR(callbacki->param, "aname", aname, RETURN_BAD_PARAMS);
+	JNEED_STR(callbacki->param, "pname", pname, RETURN_BAD_PARAMS);
 	JNEED_STR(callbacki->param, "url", url, RETURN_BAD_PARAMS);
 	JNEED_STR(callbacki->param, "title", title, RETURN_BAD_PARAMS);
-	JNEED_STR(callbacki->param, "aname", aname, RETURN_BAD_PARAMS);
-
-	hdf_set_int_value(evt->hdfsnd, "jid", jid);
-	hdf_set_value(evt->hdfsnd, "url", url);
-	hdf_set_value(evt->hdfsnd, "title", title);
 	
-	if (PROCESS_NOK(mevent_trigger(evt, NULL, REQ_CMD_VISITSET, FLAGS_NONE))) {
-		alog_err("report visit failure %d", evt->errcode);
-	}
-
+	lcs_add_track(callbacki->g_ape, pname, uname, aname,
+				  (char*)callbacki->ip, url, title, NULL, TYPE_VISIT);
+	
 	lcs_user_action_notice(callbacki->g_ape, callbacki->call_user, aname,
 						   "visit", url, title, NULL, (char*)callbacki->ip);
 	
@@ -562,11 +456,19 @@ static unsigned int lcs_send(callbackp *callbacki)
 								 callbacki->call_subuser, callbacki->g_ape, true);
 			
 			newraw = forge_raw("RAW_RECENTLY", jlist);
-			push_raw_recently_byme(callbacki->g_ape, newraw, from, uname);
+			lcs_set_msg(callbacki->g_ape, newraw->data, from, uname, MSG_TYPE_SEND);
 			POSTRAW_DONE(newraw);
+			/*
+			 * remember fresh user who said
+			 */
+			if (GET_USER_FRESH(callbacki->call_user)) {
+				lcs_remember_user(callbacki, from, uname);
+			} else if (GET_USER_FRESH(user)) {
+				lcs_remember_user(callbacki, uname, from);
+			}
 		} else {
 			alog_err("get uname failure");
-			hn_senderr_sub(callbacki, "120", "ERR_UNAME_NEXIST");
+			hn_senderr_sub(callbacki, 120, "ERR_UNAME_NEXIST");
 		}
 	} else if (spipe && spipe->type == CHANNEL_PIPE) {
 		CHANNEL *chan = (CHANNEL*)spipe->pipe;
@@ -576,15 +478,15 @@ static unsigned int lcs_send(callbackp *callbacki)
 								 callbacki->call_subuser, callbacki->g_ape, true);
 			
 			newraw = forge_raw("RAW_RECENTLY", jlist);
-			push_raw_recently(callbacki->g_ape, newraw, uname);
+			lcs_set_msg(callbacki->g_ape, newraw->data, from, uname, MSG_TYPE_SEND);
 			POSTRAW_DONE(newraw);
 		} else {
 			alog_warn("%s wan't talk to %s", from, uname);
-			hn_senderr_sub(callbacki, "122", "ERR_NOT_OWNER");
+			hn_senderr_sub(callbacki, 122, "ERR_NOT_OWNER");
 		}
 	} else {
 		alog_err("get pipe failure");
-		hn_senderr_sub(callbacki, "121", "ERR_PIPE_ERROR");
+		hn_senderr_sub(callbacki, 121, "ERR_PIPE_ERROR");
 	}
 
 	return (RETURN_NOTHING);
@@ -597,9 +499,11 @@ static unsigned int lcs_msg(callbackp *callbacki)
 	RAW *newraw;
 	USERS *user = callbacki->call_user;
 	char *from = GET_UIN_FROM_USER(user);
+	int admin = 0;
 
 	JNEED_STR(callbacki->param, "uname", uname, RETURN_BAD_PARAMS);
 	JNEED_STR(callbacki->param, "msg", msg, RETURN_BAD_PARAMS);
+	admin = JGET_INT(callbacki->param, "imAdmin");
 
 	jlist = json_new_object();
 	json_set_property_strZ(jlist, "type", "msg");
@@ -608,12 +512,29 @@ static unsigned int lcs_msg(callbackp *callbacki)
 	json_set_property_strZ(jlist, "to_uin", uname);
 	newraw = forge_raw("RAW_RECENTLY", jlist);
 
-	push_raw_recently_byme(callbacki->g_ape, newraw, from, uname);
+	lcs_set_msg(callbacki->g_ape, newraw->data, from, uname, MSG_TYPE_OFFLINE_MSG);
 	POSTRAW_DONE(newraw);
 
-	appBar *c = lcs_app_bar(callbacki->g_ape, uname);
-	if (c && queue_find(c->dirtyusers, from, hn_str_cmp) == -1) {
-		queue_push_head(c->dirtyusers, strdup(from));
+	/*
+	 * just update uname's dirtyusers for camer msg not admin, avoid mem leak
+	 */
+	if (admin == 0) {
+		appBar *c = lcs_app_bar(callbacki->g_ape, uname);
+		if (!c) {
+			c = abar_new();
+			hashtbl_append(GET_ABAR_TBL(callbacki->g_ape), uname, c);
+		}
+		if (c && queue_find(c->dirtyusers, from, hn_str_cmp) == -1) {
+			queue_push_head(c->dirtyusers, strdup(from));
+		}
+		/*
+		 * remember fresh user who said
+		 * unlike send, we just remember camer said instead of (camer-and-admin) said
+		 * because we can't GET_USER_FRESH(offlineUser)
+		 */
+		if (GET_USER_FRESH(user)) {
+			lcs_remember_user(callbacki, from, uname);
+		}
 	}
 
 	return (RETURN_NOTHING);
@@ -625,12 +546,12 @@ static unsigned int lcs_joinb(callbackp *callbacki)
 	
 	USERS *user = callbacki->call_user;
 	CHANNEL *chan;
-	char errstr[64];
 	int olnum = 0, errcode = 0, ret;
 	stLcs *st = GET_LCS_STAT(callbacki->g_ape);
 
 	JNEED_STR(callbacki->param, "aname", aname, RETURN_BAD_PARAMS);
 	JNEED_STR(callbacki->param, "masn", masn, RETURN_BAD_PARAMS);
+	neos_unescape((UINT8*)aname, strlen(aname), '%');
 
 	/*
 	 * statistics
@@ -644,17 +565,17 @@ static unsigned int lcs_joinb(callbackp *callbacki)
 	/*
 	 * pre join
 	 */
-	HDF *apphdf = lcs_app_info(callbacki, aname);
+	HDF *apphdf = lcs_app_info(callbacki->g_ape, aname);
 	if (!apphdf) {
 		alog_warn("%s info failure", aname);
-		hn_senderr_sub(callbacki, "210", "ERR_APP_INFO");
+		hn_senderr_sub(callbacki, 210, "ERR_APP_INFO");
 		hdf_destroy(&apphdf);
 		return (RETURN_NOTHING);
 	}
 	
 	if (strcmp(hdf_get_value(apphdf, "masn", "NULL"), masn)) {
 		alog_warn("%s attemp illgal login", aname);
-		hn_senderr_sub(callbacki, "211", "ERR_APP_LOGIN");
+		hn_senderr_sub(callbacki, 211, "ERR_APP_LOGIN");
 		hdf_destroy(&apphdf);
 		return (RETURN_NOTHING);
 	}
@@ -665,7 +586,7 @@ static unsigned int lcs_joinb(callbackp *callbacki)
 					   CHANNEL_AUTODESTROY, LCS_PIP_NAME"%s", aname);
 		if (!chan) {
 			alog_err("make channel %s failure", aname);
-			hn_senderr_sub(callbacki, "007", "ERR_MAKE_CHANNEL");
+			hn_senderr_sub(callbacki, 7, "ERR_MAKE_CHANNEL");
 			hdf_destroy(&apphdf);
 			return (RETURN_NOTHING);
 		}
@@ -712,8 +633,7 @@ static unsigned int lcs_joinb(callbackp *callbacki)
 	
 done:
 	if (errcode != 0) {
-		sprintf(errstr, "%d", errcode);
-		hn_senderr_sub(callbacki, errstr, "ERR_APP_NPASS");
+		hn_senderr_sub(callbacki, errcode, "ERR_APP_NPASS");
 	}
 	
 	hdf_destroy(&apphdf);
@@ -734,6 +654,9 @@ static unsigned int lcs_dearusers(callbackp *callbacki)
 			json_set_property_intZ(jdear, uname, 1);
 			json_set_element_obj(jdlist, jdear);
 		}
+		/* reset dirty users. we don't use lcs_recently anymore. */
+		queue_destroy(c->dirtyusers);
+		c->dirtyusers = queue_new(0, free);
 	}
 	
 	RAW *newraw = forge_raw("LCS_DEARUSERS", jdlist);
@@ -743,23 +666,6 @@ static unsigned int lcs_dearusers(callbackp *callbacki)
 	return (RETURN_NOTHING);
 }
 
-static unsigned int lcs_recently(callbackp *callbacki)
-{
-	char *uname = GET_UIN_FROM_USER(callbacki->call_user);
-	char *otheruin;
-	int type;
-
-	JNEED_STR(callbacki->param, "uin", otheruin, RETURN_BAD_PARAMS);
-	JNEED_INT(callbacki->param, "type", type, RETURN_BAD_PARAMS);
-	
-	appBar *c = lcs_app_bar(callbacki->g_ape, uname);
-	if (c && type == RRC_TYPE_MIXED) {
-		queue_remove_entry(c->dirtyusers, otheruin, hn_str_cmp);
-	}
-
-	return cmd_raw_recently(callbacki);
-}
-
 static int lcs_event_onjoin(USERS *user, CHANNEL *chan, acetables *g_ape)
 {
 	if (!user || !chan) return RET_PLUGIN_CONTINUE;
@@ -767,13 +673,13 @@ static int lcs_event_onjoin(USERS *user, CHANNEL *chan, acetables *g_ape)
 	if (strncasecmp(chan->name, LCS_PIP_NAME, strlen(LCS_PIP_NAME)))
 		return RET_PLUGIN_CONTINUE;
 
-	char *aname = GET_PNAME_FROM_CHANNEL(chan);
+	char *pname = GET_PNAME_FROM_CHANNEL(chan);
 	char *uname = GET_UIN_FROM_USER(user);
 
 	bool admin = false;
 	if (GET_USER_ADMIN(user)) admin = true;
 	
-	lcs_app_onjoin(g_ape, aname, uname, admin, chan);
+	lcs_app_onjoin(g_ape, pname, uname, admin, chan);
 
 	return RET_PLUGIN_CONTINUE;
 }
@@ -785,13 +691,14 @@ static int lcs_event_onleft(USERS *user, CHANNEL *chan, acetables *g_ape)
 	if (strncasecmp(chan->name, LCS_PIP_NAME, strlen(LCS_PIP_NAME)))
 		return RET_PLUGIN_CONTINUE;
 
-	char *aname = GET_PNAME_FROM_CHANNEL(chan);
+	char *pname = GET_PNAME_FROM_CHANNEL(chan);
+	char *aname = GET_ANAME_FROM_CHANNEL(chan);
 	char *uname = GET_UIN_FROM_USER(user);
 
 	bool admin = false;
 	if (GET_USER_ADMIN(user)) admin = true;
 	
-	lcs_app_onleft(g_ape, aname, uname, admin, chan);
+	lcs_app_onleft(g_ape, pname, uname, admin, chan);
 
 	/*
 	 * this can be done in userLeft JSF event
@@ -821,10 +728,13 @@ static void init_module(acetables *g_ape)
 	register_cmd("LCS_SEND", 		lcs_send, 		NEED_SESSID, g_ape);
 	register_cmd("LCS_MSG", 		lcs_msg, 		NEED_SESSID, g_ape);
 	register_cmd("LCS_DEARUSERS",	lcs_dearusers,	NEED_SESSID, g_ape);
-	register_cmd("LCS_RECENTLY",	lcs_recently,	NEED_SESSID, g_ape);
 
 	register_cmd("LCS_JOINB", 		lcs_joinb, 		NEED_SESSID, g_ape);
-	//register_cmd("LCS_JOIN_A", 		lcs_join_a,		NEED_SESSID, g_ape);
+}
+
+static void free_module(acetables *g_ape)
+{
+	;
 }
 
 static ace_callbacks callbacks = {
@@ -860,4 +770,4 @@ static ace_callbacks callbacks = {
 	NULL
 };
 
-APE_INIT_PLUGIN(MODULE_NAME, init_module, NULL, callbacks)
+APE_INIT_PLUGIN(MODULE_NAME, init_module, free_module, callbacks)

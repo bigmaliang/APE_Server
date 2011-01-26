@@ -25,12 +25,12 @@ LIB_EVENT = -L ../../moon/lib/mevent -lmevent -l neo_utl
 
 all: modules
 
-modules: libape-spidermonkey.c libape-lcs.c
+modules: libape-spidermonkey.c libape-lcs.c lcsevent.c lcsevent.h
 
 #	$(CC) $(CFLAGS) -Wl,-soname,libmod_spidermonkey.so -o lib/libmod_spidermonkey.so libape-spidermonkey.c -I../deps/js/src/dist/include/ -L../deps/js/src/ -ljs_static -lstdc++ -L./deps/mysac/ -I./deps/mysac/ -lmysac -lmysqlclient_r
 
 #	$(CC) $(CFLAGS) -std=c99 -Wl,-soname,libmod_push.so -o lib/libmod_push.so libape-push.c -I../deps/js/src/dist/include/ -L../deps/js/src/ -ljs_static -lstdc++ -L./deps/mysac/ -I./deps/mysac/ -lmysac -lmysqlclient_r $(INC_EVENT) $(LIB_EVENT)
 #	$(CC) $(CFLAGS) -std=c99 -Wl,-soname,libmod_push.so -o lib/libmod_push.so libape-push.c $(INC_EVENT) $(LIB_EVENT)
 #	$(CC) $(CFLAGS) -std=c99 -Wl,-soname,libmod_fkq.so -o lib/libmod_fkq.so libape-fkq.c $(INC_EVENT) $(LIB_EVENT)
-	$(CC) $(CFLAGS) -std=c99 -Wl,-soname,libmod_lcs.so -o lib/libmod_lcs.so libape-lcs.c $(INC_EVENT) $(LIB_EVENT)
+	$(CC) $(CFLAGS) -std=c99 -Wl,-soname,libmod_lcs.so -o lib/libmod_lcs.so lcsevent.c libape-lcs.c $(INC_EVENT) $(LIB_EVENT)
 endif

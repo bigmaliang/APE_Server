@@ -38,7 +38,7 @@ unsigned int isvalidchan(char *name)
 
 	for (pName = (*name == '*' ? &name[1] : name ); *pName; pName++) {
 		*pName = tolower(*pName);
-		if (*pName == '_' || *pName == '|' || *pName == ':' || *pName == '.') {
+		if (*pName == '_' || *pName == '|' || *pName == ':' || *pName == '.' || *(unsigned char*)pName > 127) {
 			continue;
 		}
 		if (!isalnum(*pName) || ispunct(*pName)) {
@@ -315,6 +315,7 @@ void left(USERS *user, CHANNEL *chan, acetables *g_ape) // Vider la liste chainé
 			
 			newraw = forge_raw(RAW_LEFT, jlist);
 			post_raw(newraw, user, g_ape);
+			POSTRAW_DONE(newraw);
 			
 			if (prev != NULL) {
 				prev->next = list->next;

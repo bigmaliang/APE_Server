@@ -44,6 +44,7 @@
 #include "../src/config.h"
 #include "../src/queue.h"
 #include "../src/list.h"
+#include "../src/hnpub.h"
 
 #include <stdarg.h>
 
@@ -57,7 +58,7 @@ struct _ace_callbacks
 	USERS   *(*c_adduser)(USERS *, acetables *);
 	int      (*c_deluser)(USERS *, int istmp, acetables *);
 	subuser *(*c_addsubuser)(acetables *);
-	void     (*c_delsubuser)(subuser *, acetables *);
+	int      (*c_delsubuser)(subuser *, acetables *);
 	
 	int      (*c_post_raw_sub)(RAW *, subuser *, acetables *);
 	CHANNEL *(*c_mkchan)(char *, int, acetables *);

@@ -243,7 +243,6 @@ int process_cmd(json_item *ijson, struct _cmd_process *pc, subuser **iuser, acet
 		
 		/* Little hack to access user object on connect hook callback (preallocate an user) */
 		if (strncasecmp(cp.cmd, "CONNECT", 7) == 0 && cp.cmd[7] == '\0') {
-		//if (strncasecmp(cp.cmd, "CONNECT", 7) == 0 || strncasecmp(cp.cmd, "FKQ_INIT", 8) == 0) {
 			pc->guser = cp.call_user = adduser(cp.client, cp.host, cp.ip, NULL, g_ape);
 			pc->guser->transport = pc->transport;
 			sub = cp.call_subuser = cp.call_user->subuser;
@@ -387,27 +386,59 @@ unsigned int checkcmd(clientget *cget, transport_t transport, subuser **iuser, a
 unsigned int cmd_connect(callbackp *callbacki)
 {
 	USERS *nuser;
+	subuser *sub;
 	RAW *newraw;
 	json_item *jstr = NULL;
 	char *uin;
 	
 	JNEED_STR(callbacki->param, "uin", uin, RETURN_BAD_PARAMS);
+	hn_unescape((unsigned char*)uin, strlen(uin), '%');
 
-	if (GET_USER_FROM_APE(callbacki->g_ape, uin) != NULL) {
-		if (atoi(CONFIG_VAL(Server, enable_user_reconnect,
-							callbacki->g_ape->srv)) == 1) {
-			deluser(GET_USER_FROM_APE(callbacki->g_ape, uin), callbacki->g_ape);
-		} else {
-			hn_senderr(callbacki, "006", "ERR_UIN_USED");
-			return (RETURN_NOTHING);
+	if ((nuser = GET_USER_FROM_APE(callbacki->g_ape, uin)) != NULL) {
+		char *vhost = GET_VHOST_FROM_USER(nuser);
+		char chan[1024];
+		snprintf(chan, sizeof(chan), "%s%s", vhost, callbacki->host);
+		sub = addsubuser(callbacki->client, chan, nuser, callbacki->g_ape);
+		if (sub) {
+			sub->state = ALIVE;
+			subuser_restor(sub, callbacki->g_ape);
+
+			/*
+			 * tell JSF use the newer vitrual host for following request
+			 */
+			json_item *jlist = json_new_object();
+			RAW *newraw;
+
+			json_set_property_strZ(jlist, "sessid", nuser->sessid);
+			newraw = forge_raw(RAW_LOGIN, jlist);
+			post_raw_sub(newraw, sub, callbacki->g_ape);
+			POSTRAW_DONE(newraw);
+			//send_raw_inline(callbacki->client, callbacki->transport, newraw, callbacki->g_ape);
+
+			jlist = json_new_object();
+			json_set_property_strZ(jlist, "value", chan);
+			newraw = forge_raw("RAW_VHOST", jlist);
+			post_raw_sub(newraw, sub, callbacki->g_ape);
+			POSTRAW_DONE(newraw);
+
+			/*
+			 * decrement the vitrual host of nuser
+			 */
+			int v = atoi(vhost);
+			char tok[64];
+			snprintf(tok, sizeof(tok), "%d", v-1);
+			INC_VHOST_FOR_USER(nuser, tok);
 		}
+		
+		return (RETURN_NOTHING);
 	}
+	
+	ADD_UIN_FOR_USER(callbacki->call_user, uin);
 	
 	nuser = adduser(NULL, NULL, NULL, callbacki->call_user, callbacki->g_ape);
 	
 	callbacki->call_user = nuser;
 	
-	ADD_UIN_FOR_USER(nuser, uin);
 	SET_USER_FOR_APE(callbacki->g_ape, uin, nuser);
 
 	subuser_restor(getsubuser(callbacki->call_user, callbacki->host), callbacki->g_ape);
@@ -537,21 +568,14 @@ unsigned int cmd_join(callbackp *callbacki)
 
 unsigned int cmd_raw_recently(callbackp *callbacki)
 {
-	char *uin, *otheruin;
-	int type;
+	char *uin, *otheruin = NULL;
 	USERS *user = callbacki->call_user;
 	subuser *sub = callbacki->call_subuser;
 
 	uin = GET_UIN_FROM_USER(user);
-	JNEED_STR(callbacki->param, "uin", otheruin, RETURN_BAD_PARAMS);
-	JNEED_INT(callbacki->param, "type", type, RETURN_BAD_PARAMS);
+	otheruin = JGET_STR(callbacki->param, "uin");
 
-	if (RRC_TYPE_NOK(type)) {
-		alog_err("type %d illgal", type);
-		return (RETURN_BAD_PARAMS);
-	}
-
-	if (type == RRC_TYPE_MIXED) {
+	if (otheruin) {
 		if (strcmp(otheruin, "0")) {
 			post_raw_sub_recently_byme(callbacki->g_ape,
 									   sub, otheruin, uin);
