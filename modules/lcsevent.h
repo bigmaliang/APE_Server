@@ -12,7 +12,7 @@
 #include "mevent_place.h"
 
 /* TODO hdf_write_string lead mem_leak */
-#define MEVENT_TRIGGER(ret, evt, key, cmd, flags)						\
+#define EVT_LCS_TRIGGER(ret, evt, key, cmd, flags)						\
 	do {																\
 		if (PROCESS_NOK(mevent_trigger(evt, key, cmd, flags))) {		\
 			char *zpa = NULL;											\
@@ -22,7 +22,7 @@
 			return ret;													\
 		}																\
 	} while(0)
-#define MEVENT_TRIGGER_VOID(evt, key, cmd, flags)						\
+#define EVT_LCS_TRIGGER_VOID(evt, key, cmd, flags)						\
 	do {																\
 		if (PROCESS_NOK(mevent_trigger(evt, key, cmd, flags))) {		\
 			char *zpa = NULL;											\
@@ -32,7 +32,7 @@
 			return;														\
 		}																\
 	} while(0)
-#define MEVENT_TRIGGER_NRET(evt, key, cmd, flags)						\
+#define EVT_LCS_TRIGGER_NRET(evt, key, cmd, flags)						\
 	do {																\
 		if (PROCESS_NOK(mevent_trigger(evt, key, cmd, flags))) {		\
 			char *zpa = NULL;											\
@@ -42,14 +42,16 @@
 		}																\
 	} while(0)
 
-char* lcs_app_secy(acetables *g_ape, char *aname);
-HDF* lcs_app_info(acetables *g_ape, char *aname);
+void lcs_event_init(char *evts);
+char* lcs_app_secy(char *aname);
+HDF* lcs_app_info(char *aname);
 
-char* lcs_get_admin(acetables *g_ape, char *uname, char *aname);
-void lcs_remember_user(callbackp *callbacki, char *uname, char *aname);
-void lcs_add_track(acetables *g_ape, char *aname, char *uname, char *oname,
+char* lcs_get_admin(char *uname, char *aname);
+void lcs_remember_user(const char *ip, char *uname, char *aname);
+void lcs_add_track(char *aname, char *uname, char *oname,
 				   char *ip, char *url, char *title, char *refer, int mode);
+void lcs_set_msg(char *msg, char *from, char *to, int type);
 
-void lcs_set_msg(acetables *g_ape, char *msg, char *from, char *to, int type);
+void tick_static(acetables *g_ape, int lastcall);
 
 #endif

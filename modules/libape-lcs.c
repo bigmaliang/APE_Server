@@ -9,7 +9,7 @@ static ace_plugin_infos infos_module = {
 	"\"LiveCS\" system",// Module Name
 	"1.0",				// Module Version
 	"brightMoon",		// Module Author
-	"mod_lcs.conf"		// config file (bin/)
+	"mod_lcs.conf"		// config file
 };
 
 /*
@@ -34,26 +34,6 @@ void abar_free(void *p)
 	queue_destroy(cnum->dirtyusers);
 	
 	SFREE(cnum);
-}
-
-static void lcs_event_init(acetables *g_ape)
-{
-	MAKE_EVENT_TBL(g_ape);
-	HTBL *tbl = GET_EVENT_TBL(g_ape);
-
-	mevent_t *evt;
-	char *s = READ_CONF("event_plugin");
-	char *tkn[10];
-	int nTok = 0;
-	nTok = explode(' ', s, tkn, 10);
-
-	while (nTok >= 0) {
-		evt = mevent_init_plugin(tkn[nTok]);
-		if (evt) {
-			hashtbl_append(tbl, tkn[nTok], (void*)evt);
-		}
-		nTok--;
-	}
 }
 
 static bool lcs_user_appjoined(USERS *user, char *aname)
@@ -216,7 +196,7 @@ static void lcs_user_action_notice(acetables *g_ape, USERS *user, char *aname,
 		type = MSG_TYPE_LEFT;
 	}
 	newraw = forge_raw("RAW_RECENTLY", jcopy);
-	lcs_set_msg(g_ape, newraw->data, from, aname, type);
+	lcs_set_msg(newraw->data, from, aname, type);
 	POSTRAW_DONE(newraw);
 
 	/*
@@ -227,36 +207,6 @@ static void lcs_user_action_notice(acetables *g_ape, USERS *user, char *aname,
 	 * else if (!fromIsFresh), who care there visit? we dirtied them in send and msg.
 	 * TODO we can remember the number of dry-visited-users for future use.
 	 */
-}
-
-static void tick_static(acetables *g_ape, int lastcall)
-{
-	HTBL *etbl = GET_EVENT_TBL(g_ape);
-	mevent_t *evt = (mevent_t*)hashtbl_seek(etbl, "rawdb");
-	if (!evt) return;
-	
-    stLcs *st = GET_LCS_STAT(g_ape);
-    char sql[1024];
-
-    memset(sql, 0x0, sizeof(sql));
-    snprintf(sql, sizeof(sql), "INSERT INTO counter (type, count) "
-             " VALUES (%d, %u);", ST_ONLINE, g_ape->nConnected);
-    hdf_set_value(evt->hdfsnd, "sqls.1", sql);
-	
-    memset(sql, 0x0, sizeof(sql));
-    snprintf(sql, sizeof(sql), "INSERT INTO counter (type, count) "
-             " VALUES (%d, %lu);", ST_MSG_TOTAL, st->msg_total);
-    hdf_set_value(evt->hdfsnd, "sqls.2", sql);
-	st->msg_total = 0;
-	
-    memset(sql, 0x0, sizeof(sql));
-    snprintf(sql, sizeof(sql), "INSERT INTO counter (type, count) "
-             " VALUES (%d, %lu);", ST_NUM_USER, st->num_user);
-    hdf_set_value(evt->hdfsnd, "sqls.3", sql);
-	st->num_user = 0;
-	hashtbl_empty(GET_ONLINE_TBL(g_ape), NULL);
-
-	MEVENT_TRIGGER_VOID(evt, NULL, REQ_CMD_STAT, FLAGS_NONE);
 }
 
 /*
@@ -313,9 +263,9 @@ static unsigned int lcs_join(callbackp *callbacki)
 		olnum = queue_length(abar->users);
 	}
 
-	secy = lcs_app_secy(callbacki->g_ape, aname);
+	secy = lcs_app_secy(aname);
 	
-	apphdf = lcs_app_info(callbacki->g_ape, aname);
+	apphdf = lcs_app_info(aname);
 	if (!apphdf) {
 		alog_warn("%s info failure", aname);
 		errcode = 111;
@@ -347,7 +297,7 @@ static unsigned int lcs_join(callbackp *callbacki)
 	/*
 	 * get user joined channel last time, and try to join again
 	 */
-	oname = lcs_get_admin(callbacki->g_ape, uname, aname);
+	oname = lcs_get_admin(uname, aname);
 	if (oname) {
 		chan = getchanf(callbacki->g_ape, LCS_PIP_NAME"%s", oname);
 		/*
@@ -385,7 +335,7 @@ static unsigned int lcs_join(callbackp *callbacki)
 	/*
 	 * user joined my site.
 	 */
-	lcs_add_track(callbacki->g_ape, aname, uname, oname,
+	lcs_add_track(aname, uname, oname,
 				  (char*)callbacki->ip, url, title, ref, TYPE_JOIN);
 
 done:
@@ -399,7 +349,7 @@ done:
 		if ( (utime == 1 &&
 			  !(hdf_get_int_value(apphdf, "tune", 0) & LCS_TUNE_QUIET)) ||
 			 utime == 2) {
-			lcs_remember_user(callbacki, uname, oname ? oname: aname);
+			lcs_remember_user(callbacki->ip, uname, oname ? oname: aname);
 		}
 	}
 
@@ -423,7 +373,7 @@ static unsigned int lcs_visit(callbackp *callbacki)
 	JNEED_STR(callbacki->param, "url", url, RETURN_BAD_PARAMS);
 	JNEED_STR(callbacki->param, "title", title, RETURN_BAD_PARAMS);
 	
-	lcs_add_track(callbacki->g_ape, pname, uname, aname,
+	lcs_add_track(pname, uname, aname,
 				  (char*)callbacki->ip, url, title, NULL, TYPE_VISIT);
 	
 	lcs_user_action_notice(callbacki->g_ape, callbacki->call_user, aname,
@@ -456,15 +406,15 @@ static unsigned int lcs_send(callbackp *callbacki)
 								 callbacki->call_subuser, callbacki->g_ape, true);
 			
 			newraw = forge_raw("RAW_RECENTLY", jlist);
-			lcs_set_msg(callbacki->g_ape, newraw->data, from, uname, MSG_TYPE_SEND);
+			lcs_set_msg(newraw->data, from, uname, MSG_TYPE_SEND);
 			POSTRAW_DONE(newraw);
 			/*
 			 * remember fresh user who said
 			 */
 			if (GET_USER_FRESH(callbacki->call_user)) {
-				lcs_remember_user(callbacki, from, uname);
+				lcs_remember_user(callbacki->ip, from, uname);
 			} else if (GET_USER_FRESH(user)) {
-				lcs_remember_user(callbacki, uname, from);
+				lcs_remember_user(callbacki->ip, uname, from);
 			}
 		} else {
 			alog_err("get uname failure");
@@ -478,7 +428,7 @@ static unsigned int lcs_send(callbackp *callbacki)
 								 callbacki->call_subuser, callbacki->g_ape, true);
 			
 			newraw = forge_raw("RAW_RECENTLY", jlist);
-			lcs_set_msg(callbacki->g_ape, newraw->data, from, uname, MSG_TYPE_SEND);
+			lcs_set_msg(newraw->data, from, uname, MSG_TYPE_SEND);
 			POSTRAW_DONE(newraw);
 		} else {
 			alog_warn("%s wan't talk to %s", from, uname);
@@ -512,7 +462,7 @@ static unsigned int lcs_msg(callbackp *callbacki)
 	json_set_property_strZ(jlist, "to_uin", uname);
 	newraw = forge_raw("RAW_RECENTLY", jlist);
 
-	lcs_set_msg(callbacki->g_ape, newraw->data, from, uname, MSG_TYPE_OFFLINE_MSG);
+	lcs_set_msg(newraw->data, from, uname, MSG_TYPE_OFFLINE_MSG);
 	POSTRAW_DONE(newraw);
 
 	/*
@@ -533,7 +483,7 @@ static unsigned int lcs_msg(callbackp *callbacki)
 		 * because we can't GET_USER_FRESH(offlineUser)
 		 */
 		if (GET_USER_FRESH(user)) {
-			lcs_remember_user(callbacki, from, uname);
+			lcs_remember_user(callbacki->ip, from, uname);
 		}
 	}
 
@@ -565,7 +515,7 @@ static unsigned int lcs_joinb(callbackp *callbacki)
 	/*
 	 * pre join
 	 */
-	HDF *apphdf = lcs_app_info(callbacki->g_ape, aname);
+	HDF *apphdf = lcs_app_info(aname);
 	if (!apphdf) {
 		alog_warn("%s info failure", aname);
 		hn_senderr_sub(callbacki, 210, "ERR_APP_INFO");
@@ -720,7 +670,7 @@ static void init_module(acetables *g_ape)
 	MAKE_ONLINE_TBL(g_ape);		/* erased in deluser() */
 	MAKE_ABAR_TBL(g_ape);
 	MAKE_LCS_STAT(g_ape, calloc(1, sizeof(stLcs)));
-	lcs_event_init(g_ape);
+	lcs_event_init(READ_CONF("event_plugin"));
     add_periodical((1000*60*30), 0, tick_static, g_ape, g_ape);
 	
 	register_cmd("LCS_JOIN", 		lcs_join, 		NEED_SESSID, g_ape);
