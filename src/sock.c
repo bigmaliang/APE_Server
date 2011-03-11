@@ -82,7 +82,7 @@ ape_socket *ape_listen(unsigned int port, char *listen_ip, acetables *g_ape)
 	if (bind(sock, (struct sockaddr *)&addr, sizeof(struct sockaddr)) == -1)
 	{
 		alog_err("ape_listen() - bind()");
-		printf("ERREUR: bind(%i) (non-root ?).. (%s line: %i)\n", port, __FILE__, __LINE__);
+		printf("Error: cannot bind to port %i; %s\n", port, strerror(errno));
 		return NULL;
 	}
 
@@ -91,7 +91,7 @@ ape_socket *ape_listen(unsigned int port, char *listen_ip, acetables *g_ape)
 		alog_err("ape_listen() - listen()");
 		return NULL;
 	}
-	
+
 	setnonblocking(sock);
 
 	prepare_ape_socket(sock, g_ape);
@@ -210,6 +210,8 @@ void close_socket(int fd, acetables *g_ape)
 	if (co->parser.data != NULL) {
 		parser_destroy(&co->parser);
 	}
+	
+	events_remove(g_ape->events, fd);
 
 	close(fd);
 }
@@ -268,7 +270,7 @@ unsigned int sockroutine(acetables *g_ape)
 		/* Linux 2.6.25 provides a fd-driven timer system. It could be usefull to implement */
 		int timeout_to_hang = get_first_timer_ms(g_ape);
 		nfds = events_poll(g_ape->events, timeout_to_hang);
-		
+
 		if (nfds < 0) {
 			alog_errlog("events_poll() : ");
 			continue;
@@ -278,7 +280,7 @@ unsigned int sockroutine(acetables *g_ape)
 			for (i = 0; i < nfds; i++) {
 
 				int active_fd = events_get_current_fd(g_ape->events, i);
-				
+
 				if (g_ape->co[active_fd]->stream_type == STREAM_SERVER) {
 					int bitev = events_revent(g_ape->events, i);
 					
@@ -299,7 +301,7 @@ unsigned int sockroutine(acetables *g_ape)
 						if (new_fd == -1) {
 							break;
 						}
-						
+
 						prepare_ape_socket(new_fd, g_ape);
 	
 						strncpy(g_ape->co[new_fd]->ip_client, inet_ntoa(their_addr.sin_addr), 16);
@@ -366,6 +368,7 @@ unsigned int sockroutine(acetables *g_ape)
 
 								close_socket(active_fd, g_ape);
 								tfd--;
+								continue;
 							}							
 						} else if (g_ape->bufout[active_fd].buf != NULL) {
 
@@ -390,6 +393,7 @@ unsigned int sockroutine(acetables *g_ape)
 					}
 
 					if (bitev & EVENT_READ) {
+
 						if (g_ape->co[active_fd]->stream_type == STREAM_DELEGATE) {
 							if (g_ape->co[active_fd]->callbacks.on_read != NULL) {
 								g_ape->co[active_fd]->callbacks.on_read(g_ape->co[active_fd], NULL, 0, g_ape);
@@ -404,7 +408,6 @@ unsigned int sockroutine(acetables *g_ape)
 							readb = read(active_fd, 
 										g_ape->co[active_fd]->buffer_in.data + g_ape->co[active_fd]->buffer_in.length, 
 										g_ape->co[active_fd]->buffer_in.size - g_ape->co[active_fd]->buffer_in.length);
-						
 						
 							if (readb == -1 && errno == EAGAIN) {
 
