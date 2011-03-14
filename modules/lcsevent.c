@@ -120,7 +120,7 @@ void lcs_set_msg(char *msg, char *from, char *to, int type)
 	EVT_LCS_TRIGGER_VOID(evt, to, REQ_CMD_MSGSET, FLAGS_NONE);
 }
 
-void tick_static(acetables *g_ape, int lastcall)
+void lcs_static(acetables *g_ape, int lastcall)
 {
 	mevent_t *evt = (mevent_t*)hashtbl_seek(etbl, "rawdb");
 	if (!evt) return;

@@ -52,6 +52,6 @@ void lcs_add_track(char *aname, char *uname, char *oname,
 				   char *ip, char *url, char *title, char *refer, int mode);
 void lcs_set_msg(char *msg, char *from, char *to, int type);
 
-void tick_static(acetables *g_ape, int lastcall);
+void lcs_static(acetables *g_ape, int lastcall);
 
 #endif
