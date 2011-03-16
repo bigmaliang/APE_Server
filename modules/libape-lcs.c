@@ -671,7 +671,7 @@ static void init_module(acetables *g_ape)
 	MAKE_ABAR_TBL(g_ape);
 	MAKE_LCS_STAT(g_ape, calloc(1, sizeof(stLcs)));
 	lcs_event_init(READ_CONF("event_plugin"));
-    add_periodical((1000*60*30), 0, tick_static, g_ape, g_ape);
+    add_periodical((1000*60*30), 0, lcs_static, g_ape, g_ape);
 	
 	register_cmd("LCS_JOIN", 		lcs_join, 		NEED_SESSID, g_ape);
 	register_cmd("LCS_VISIT", 		lcs_visit, 		NEED_SESSID, g_ape);
