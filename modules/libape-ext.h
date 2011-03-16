@@ -6,6 +6,16 @@ typedef struct {
 	unsigned long num_user;
 } stExt;
 
+#define TRACE_NOK(err)							\
+	if (err != STATUS_OK) {						\
+		STRING zstra;	string_init(&zstra);	\
+		nerr_error_traceback(err, &zstra);		\
+		alog_err("%s", zstra.buf);				\
+		string_clear(&zstra);					\
+		nerr_ignore(&err);						\
+	}
+
+
 /*
  * STATISTIC
  */

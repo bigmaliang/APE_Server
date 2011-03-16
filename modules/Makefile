@@ -20,12 +20,16 @@ CFLAGS = -g -Wall -shared -fPIC -rdynamic
 INC_EVENT = -I ../../moon/lib/mevent -I ../../moon/event/plugin -I /usr/local/include/ClearSilver
 LIB_EVENT = -L ../../moon/lib/mevent -lmevent -l neo_utl
 
+PATH_V = ../../moon/deliver/v/
+INC_V = -I $(PATH_V)
+
 all: modules
 
 modules: libape-spidermonkey.c \
 		 libape-lcs.c lcsevent.c lcsevent.h \
 		 libape-ext.c extevent.c extevent.h
 	$(CC) $(CFLAGS) -std=c99 -Wl,-soname,libmod_lcs.so -o lib/libmod_lcs.so lcsevent.c libape-lcs.c $(INC_EVENT) $(LIB_EVENT)
-	$(CC) $(CFLAGS) -std=c99 -Wl,-soname,libmod_ext.so -o lib/libmod_ext.so extevent.c libape-ext.c $(INC_EVENT) $(LIB_EVENT)
+	$(CC) $(CFLAGS) -std=c99 -Wl,-soname,libmod_ext.so -o lib/libmod_ext.so extsrv.c extevent.c libape-ext.c $(PATH_V)udps.c $(PATH_V)parse.c \
+	$(INC_EVENT) $(LIB_EVENT) $(INC_V)
 
 endif

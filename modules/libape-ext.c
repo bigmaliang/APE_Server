@@ -1,7 +1,8 @@
 #include "plugins.h"
-
 #include "libape-ext.h"
-#include "extevent.h"
+
+#include "extsrv.h"				/* event server */
+#include "extevent.h"			/* event client */
 
 #define MODULE_NAME "ext"
 
@@ -18,7 +19,13 @@ static void init_module(acetables *g_ape)
 	MAKE_ONLINE_TBL(g_ape);		/* erased in deluser() */
 
 	MAKE_EXT_STAT(g_ape, calloc(1, sizeof(stExt)));
+
+	id_v = "ape_ext_v";
+	id_me = READ_CONF("me");
+	ext_s_init(g_ape, READ_CONF("ip"), READ_CONF("port"), READ_CONF("me"));
 	ext_e_init(READ_CONF("event_plugin"));
+	
+    add_periodical((1000*10), 0, ext_static, g_ape, g_ape);
 }
 
 static void free_module(acetables *g_ape)
