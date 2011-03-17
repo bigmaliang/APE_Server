@@ -4,8 +4,10 @@
 
 #include "apev.h"
 
+extern HASH *stbl;
+HASH *utbl = NULL;
+
 static acetables *ape = NULL;
-static HASH *utbl = NULL;
 
 static NEOERR* ext_cmd_useron(struct queue_entry *q)
 {
@@ -13,6 +15,8 @@ static NEOERR* ext_cmd_useron(struct queue_entry *q)
 
 	REQ_GET_PARAM_STR(q->hdfrcv, "srcx", srcx);
 	REQ_GET_PARAM_STR(q->hdfrcv, "uin", uin);
+
+	alog_dbg("server %s's user %s on", srcx, uin);
 	
 	UserEntry *u = (UserEntry*)hash_lookup(utbl, uin);
 	if (!u) {
@@ -20,10 +24,12 @@ static NEOERR* ext_cmd_useron(struct queue_entry *q)
 		hash_insert(utbl, (void*)strdup(uin), (void*)u);
 	}
 	u->online = true;
-	if (!u->server) u->server = strdup(srcx);
-	else if (strcmp(u->server, srcx)) {
-		free(u->server);
-		u->server = strdup(srcx);
+
+	SnakeEntry *s = (SnakeEntry*)hash_lookup(stbl, srcx);
+	if (!s) u->server = strdup(srcx);
+	else {
+		u->server = s->name;
+		s->num_online++;
 	}
 
 	return STATUS_OK;
@@ -36,12 +42,16 @@ static NEOERR* ext_cmd_useroff(struct queue_entry *q)
 	REQ_GET_PARAM_STR(q->hdfrcv, "srcx", srcx);
 	REQ_GET_PARAM_STR(q->hdfrcv, "uin", uin);
 
+	alog_dbg("server %s's user %s off", srcx, uin);
+	
 	UserEntry *u = (UserEntry*)hash_lookup(utbl, uin);
 	if (!u) {
 		u = user_new();
 		hash_insert(utbl, (void*)strdup(uin), (void*)u);
 	}
 	u->online = false;
+	SnakeEntry *s = (SnakeEntry*)hash_lookup(stbl, srcx);
+	if (s && s->num_online > 0) s->num_online--;
 	
 	return STATUS_OK;
 }
@@ -56,21 +66,36 @@ static NEOERR* ext_cmd_msgsnd(struct queue_entry *q)
 	REQ_GET_PARAM_STR(q->hdfrcv, "dstuin", dstuin);
 	REQ_GET_PARAM_STR(q->hdfrcv, "msg", msg);
 
+	alog_dbg("user %s say %s to %s", srcuin, msg, dstuin);
+	
 	USERS *user = GET_USER_FROM_APE(ape, dstuin);
 	if (user) {
 		json_item *jlist;
 		RAW *newraw;
 
 		jlist = json_new_object();
-		json_set_property_strZ(jlist, "srcuin", srcuin);
+		json_set_property_strZ(jlist, "from", srcuin);
+		json_set_property_strZ(jlist, "to_uin", dstuin);
 		json_set_property_strZ(jlist, "msg", msg);
-		newraw = forge_raw("MSG_SND", jlist);
+		newraw = forge_raw("EXT_SEND", jlist);
 		post_raw(newraw, user, ape);
 		POSTRAW_DONE(newraw);
 	} else {
 		return nerr_pass(ext_e_useroff(dstuin));
 	}
 
+	return STATUS_OK;
+}
+
+static NEOERR* ext_cmd_state(struct queue_entry *q)
+{
+	SnakeEntry *s = hash_lookup(stbl, id_me);
+	if (!s) return nerr_raise(NERR_ASSERT, "%s not found", id_me);
+	
+	hdf_set_value(q->hdfsnd, "server name", s->name);
+	hdf_set_int_value(q->hdfsnd, "user online from v", s->num_online);
+	hdf_set_int_value(q->hdfsnd, "user online from ape", ape->nConnected);
+	
 	return STATUS_OK;
 }
 
@@ -90,6 +115,12 @@ static NEOERR* ext_process_driver(struct event_entry *e, struct queue_entry *q)
 		break;
 	case REQ_CMD_MSGBRD:
 		//err = ext_cmd_msgbrd(q);
+		break;
+	case REQ_CMD_STATE:
+		err = ext_cmd_state(q);
+		break;
+	default:
+		err = nerr_raise(NERR_ASSERT, "unknown command %u", q->operation);
 		break;
 	}
 

@@ -45,6 +45,7 @@ extern char *id_me, *id_v;
 void ext_e_init(char *evts);
 NEOERR* ext_e_useron(char *uin);
 NEOERR* ext_e_useroff(char *uin);
+NEOERR* ext_e_msgsnd(char *fuin, char *tuin, char *msg);
 void ext_static(acetables *g_ape, int lastcall);
 
 #endif

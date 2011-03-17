@@ -13,6 +13,53 @@ static ace_plugin_infos infos_module = {
 	"mod_ext.conf"				// config file
 };
 
+static unsigned int ext_send(callbackp *callbacki)
+{
+	char *uin, *msg;
+	USERS *fuser = callbacki->call_user;
+	NEOERR *err;
+
+	JNEED_STR(callbacki->param, "uin", uin, RETURN_BAD_PARAMS);
+	JNEED_STR(callbacki->param, "msg", msg, RETURN_BAD_PARAMS);
+
+	char *fuin = GET_UIN_FROM_USER(fuser);
+	if (fuin && !strcmp(fuin, uin)) return (RETURN_NOTHING);
+	
+	USERS *tuser = GET_USER_FROM_APE(callbacki->g_ape, uin);
+	if (tuser) {
+		json_item *jlist = json_new_object();
+		json_set_property_strZ(jlist, "msg", msg);
+		json_set_property_objZ(jlist, "from", get_json_object_user(fuser));
+		json_set_property_strZ(jlist, "to_uin", uin);
+		RAW *newraw = forge_raw("EXT_SEND", jlist);
+		post_raw(newraw, tuser, callbacki->g_ape);
+		POSTRAW_DONE(newraw);
+	} else {
+		err = ext_e_msgsnd(fuin, uin, msg);
+		TRACE_NOK(err);
+	}
+	
+	return (RETURN_NOTHING);
+}
+
+static int ext_event_deluser(USERS *user, int istmp, acetables *g_ape)
+{
+	NEOERR *err;
+	
+	err = ext_e_useroff(GET_UIN_FROM_USER(user));
+	TRACE_NOK(err);
+
+	return RET_PLUGIN_CONTINUE;
+}
+
+static void ext_event_adduser(USERS *user, acetables *g_ape)
+{
+	NEOERR *err;
+	
+	err = ext_e_useron(GET_UIN_FROM_USER(user));
+	TRACE_NOK(err);
+}
+
 static void init_module(acetables *g_ape)
 {
 	MAKE_USER_TBL(g_ape);		/* erased in deluser() */
@@ -26,6 +73,8 @@ static void init_module(acetables *g_ape)
 	ext_e_init(READ_CONF("event_plugin"));
 	
     add_periodical((1000*10), 0, ext_static, g_ape, g_ape);
+
+	register_cmd("EXT_SEND", ext_send, NEED_SESSID, g_ape);
 }
 
 static void free_module(acetables *g_ape)
@@ -37,7 +86,7 @@ static ace_callbacks callbacks = {
 	/* pre user event fired */
 	NULL,
 	NULL,
-	NULL,
+	ext_event_deluser,
 	NULL,
 	NULL,
 	
@@ -50,7 +99,7 @@ static ace_callbacks callbacks = {
 
 	/* post user event hooked */
 	NULL,
-	NULL,
+	ext_event_adduser,
 	NULL,
 	NULL,
 	NULL,

@@ -29,7 +29,8 @@ modules: libape-spidermonkey.c \
 		 libape-lcs.c lcsevent.c lcsevent.h \
 		 libape-ext.c extevent.c extevent.h
 	$(CC) $(CFLAGS) -std=c99 -Wl,-soname,libmod_lcs.so -o lib/libmod_lcs.so lcsevent.c libape-lcs.c $(INC_EVENT) $(LIB_EVENT)
-	$(CC) $(CFLAGS) -std=c99 -Wl,-soname,libmod_ext.so -o lib/libmod_ext.so extsrv.c extevent.c libape-ext.c $(PATH_V)udps.c $(PATH_V)parse.c \
+	$(CC) $(CFLAGS) -std=c99 -Wl,-soname,libmod_ext.so -o lib/libmod_ext.so extsrv.c extevent.c libape-ext.c \
+	$(PATH_V)apev.c $(PATH_V)udps.c $(PATH_V)parse.c \
 	$(INC_EVENT) $(LIB_EVENT) $(INC_V)
 
 endif
