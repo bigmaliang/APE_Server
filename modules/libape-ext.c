@@ -1,3 +1,15 @@
+/*
+ * libape-ext.c
+ * make APE 1.x backend extendible, and can communicate with each other.
+ * through a control-center (https://github.com/bigml/cmoon/tree/bomdoo/deliver/v)
+ * see deliver/v/extend.png for network skeleton
+ * (one to one only, multi-server channel message not yet support)
+ *
+ * this module depend on following librarys(see modules/Makefile for detail):
+ * ***libneo_utl.a: http://www.clearsilver.net/
+ * ***libmevent.a:  https://github.com/bigml/cmoon/tree/master/lib/mevent
+ */
+
 #include "plugins.h"
 #include "libape-ext.h"
 
@@ -13,6 +25,10 @@ static ace_plugin_infos infos_module = {
 	"mod_ext.conf"				// config file
 };
 
+/*
+ * command: EXT_SEND
+ * send message to another user, no matter they are on the same or another aped
+ */
 static unsigned int ext_send(callbackp *callbacki)
 {
 	char *uin, *msg;
@@ -42,6 +58,9 @@ static unsigned int ext_send(callbackp *callbacki)
 	return (RETURN_NOTHING);
 }
 
+/*
+ * excute before deluser(), to notify control-center(also named v)
+ */
 static int ext_event_deluser(USERS *user, int istmp, acetables *g_ape)
 {
 	NEOERR *err;
@@ -52,6 +71,9 @@ static int ext_event_deluser(USERS *user, int istmp, acetables *g_ape)
 	return RET_PLUGIN_CONTINUE;
 }
 
+/*
+ * excute after adduser(), to notify control-center(also named v)
+ */
 static void ext_event_adduser(USERS *user, acetables *g_ape)
 {
 	NEOERR *err;

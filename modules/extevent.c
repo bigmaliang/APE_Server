@@ -2,11 +2,11 @@
 
 #include "apev.h"
 
-HASH *stbl = NULL;
-extern HASH *utbl;
+HASH *stbl = NULL;				/* snake table */
+extern HASH *utbl;				/* user(not on me) table */
 
-char *id_v = NULL;
-char *id_me = NULL;
+char *id_v = NULL;				/* control-center(v)'s id */
+char *id_me = NULL;				/* my id, see mod_ext.conf */
 
 void ext_e_init(char *evts)
 {

@@ -4,11 +4,14 @@
 
 #include "apev.h"
 
-extern HASH *stbl;
-HASH *utbl = NULL;
+extern HASH *stbl;				/* snake table */
+HASH *utbl = NULL;				/* user(not on me) table */
 
 static acetables *ape = NULL;
 
+/*
+ * somebody onlined on the srcx server
+ */
 static NEOERR* ext_cmd_useron(struct queue_entry *q)
 {
 	char *srcx, *uin;
@@ -35,6 +38,9 @@ static NEOERR* ext_cmd_useron(struct queue_entry *q)
 	return STATUS_OK;
 }
 
+/*
+ * somebody offlined from the srcx server
+ */
 static NEOERR* ext_cmd_useroff(struct queue_entry *q)
 {
 	char *srcx, *uin;
@@ -56,6 +62,9 @@ static NEOERR* ext_cmd_useroff(struct queue_entry *q)
 	return STATUS_OK;
 }
 
+/*
+ * got a message from another server, send to my user
+ */
 static NEOERR* ext_cmd_msgsnd(struct queue_entry *q)
 {
 	char *srcuin, *dstuin, *msg;
@@ -81,12 +90,18 @@ static NEOERR* ext_cmd_msgsnd(struct queue_entry *q)
 		post_raw(newraw, user, ape);
 		POSTRAW_DONE(newraw);
 	} else {
+		/*
+		 * my user(dstuin) has offline, don't talk to me again.
+		 */
 		return nerr_pass(ext_e_useroff(dstuin));
 	}
 
 	return STATUS_OK;
 }
 
+/*
+ * get my statu information
+ */
 static NEOERR* ext_cmd_state(struct queue_entry *q)
 {
 	SnakeEntry *s = hash_lookup(stbl, id_me);

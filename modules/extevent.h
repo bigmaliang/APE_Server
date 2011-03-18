@@ -13,6 +13,32 @@
 
 extern char *id_me, *id_v;
 
+
+/*
+ * init stbl, which refer to the other apeds(also named x) and v
+ *   we name (x,v) snake for convenient
+ */
+void ext_e_init(char *evts);
+
+
+/*
+ * notify v, an user onlined on me
+ */
+NEOERR* ext_e_useron(char *uin);
+
+/*
+ * notify v, an user offlined on me
+ */
+NEOERR* ext_e_useroff(char *uin);
+
+/*
+ * notify v OR x, you got a message
+ */
+NEOERR* ext_e_msgsnd(char *fuin, char *tuin, char *msg);
+
+void ext_static(acetables *g_ape, int lastcall);
+
+
 /* TODO hdf_write_string lead mem_leak */
 #define EVT_EXT_TRIGGER(evt, key, cmd, flags)							\
 	do {																\
@@ -41,11 +67,5 @@ extern char *id_me, *id_v;
 			if (zpa) free(zpa);											\
 		}																\
 	} while(0)
-
-void ext_e_init(char *evts);
-NEOERR* ext_e_useron(char *uin);
-NEOERR* ext_e_useroff(char *uin);
-NEOERR* ext_e_msgsnd(char *fuin, char *tuin, char *msg);
-void ext_static(acetables *g_ape, int lastcall);
 
 #endif
