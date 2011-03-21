@@ -94,7 +94,7 @@ static void init_module(acetables *g_ape)
 	ext_s_init(g_ape, READ_CONF("ip"), READ_CONF("port"), READ_CONF("me"));
 	ext_e_init(READ_CONF("event_plugin"));
 	
-    add_periodical((1000*10), 0, ext_static, g_ape, g_ape);
+	add_periodical((EVENT_HB_SEC*1000), 0, ext_event_static, g_ape, g_ape);
 
 	register_cmd("EXT_SEND", ext_send, NEED_SESSID, g_ape);
 }

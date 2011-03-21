@@ -1,10 +1,7 @@
 #ifndef __LIBAPE_EXT_H__
 #define __LIBAPE_EXT_H__
 
-typedef struct {
-	unsigned long msg_total;
-	unsigned long num_user;
-} stExt;
+#define EVENT_HB_SEC	10
 
 #define TRACE_NOK(err)							\
 	if (err != STATUS_OK) {						\
@@ -15,6 +12,11 @@ typedef struct {
 		nerr_ignore(&err);						\
 	}
 
+
+typedef struct {
+	unsigned long msg_total;
+	unsigned long num_user;
+} stExt;
 
 /*
  * STATISTIC

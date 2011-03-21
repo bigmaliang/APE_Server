@@ -36,7 +36,7 @@ NEOERR* ext_e_useroff(char *uin);
  */
 NEOERR* ext_e_msgsnd(char *fuin, char *tuin, char *msg);
 
-void ext_static(acetables *g_ape, int lastcall);
+void ext_event_static(acetables *g_ape, int lastcall);
 
 
 /* TODO hdf_write_string lead mem_leak */

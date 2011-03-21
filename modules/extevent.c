@@ -82,16 +82,12 @@ NEOERR* ext_e_msgsnd(char *fuin, char *tuin, char *msg)
 	return STATUS_OK;
 }
 
-void ext_static(acetables *g_ape, int lastcall)
+void ext_event_static(acetables *g_ape, int lastcall)
 {
 	SnakeEntry *s = (SnakeEntry*)hash_lookup(stbl, "ape_ext_v");
 	if (!s) return;
 
-	alog_dbg("tick");
-	
-	hdf_set_value(s->evt->hdfsnd, "srcx", "ape_ext_a");
-	hdf_set_value(s->evt->hdfsnd, "srcuin", "10");
-	hdf_set_value(s->evt->hdfsnd, "dstuin", "20");
-	hdf_set_value(s->evt->hdfsnd, "msg", "hi from ape_ext_a");
-	//EVT_EXT_TRIGGER_VOID(evt, "foo", 1001, FLAGS_NONE);
+	hdf_set_value(s->evt->hdfsnd, "srcx", id_me);
+	hdf_set_int_value(s->evt->hdfsnd, "num_online", g_ape->nConnected);
+	EVT_EXT_TRIGGER_VOID(s->evt, id_me, REQ_CMD_HB, FLAGS_NONE);
 }
