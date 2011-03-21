@@ -176,6 +176,7 @@ void ext_s_init(acetables *g_ape, char *ip, char *port, char *me)
 	TRACE_NOK(err);
 	
 	int sock = udps_init(ip, atoi(port));
+	setnonblocking(sock);
 
 	prepare_ape_socket(sock, g_ape);
 
