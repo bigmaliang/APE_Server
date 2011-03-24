@@ -22,6 +22,9 @@ void lcs_event_init(char *evts)
 		}
 		nTok--;
 	}
+
+	nerr_init();
+	merr_init((MeventLog)ape_log);
 }
 
 char* lcs_app_secy(char *aname)
@@ -32,7 +35,7 @@ char* lcs_app_secy(char *aname)
 	if (!evt) return NULL;
 
 	hdf_set_value(evt->hdfsnd, "aname", aname);
-	EVT_LCS_TRIGGER(NULL, evt, aname, REQ_CMD_APP_GETSECY, FLAGS_SYNC);
+	MEVENT_TRIGGER_RET(NULL, evt, aname, REQ_CMD_APP_GETSECY, FLAGS_SYNC);
 
 	hdf_get_copy(evt->hdfrcv, "aname", &res, aname);
 
@@ -45,7 +48,7 @@ HDF* lcs_app_info(char *aname)
 	if (!evt) return NULL;
 	
 	hdf_set_value(evt->hdfsnd, "aname", aname);
-	EVT_LCS_TRIGGER(NULL, evt, aname, REQ_CMD_APPINFO, FLAGS_SYNC);
+	MEVENT_TRIGGER_RET(NULL, evt, aname, REQ_CMD_APPINFO, FLAGS_SYNC);
 
 	HDF *hdf;
 	hdf_init(&hdf);
@@ -63,7 +66,7 @@ char* lcs_get_admin(char *uname, char *aname)
 
 	hdf_set_value(evt->hdfsnd, "uname", uname);
 	hdf_set_value(evt->hdfsnd, "aname", aname);
-	EVT_LCS_TRIGGER(NULL, evt, uname, REQ_CMD_GETADMIN, FLAGS_SYNC);
+	MEVENT_TRIGGER_RET(NULL, evt, uname, REQ_CMD_GETADMIN, FLAGS_SYNC);
 
 	char *oname = hdf_get_value(evt->hdfrcv, "oname", NULL);
 
@@ -78,14 +81,14 @@ void lcs_remember_user(const char *ip, char *uname, char *aname)
 	if (!evt || !evtp) return;
 
 	hdf_set_value(evtp->hdfsnd, "ip", ip);
-	EVT_LCS_TRIGGER_VOID(evtp, (char*)ip, REQ_CMD_PLACEGET, FLAGS_SYNC);
+	MEVENT_TRIGGER_VOID(evtp, (char*)ip, REQ_CMD_PLACEGET, FLAGS_SYNC);
 	char *city = hdf_get_value(evtp->hdfrcv, "0.c", "Mars");
 
 	hdf_set_value(evt->hdfsnd, "uname", uname);
 	hdf_set_value(evt->hdfsnd, "aname", aname);
 	hdf_set_value(evt->hdfsnd, "ip", ip);
 	hdf_set_value(evt->hdfsnd, "addr", city);
-	EVT_LCS_TRIGGER_VOID(evt, uname, REQ_CMD_APPUSERIN, FLAGS_NONE);
+	MEVENT_TRIGGER_VOID(evt, uname, REQ_CMD_APPUSERIN, FLAGS_NONE);
 }
 
 void lcs_add_track(char *aname, char *uname, char *oname,
@@ -103,7 +106,7 @@ void lcs_add_track(char *aname, char *uname, char *oname,
 	if (refer) hdf_set_value(evt->hdfsnd, "refer", refer);
 	hdf_set_int_value(evt->hdfsnd, "type", type);
 	
-	EVT_LCS_TRIGGER_VOID(evt, uname, REQ_CMD_ADDTRACK, FLAGS_NONE);
+	MEVENT_TRIGGER_VOID(evt, uname, REQ_CMD_ADDTRACK, FLAGS_NONE);
 }
 
 void lcs_set_msg(char *msg, char *from, char *to, int type)
@@ -117,7 +120,7 @@ void lcs_set_msg(char *msg, char *from, char *to, int type)
 	hdf_set_value(evt->hdfsnd, "to", to);
 	hdf_set_value(evt->hdfsnd, "raw", msg);
 	hdf_set_int_value(evt->hdfsnd, "type", type);
-	EVT_LCS_TRIGGER_VOID(evt, to, REQ_CMD_MSGSET, FLAGS_NONE);
+	MEVENT_TRIGGER_VOID(evt, to, REQ_CMD_MSGSET, FLAGS_NONE);
 }
 
 void lcs_static(acetables *g_ape, int lastcall)
@@ -146,5 +149,5 @@ void lcs_static(acetables *g_ape, int lastcall)
 	st->num_user = 0;
 	hashtbl_empty(GET_ONLINE_TBL(g_ape), NULL);
 
-	EVT_LCS_TRIGGER_VOID(evt, NULL, REQ_CMD_STAT, FLAGS_NONE);
+	MEVENT_TRIGGER_VOID(evt, NULL, REQ_CMD_STAT, FLAGS_NONE);
 }

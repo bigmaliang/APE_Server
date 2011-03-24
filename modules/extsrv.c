@@ -168,9 +168,6 @@ void ext_s_init(acetables *g_ape, char *ip, char *port, char *me)
 	
 	ape = g_ape;
 
-	err = nerr_init();
-	TRACE_NOK(err);
-
 	if (me) ext_entry.name = me;
 	err = parse_regist_v(&ext_entry);
 	TRACE_NOK(err);

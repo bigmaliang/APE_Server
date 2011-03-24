@@ -8,6 +8,8 @@ extern HASH *utbl;				/* user(not on me) table */
 char *id_v = NULL;				/* control-center(v)'s id */
 char *id_me = NULL;				/* my id, see mod_ext.conf */
 
+int LERR_ALLDIE = 0;			/* 25 */
+
 void ext_e_init(char *evts)
 {
 	char *tkn[10];
@@ -26,6 +28,15 @@ void ext_e_init(char *evts)
 		}
 		nTok--;
 	}
+
+	err = nerr_init();
+	TRACE_NOK(err);
+
+	err = merr_init((MeventLog)ape_log);
+	TRACE_NOK(err);
+
+	err = nerr_register(&LERR_ALLDIE, "当前没有可使用的聊天后台");
+	TRACE_NOK(err);
 }
 
 NEOERR* ext_e_useron(char *uin)
@@ -35,7 +46,7 @@ NEOERR* ext_e_useron(char *uin)
 
 	hdf_set_value(s->evt->hdfsnd, "uin", uin);
 	hdf_set_value(s->evt->hdfsnd, "srcx", id_me);
-	EVT_EXT_TRIGGER(s->evt, uin, REQ_CMD_USERON, FLAGS_NONE);
+	MEVENT_TRIGGER(s->evt, uin, REQ_CMD_USERON, FLAGS_NONE);
 
 	return STATUS_OK;
 }
@@ -47,7 +58,7 @@ NEOERR* ext_e_useroff(char *uin)
 
 	hdf_set_value(s->evt->hdfsnd, "uin", uin);
 	hdf_set_value(s->evt->hdfsnd, "srcx", id_me);
-	EVT_EXT_TRIGGER(s->evt, uin, REQ_CMD_USEROFF, FLAGS_NONE);
+	MEVENT_TRIGGER(s->evt, uin, REQ_CMD_USEROFF, FLAGS_NONE);
 
 	return STATUS_OK;
 }
@@ -77,7 +88,7 @@ NEOERR* ext_e_msgsnd(char *fuin, char *tuin, char *msg)
 	hdf_set_value(s->evt->hdfsnd, "srcuin", fuin);
 	hdf_set_value(s->evt->hdfsnd, "dstuin", tuin);
 	hdf_set_value(s->evt->hdfsnd, "msg", msg);
-	EVT_EXT_TRIGGER(s->evt, fuin, REQ_CMD_MSGSND, FLAGS_NONE);
+	MEVENT_TRIGGER(s->evt, fuin, REQ_CMD_MSGSND, FLAGS_NONE);
 
 	return STATUS_OK;
 }
@@ -89,5 +100,5 @@ void ext_event_static(acetables *g_ape, int lastcall)
 
 	hdf_set_value(s->evt->hdfsnd, "srcx", id_me);
 	hdf_set_int_value(s->evt->hdfsnd, "num_online", g_ape->nConnected);
-	EVT_EXT_TRIGGER_VOID(s->evt, id_me, REQ_CMD_HB, FLAGS_NONE);
+	MEVENT_TRIGGER_VOID(s->evt, id_me, REQ_CMD_HB, FLAGS_NONE);
 }

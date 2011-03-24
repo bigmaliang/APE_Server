@@ -38,34 +38,4 @@ NEOERR* ext_e_msgsnd(char *fuin, char *tuin, char *msg);
 
 void ext_event_static(acetables *g_ape, int lastcall);
 
-
-/* TODO hdf_write_string lead mem_leak */
-#define EVT_EXT_TRIGGER(evt, key, cmd, flags)							\
-	do {																\
-		if (PROCESS_NOK(mevent_trigger(evt, key, cmd, flags))) {		\
-			char *zpa = NULL;											\
-			hdf_write_string(evt->hdfrcv, &zpa);						\
-			return nerr_raise(NERR_ASSERT, "pro %s %d failure %d %s", evt->ename, cmd, evt->errcode, zpa); \
-		}																\
-	} while(0)
-#define EVT_EXT_TRIGGER_VOID(evt, key, cmd, flags)						\
-	do {																\
-		if (PROCESS_NOK(mevent_trigger(evt, key, cmd, flags))) {		\
-			char *zpa = NULL;											\
-			hdf_write_string(evt->hdfrcv, &zpa);						\
-			alog_err("pro %s %d failure %d %s", evt->ename, cmd, evt->errcode, zpa); \
-			if (zpa) free(zpa);											\
-			return;														\
-		}																\
-	} while(0)
-#define EVT_EXT_TRIGGER_NRET(evt, key, cmd, flags)						\
-	do {																\
-		if (PROCESS_NOK(mevent_trigger(evt, key, cmd, flags))) {		\
-			char *zpa = NULL;											\
-			hdf_write_string(evt->hdfrcv, &zpa);						\
-			alog_err("pro %s %d failure %d %s", evt->ename, cmd, evt->errcode, zpa); \
-			if (zpa) free(zpa);											\
-		}																\
-	} while(0)
-
 #endif
