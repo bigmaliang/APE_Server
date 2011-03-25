@@ -1,3 +1,4 @@
+#include "libape-ext.h"
 #include "extevent.h"
 
 #include "apev.h"
@@ -12,6 +13,7 @@ int LERR_ALLDIE = 0;			/* 25 */
 
 void ext_e_init(char *evts)
 {
+	NEOERR *err;
 	char *tkn[10];
 	int nTok = 0;
 	nTok = explode(' ', evts, tkn, 10);
