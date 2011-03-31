@@ -59,6 +59,20 @@ HDF* lcs_app_info(char *aname)
 	return hdf;
 }
 
+void lcs_need_more_admin(char *aname)
+{
+	mevent_t *evt = (mevent_t*)hashtbl_seek(etbl, "aic");
+	if (!evt) return;
+	
+	hdf_set_value(evt->hdfsnd, "aname", aname);
+	hdf_set_int_value(evt->hdfsnd, "tuneop", 1);
+	hdf_set_int_value(evt->hdfsnd, "tune", LCS_TUNE_NEEDA);
+	MEVENT_TRIGGER_VOID(evt, aname, REQ_CMD_APPUP, FLAGS_NONE);
+	/*
+	 * email is send at backend on 0:00 clock
+	 */
+}
+
 char* lcs_get_admin(char *uname, char *aname)
 {
 	mevent_t *evt = (mevent_t*)hashtbl_seek(etbl, "dyn");

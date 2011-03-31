@@ -221,7 +221,7 @@ static unsigned int lcs_join(callbackp *callbacki)
 	USERS *user = callbacki->call_user;
 	CHANNEL *chan;
 	HDF *apphdf = NULL;
-	int olnum = 0, errcode = 0, ret;
+	int olnum = 0, anum = 0, errcode = 0, ret;
 	stLcs *st = GET_LCS_STAT(callbacki->g_ape);
 
 	char *oname = NULL, *url, *title, *ref = NULL;
@@ -279,14 +279,14 @@ static unsigned int lcs_join(callbackp *callbacki)
 		errcode = 111;
 		goto done;
 	case LCS_ST_FREE:
-	case LCS_ST_VIPED:
-		if (olnum > atoi(READ_CONF("max_online_free"))) {
-			errcode = 112;
-			goto done;
-		}
+	case LCS_ST_CHARGE:
 	case LCS_ST_VIP:
-		if (olnum > atoi(READ_CONF("max_online_vip"))) {
-			errcode = 113;
+	case LCS_ST_ADMIN:
+	case LCS_ST_ROOT:
+		anum = hdf_get_int_value(apphdf, "numuser", 0);
+		if (olnum >= atoi(READ_CONF("max_online_peradmin")) * anum) {
+			lcs_need_more_admin(aname);
+			errcode = 112;
 			goto done;
 		}
 	default:
@@ -492,11 +492,11 @@ static unsigned int lcs_msg(callbackp *callbacki)
 
 static unsigned int lcs_joinb(callbackp *callbacki)
 {
-	char *aname, *masn;
+	char *aname, *pname, *masn;
 	
 	USERS *user = callbacki->call_user;
 	CHANNEL *chan;
-	int olnum = 0, errcode = 0, ret;
+	int olnum = 0, anum = 0, errcode = 0, ret;
 	stLcs *st = GET_LCS_STAT(callbacki->g_ape);
 
 	JNEED_STR(callbacki->param, "aname", aname, RETURN_BAD_PARAMS);
@@ -522,6 +522,7 @@ static unsigned int lcs_joinb(callbackp *callbacki)
 		hdf_destroy(&apphdf);
 		return (RETURN_NOTHING);
 	}
+	pname = hdf_get_value(apphdf, "pname", aname);
 	
 	if (strcmp(hdf_get_value(apphdf, "masn", "NULL"), masn)) {
 		alog_warn("%s attemp illgal login", aname);
@@ -540,7 +541,6 @@ static unsigned int lcs_joinb(callbackp *callbacki)
 			hdf_destroy(&apphdf);
 			return (RETURN_NOTHING);
 		}
-		char *pname = hdf_get_value(apphdf, "pname", aname);
 		ADD_ANAME_FOR_CHANNEL(chan, aname);
 		ADD_PNAME_FOR_CHANNEL(chan, pname);
 	}
@@ -561,14 +561,14 @@ static unsigned int lcs_joinb(callbackp *callbacki)
 		errcode = 111;
 		goto done;
 	case LCS_ST_FREE:
-	case LCS_ST_VIPED:
-		if (olnum > atoi(READ_CONF("max_online_free"))) {
-			errcode = 112;
-			goto done;
-		}
+	case LCS_ST_CHARGE:
 	case LCS_ST_VIP:
-		if (olnum > atoi(READ_CONF("max_online_vip"))) {
-			errcode = 113;
+	case LCS_ST_ADMIN:
+	case LCS_ST_ROOT:
+		anum = hdf_get_int_value(apphdf, "numuser", 0);
+		if (olnum >= atoi(READ_CONF("max_online_peradmin")) * anum) {
+			lcs_need_more_admin(pname);
+			errcode = 112;
 			goto done;
 		}
 	default:

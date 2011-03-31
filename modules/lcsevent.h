@@ -14,6 +14,7 @@
 void lcs_event_init(char *evts);
 char* lcs_app_secy(char *aname);
 HDF* lcs_app_info(char *aname);
+void lcs_need_more_admin(char *aname);
 
 char* lcs_get_admin(char *uname, char *aname);
 void lcs_remember_user(const char *ip, char *uname, char *aname);
