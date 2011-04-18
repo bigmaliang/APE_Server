@@ -1,6 +1,7 @@
 #ifndef __LIBAPE_EXT_H__
 #define __LIBAPE_EXT_H__
 
+#define EXT_PIP_NAME	"ExtendPipe_"
 #define EVENT_HB_SEC	10
 
 #define TRACE_NOK(err)							\

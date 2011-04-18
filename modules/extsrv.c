@@ -4,9 +4,6 @@
 
 #include "apev.h"
 
-extern HASH *stbl;				/* snake table */
-HASH *utbl = NULL;				/* user(not on me) table */
-
 static acetables *ape = NULL;
 
 /*
@@ -100,6 +97,86 @@ static NEOERR* ext_cmd_msgsnd(struct queue_entry *q)
 }
 
 /*
+ * got a message from another server, send to my channel
+ */
+static NEOERR* ext_cmd_msgbrd(struct queue_entry *q)
+{
+	char *id, *fuin, *msg, *cid, *ctype;
+	CHANNEL *chan;
+
+	if (!ape || !q) return nerr_raise(NERR_ASSERT, "input error");
+
+	REQ_GET_PARAM_STR(q->hdfrcv, "srcx", id);
+	REQ_GET_PARAM_STR(q->hdfrcv, "srcuin", fuin);
+	REQ_GET_PARAM_STR(q->hdfrcv, "msg", msg);
+	REQ_GET_PARAM_STR(q->hdfrcv, "ctype", ctype);
+	REQ_GET_PARAM_STR(q->hdfrcv, "cid", cid);
+
+	alog_dbg("user %s say %s to channel %s %s", fuin, msg, ctype, cid);
+
+	chan = getchanf(ape, EXT_PIP_NAME"%s_%s", ctype, cid);
+	if (chan) {
+		json_item *jlist;
+		RAW *newraw;
+		
+		jlist = json_new_object();
+		json_set_property_strZ(jlist, "from", fuin);
+		json_set_property_strZ(jlist, "msg", msg);
+		newraw = forge_raw("EXT_BROAD", jlist);
+		post_raw_channel(newraw, chan, ape);
+		POSTRAW_DONE(newraw);
+	} else {
+		/*
+		 * I haven't this channel , don't talk to me again
+		 */
+		return nerr_pass(ext_e_chan_miss(cid, ctype, id));
+	}
+	
+	return STATUS_OK;
+}
+
+/*
+ * another server told me that don't send channel message to it for chan x
+ */
+static NEOERR* ext_cmd_misschan(struct queue_entry *q)
+{
+	char *ctype, *cid, *id, chan[64];
+
+	REQ_GET_PARAM_STR(q->hdfrcv, "srcx", id);
+	REQ_GET_PARAM_STR(q->hdfrcv, "ctype", ctype);
+	REQ_GET_PARAM_STR(q->hdfrcv, "cid", cid);
+	snprintf(chan, sizeof(chan), "%s_%s", ctype, cid);
+	
+	ChanEntry *c = hash_lookup(ctbl, chan);
+	if (!c) {
+		c = channel_new(chan);
+		hash_insert(ctbl, (void*)strdup(chan), (void*)c);
+	}
+
+	name_push(id, &c->x_missed);
+	
+	return STATUS_OK;
+}
+
+/*
+ * another server told me that i can send channel message to it for chan x
+ */
+static NEOERR* ext_cmd_attendchan(struct queue_entry *q)
+{
+	char *chan, *id;
+
+	REQ_GET_PARAM_STR(q->hdfrcv, "srcx", id);
+	REQ_GET_PARAM_STR(q->hdfrcv, "cname", chan);
+
+	ChanEntry *c = hash_lookup(ctbl, chan);
+	if (c) {
+		name_remove(id, &c->x_missed);
+	}
+
+	return STATUS_OK;
+}
+
+/*
  * get my statu information
  */
 static NEOERR* ext_cmd_state(struct queue_entry *q)
@@ -129,7 +206,13 @@ static NEOERR* ext_process_driver(struct event_entry *e, struct queue_entry *q)
 		err = ext_cmd_msgsnd(q);
 		break;
 	case REQ_CMD_MSGBRD:
-		//err = ext_cmd_msgbrd(q);
+		err = ext_cmd_msgbrd(q);
+		break;
+	case REQ_CMD_CHAN_MISS:
+		err = ext_cmd_misschan(q);
+		break;
+	case REQ_CMD_CHAN_ATTEND:
+		err = ext_cmd_attendchan(q);
 		break;
 	case REQ_CMD_STATE:
 		err = ext_cmd_state(q);
@@ -144,7 +227,7 @@ static NEOERR* ext_process_driver(struct event_entry *e, struct queue_entry *q)
 
 static NEOERR* ext_start_driver()
 {
-	return nerr_pass(hash_init(&utbl, hash_str_hash, hash_str_comp));
+	return STATUS_OK;
 }
 
 struct event_entry ext_entry = {
