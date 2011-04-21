@@ -53,74 +53,16 @@ NEOERR* ext_e_useron(USERS *user, acetables *ape)
 {
 	char *uin = GET_UIN_FROM_USER(user);
 	SnakeEntry *s = (SnakeEntry*)hash_lookup(stbl, id_v);
-	if (!s || !uin) return nerr_raise(NERR_ASSERT, "%s not found", id_v);
+	if (!s || !uin || !e_group) return nerr_raise(NERR_ASSERT, "%s not found", id_v);
 
 	hdf_set_value(s->evt->hdfsnd, "uin", uin);
 	hdf_set_value(s->evt->hdfsnd, "srcx", id_me);
 	MEVENT_TRIGGER(s->evt, uin, REQ_CMD_USERON, FLAGS_NONE);
-
+	
 	hdf_set_value(e_group->hdfsnd, "uin", uin);
-	// TODO REQ_CMD_GROUPINFO
-	//MEVENT_TRIGGER(e_group, uin, REQ_CMD_GROUPINFO, FLAGS_SYNC);
-	/*
-	 * groups {
-	 *     0 {
-	 *         ctype = 1
-	 *         cid = 7876
-	 *         users {
-	 *             0 = 1123
-	 *             1 = 1143
-	 *             2 = 1423
-	 *         }
-	 *     }
-	 *     1 {
-	 *         ctype = 2
-	 *         cid = 776
-	 *         users {
-	 *             0 = 1323
-	 *         }
-	 *     }
-	 * }
-	 */
-
-	HDF *node = hdf_get_child(e_group->hdfrcv, "groups"), *cnode;
-	char *ctype, *cid;
-	CHANNEL *chan;
-	USERS *ouser;
-	while (node) {
-		/*
-		 * process this group
-		 */
-		ctype = hdf_get_value(node, "ctype", NULL);
-		cid = hdf_get_value(node, "cid", NULL);
-		cnode = hdf_get_child(node, "users");
-		if (ctype && cid) {
-			chan = getchanf(ape, EXT_PIP_NAME"%s_%s", ctype, cid);
-			if (!chan) chan = mkchanf(ape, CHANNEL_AUTODESTROY,
-									  EXT_PIP_NAME"%s_%s", ctype, cid);
-			if (!chan) {
-				alog_err("make channel ExtendPipe_%s_%s error", ctype, cid);
-				continue;
-			}
-
-			/*
-			 * join myself to my group
-			 */
-			join(user, chan, ape);
-
-			/*
-			 * join member to my group
-			 */
-			while (cnode) {
-				ouser = GET_USER_FROM_APE(ape, hdf_obj_value(cnode));
-				if (ouser) join(ouser, chan, ape);
-				
-				cnode = hdf_obj_next(cnode);
-			}
-		}
-		
-		node = hdf_obj_next(node);
-	}
+	hdf_set_value(e_group->hdfsnd, "srcx", id_me);
+	/* TODO GROUPINFO */
+	//MEVENT_TRIGGER(e_group, uin, REQ_CMD_GROUPINFO, FLAGS_NONE);
 
 	return STATUS_OK;
 }

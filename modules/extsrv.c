@@ -138,7 +138,7 @@ static NEOERR* ext_cmd_msgbrd(struct queue_entry *q)
 /*
  * another server told me that don't send channel message to it for chan x
  */
-static NEOERR* ext_cmd_misschan(struct queue_entry *q)
+static NEOERR* ext_cmd_chanmiss(struct queue_entry *q)
 {
 	char *ctype, *cid, *id, chan[64];
 
@@ -161,7 +161,7 @@ static NEOERR* ext_cmd_misschan(struct queue_entry *q)
 /*
  * another server told me that i can send channel message to it for chan x
  */
-static NEOERR* ext_cmd_attendchan(struct queue_entry *q)
+static NEOERR* ext_cmd_chanattend(struct queue_entry *q)
 {
 	char *chan, *id;
 
@@ -171,6 +171,77 @@ static NEOERR* ext_cmd_attendchan(struct queue_entry *q)
 	ChanEntry *c = hash_lookup(ctbl, chan);
 	if (c) {
 		name_remove(id, &c->x_missed);
+	}
+
+	return STATUS_OK;
+}
+
+static NEOERR* ext_cmd_chaninfo(struct queue_entry *q)
+{
+	/*
+	 * uin = 1708931
+	 * groups {
+	 *     0 {
+	 *         ctype = 1
+	 *         cid = 7876
+	 *         users {
+	 *             0 = 1123
+	 *             1 = 1143
+	 *             2 = 1423
+	 *         }
+	 *     }
+	 *     1 {
+	 *         ctype = 2
+	 *         cid = 776
+	 *         users {
+	 *             0 = 1323
+	 *         }
+	 *     }
+	 * }
+	 */
+
+	char *uin, *ctype, *cid;
+	HDF *node, *cnode;
+	CHANNEL *chan;
+	USERS *user, *ouser;
+
+	REQ_GET_PARAM_STR(q->hdfrcv, "uin", uin);
+	node = hdf_get_child(q->hdfrcv, "groups");
+	user = GET_USER_FROM_APE(ape, uin);
+
+	while (user && node) {
+		/*
+		 * group x
+		 */
+		ctype = hdf_get_value(node, "ctype", NULL);
+		cid = hdf_get_value(node, "cid", NULL);
+		cnode = hdf_get_child(node, "users");
+		if (ctype && cid) {
+			chan = getchanf(ape, EXT_PIP_NAME"%s_%s", ctype, cid);
+			if (!chan) chan = mkchanf(ape, CHANNEL_AUTODESTROY,
+									  EXT_PIP_NAME"%s_%s", ctype, cid);
+			if (!chan) {
+				alog_err("make channel ExtendPipe_%s_%s error", ctype, cid);
+				continue;
+			}
+
+			/*
+			 * join myself to my group
+			 */
+			join(user, chan, ape);
+
+			/*
+			 * join member to my group
+			 */
+			while (cnode) {
+				ouser = GET_USER_FROM_APE(ape, hdf_obj_value(cnode));
+				if (ouser) join(ouser, chan, ape);
+				
+				cnode = hdf_obj_next(cnode);
+			}
+		}
+		
+		node = hdf_obj_next(node);
 	}
 
 	return STATUS_OK;
@@ -209,11 +280,15 @@ static NEOERR* ext_process_driver(struct event_entry *e, struct queue_entry *q)
 		err = ext_cmd_msgbrd(q);
 		break;
 	case REQ_CMD_CHAN_MISS:
-		err = ext_cmd_misschan(q);
+		err = ext_cmd_chanmiss(q);
 		break;
 	case REQ_CMD_CHAN_ATTEND:
-		err = ext_cmd_attendchan(q);
+		err = ext_cmd_chanattend(q);
 		break;
+		/*
+	case REQ_CMD_CHAN_INFO:
+		err = ext_cmd_chaninfo(q);
+		break;*/
 	case REQ_CMD_STATE:
 		err = ext_cmd_state(q);
 		break;
