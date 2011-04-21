@@ -45,7 +45,7 @@ struct _socks_bufout
 
 struct _socks_list
 {
-	struct _ape_socket *co;
+	struct _acetables *ape;
 	int *tfd;
 };
 

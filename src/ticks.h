@@ -25,6 +25,7 @@
 #include "main.h"
 
 #define VTICKS_RATE 50 // 50 ms
+#define VTICKS_IDLE_CHECK 3600000 // 1 hour
 
 struct _ticks_callback
 {

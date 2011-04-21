@@ -213,6 +213,8 @@ void close_socket(int fd, acetables *g_ape)
 	
 	events_remove(g_ape->events, fd);
 
+	co->idle = 0;
+
 	close(fd);
 }
 
@@ -231,23 +233,28 @@ void prepare_ape_socket(int fd, acetables *g_ape)
 	memset(g_ape->co[fd], 0, sizeof(*g_ape->co[fd]));
 }
 
-#if 0
 static void check_idle(struct _socks_list *sl)
 {
-	int i = 0, x = 0;
+	int i = 0, x = 0, y = 0;
 	long int current_time = time(NULL);
-	printf("Tick tac \n");
+
 	for (i = 0; x < *sl->tfd; i++) {
-		if (sl->co[i].buffer.size) {
+		if (sl->ape->co[i] && sl->ape->co[i]->idle > 0) {
 			x++;
-			if (sl->co[i].attach == NULL && sl->co[i].idle <= current_time-TCP_TIMEOUT) {
+			/*
+			 * don't drop fd 0-50
+			 */
+			if (i > 50 && sl->ape->co[i]->idle <= current_time - DROPCON_SEC) {
+				y++;
 				shutdown(i, 2);
+				close_socket(i, sl->ape);
+				sl->ape->co[i]->idle = 0;
 			}
 		}
-		
 	}
+
+	alog_foo("fd reached %d, with %d active socket(%d droped)", i, x, y);
 }
-#endif
 
 unsigned int sockroutine(acetables *g_ape)
 {
@@ -258,13 +265,12 @@ unsigned int sockroutine(acetables *g_ape)
 	struct timeval t_start, t_end;	
 	long int ticks = 0, uticks = 0, lticks = 0;
 	struct sockaddr_in their_addr;
-	
-	//sl.co = co;
+
+	sl.ape = g_ape;
 	sl.tfd = &tfd;
 
-	#if 0
-	add_periodical(5, 0, check_idle, &sl, g_ape);
-	#endif
+	add_periodical(VTICKS_IDLE_CHECK, 0, check_idle, &sl, g_ape);
+
 	gettimeofday(&t_start, NULL);
 	while (server_is_running) {
 		/* Linux 2.6.25 provides a fd-driven timer system. It could be usefull to implement */

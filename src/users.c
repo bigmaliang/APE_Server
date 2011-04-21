@@ -182,7 +182,7 @@ USERS *adduser(ape_socket *client, const char *host, const char *ip, USERS *allo
 
 		HOOK_EVENT(adduser, nuser, g_ape);
 		
-		alog_info("New user - (ip : %s)", nuser->ip);
+		//alog_info("New user - (ip : %s)", nuser->ip);
 	}
 
 	return nuser;

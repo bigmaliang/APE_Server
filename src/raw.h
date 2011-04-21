@@ -75,7 +75,6 @@ void destroy_raw_pool(struct _raw_pool *ptr);
 #define POSTRAW_DONE(raw)									\
 	do {													\
 		if (raw && raw->refcount == 0) {					\
-			alog_warn("post %s for nothing", raw->data);	\
 			delete_raw(raw);								\
 		}													\
 	} while(0)

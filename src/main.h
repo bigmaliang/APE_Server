@@ -42,6 +42,7 @@
 #define MAX_MSG_LEN 	1024
 #define MAX_RAW_LEN 	1024
 
+#define DROPCON_SEC 86400
 #define TIMEOUT_SEC 45
 #define USRLEFT_SEC 5
 
