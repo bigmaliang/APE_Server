@@ -133,11 +133,15 @@ void post_raw_sub(RAW *raw, subuser *sub, acetables *g_ape)
 /* Post raw to a user and propagate it to all of it's subuser */
 void post_raw(RAW *raw, USERS *user, acetables *g_ape)
 {
+	FIRE_EVENT_NULL(post_raw, raw, user, g_ape);
+	
 	subuser *sub = user->subuser;
 	while (sub != NULL) {
 		post_raw_sub(raw, sub, g_ape);
 		sub = sub->next;
 	}
+
+	HOOK_EVENT(post_raw, raw, user, g_ape);
 }
 
 /* Post raw to a user and propagate it to all of it's subuser with *sub exception */

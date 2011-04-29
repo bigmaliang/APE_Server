@@ -52,6 +52,7 @@ struct _ace_plugins
 		unsigned short int c_addsubuser;
 		unsigned short int c_delsubuser;
 		
+		unsigned short int c_post_raw;
 		unsigned short int c_post_raw_sub;
 		unsigned short int c_mkchan;
 		unsigned short int c_rmchan;
