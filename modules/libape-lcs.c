@@ -699,6 +699,7 @@ static ace_callbacks callbacks = {
 	NULL,
 	NULL,
 	NULL,
+	NULL,
 	lcs_event_onjoin,
 	lcs_event_onleft,
 
@@ -710,6 +711,7 @@ static ace_callbacks callbacks = {
 	NULL,
 
 	/* post channel event hooked */
+	NULL,
 	NULL,
 	NULL,
 	NULL,

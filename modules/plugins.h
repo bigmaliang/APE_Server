@@ -54,17 +54,18 @@ typedef struct _ace_callbacks ace_callbacks;
 
 struct _ace_callbacks
 {
-	USERS   *(*c_allocateuser)(ape_socket *, const char *, const char *, acetables *);
-	USERS   *(*c_adduser)(USERS *, acetables *);
-	int      (*c_deluser)(USERS *, int istmp, acetables *);
-	subuser *(*c_addsubuser)(acetables *);
-	int      (*c_delsubuser)(subuser *, acetables *);
-	
-	int      (*c_post_raw_sub)(RAW *, subuser *, acetables *);
-	CHANNEL *(*c_mkchan)(char *, int, acetables *);
-	int      (*c_rmchan)(CHANNEL *, acetables *);
-	int      (*c_join)(USERS *, CHANNEL *, acetables *);
-	int      (*c_left)(USERS *, CHANNEL *, acetables *);
+	USERS*	(*c_allocateuser)(ape_socket *, const char *, const char *, acetables *);
+	USERS*	(*c_adduser)(USERS *, acetables *);
+	int     (*c_deluser)(USERS *, int istmp, acetables *);
+	subuser* (*c_addsubuser)(acetables *);
+	int     (*c_delsubuser)(subuser *, acetables *);
+
+	int		(*c_post_raw)(RAW *, USERS *, acetables *);
+	int		(*c_post_raw_sub)(RAW *, subuser *, acetables *);
+	CHANNEL* (*c_mkchan)(char *, int, acetables *);
+	int		(*c_rmchan)(CHANNEL *, acetables *);
+	int		(*c_join)(USERS *, CHANNEL *, acetables *);
+	int		(*c_left)(USERS *, CHANNEL *, acetables *);
 	
 
 	void (*c_post_allocateuser)(USERS *, acetables*);
@@ -73,6 +74,7 @@ struct _ace_callbacks
 	void (*c_post_addsubuser)(subuser *, acetables *);
 	void (*c_post_delsubuser)(subuser *, acetables *);
 	
+	void (*c_post_post_raw)(RAW *, USERS *, acetables *);
 	void (*c_post_post_raw_sub)(RAW *, subuser *, acetables *);
 	void (*c_post_mkchan)(CHANNEL *, acetables *);
 	void (*c_post_rmchan)(CHANNEL *, acetables *);

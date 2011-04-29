@@ -27,6 +27,7 @@ static ace_plugin_infos infos_module = {
 /*
  * command: EXT_SEND
  * send message to another user, no matter they are on the same or another aped
+ * hisotry & offline message should be hand on HOOK_EXT_SEND
  */
 static unsigned int ext_send(callbackp *callbacki)
 {
@@ -169,6 +170,7 @@ static ace_callbacks callbacks = {
 	NULL,
 	NULL,
 	NULL,
+	NULL,
 
 	/* post user event hooked */
 	NULL,
@@ -178,6 +180,7 @@ static ace_callbacks callbacks = {
 	NULL,
 
 	/* post channel event hooked */
+	NULL,
 	NULL,
 	ext_event_mkchan,
 	NULL,

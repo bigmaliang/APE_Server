@@ -5,6 +5,7 @@
 
 char *id_v = NULL;				/* control-center(v)'s id */
 char *id_me = NULL;				/* my id, see mod_ext.conf */
+bool single_mode = true;		/* flase on multiple aped */
 
 HASH *stbl = NULL;				/* snake table */
 HASH *utbl = NULL;				/* user(not on me) table */
@@ -18,7 +19,7 @@ void ext_e_init(char *evts, char *relation)
 {
 	NEOERR *err;
 	char *tkn[10];
-	int nTok = 0;
+	int nTok = 0, snake_num = 0;
 	nTok = explode(' ', evts, tkn, 10);
 
 	if (!stbl) hash_init(&stbl, hash_str_hash, hash_str_comp);
@@ -30,11 +31,14 @@ void ext_e_init(char *evts, char *relation)
 		if (s) {
 			alog_dbg("event %s init ok", tkn[nTok]);
 			hash_insert(stbl, tkn[nTok], (void*)s);
+			snake_num++;
 		} else {
 			alog_err("init event %s failure", tkn[nTok]);
 		}
 		nTok--;
 	}
+
+	if (snake_num > 2) single_mode = false;
 
 	e_group = mevent_init_plugin(relation);
 	if (!e_group) alog_err("init relation backend %s failure", relation);
@@ -51,6 +55,8 @@ void ext_e_init(char *evts, char *relation)
 
 NEOERR* ext_e_useron(USERS *user, acetables *ape)
 {
+	if (single_mode) return STATUS_OK;
+	
 	char *uin = GET_UIN_FROM_USER(user);
 	SnakeEntry *s = (SnakeEntry*)hash_lookup(stbl, id_v);
 	if (!s || !uin || !e_group) return nerr_raise(NERR_ASSERT, "%s not found", id_v);
@@ -61,14 +67,20 @@ NEOERR* ext_e_useron(USERS *user, acetables *ape)
 	
 	hdf_set_value(e_group->hdfsnd, "uin", uin);
 	hdf_set_value(e_group->hdfsnd, "srcx", id_me);
-	/* TODO GROUPINFO */
-	//MEVENT_TRIGGER(e_group, uin, REQ_CMD_GROUPINFO, FLAGS_NONE);
+	/*
+	 * TEMP
+	 * we use number not macro to let libape-ext don't depend on application code
+	 * make sure your app's GROUPLIST command is 1001
+	 */
+	MEVENT_TRIGGER(e_group, uin, 1001, FLAGS_NONE);
 
 	return STATUS_OK;
 }
 
 NEOERR* ext_e_useroff(char *uin)
 {
+	if (single_mode) return STATUS_OK;
+	
 	SnakeEntry *s = (SnakeEntry*)hash_lookup(stbl, id_v);
 	if (!s || !uin) return nerr_raise(NERR_ASSERT, "%s not found", id_v);
 
@@ -81,6 +93,8 @@ NEOERR* ext_e_useroff(char *uin)
 
 NEOERR* ext_e_msgsnd(char *fuin, char *tuin, char *msg)
 {
+	if (single_mode) return STATUS_OK;
+	
 	if (!fuin || !tuin || !msg) return nerr_raise(NERR_ASSERT, "input error");
 	SnakeEntry *s = NULL;
 	
@@ -91,7 +105,7 @@ NEOERR* ext_e_msgsnd(char *fuin, char *tuin, char *msg)
 			if (!s) return nerr_raise(NERR_ASSERT, "%s not found", u->server);
 		} else {
 			/*
-			 * TODO offline message
+			 * hisotry & offline message should be hand on HOOK_EXT_SEND
 			 */
 			return STATUS_OK;
 		}
@@ -99,6 +113,8 @@ NEOERR* ext_e_msgsnd(char *fuin, char *tuin, char *msg)
 		s = (SnakeEntry*)hash_lookup(stbl, id_v);
 		if (!s) return nerr_raise(NERR_ASSERT, "%s not found", id_v);
 	}
+
+	if (!strcmp(s->name, id_me)) return nerr_raise(NERR_ASSERT, "%s on me", tuin);
 
 	hdf_set_value(s->evt->hdfsnd, "srcx", id_me);
 	hdf_set_value(s->evt->hdfsnd, "srcuin", fuin);
@@ -111,6 +127,8 @@ NEOERR* ext_e_msgsnd(char *fuin, char *tuin, char *msg)
 
 NEOERR* ext_e_msgbrd(char *fuin, char *msg, char *cid, char *ctype)
 {
+	if (single_mode) return STATUS_OK;
+	
 	char chan[64], *key;
 
 	snprintf(chan, sizeof(chan), "%s_%s", ctype, cid);
@@ -147,6 +165,8 @@ NEOERR* ext_e_msgbrd(char *fuin, char *msg, char *cid, char *ctype)
 
 NEOERR* ext_e_chan_miss(char *cid, char *ctype, char *id)
 {
+	if (single_mode) return STATUS_OK;
+	
 	SnakeEntry *s = hash_lookup(stbl, id);
 
 	if (!s) return nerr_raise(NERR_ASSERT, "%s not found", id);
@@ -161,6 +181,8 @@ NEOERR* ext_e_chan_miss(char *cid, char *ctype, char *id)
 
 NEOERR* ext_e_chan_attend(char *chan)
 {
+	if (single_mode) return STATUS_OK;
+	
 	char *key;
 	SnakeEntry *s = hash_next(stbl, (void**)&key);
 
