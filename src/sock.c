@@ -238,13 +238,13 @@ static void check_idle(struct _socks_list *sl)
 	int i = 0, x = 0, y = 0;
 	long int current_time = time(NULL);
 
-	for (i = 0; x < *sl->tfd; i++) {
+	/*
+	 * don't drop fd 0-50
+	 */
+	for (i = 50; i < sl->ape->basemem; i++) {
 		if (sl->ape->co[i] && sl->ape->co[i]->idle > 0) {
 			x++;
-			/*
-			 * don't drop fd 0-50
-			 */
-			if (i > 50 && sl->ape->co[i]->idle <= current_time - DROPCON_SEC) {
+			if (sl->ape->co[i]->idle <= current_time - DROPCON_SEC) {
 				y++;
 				shutdown(i, 2);
 				close_socket(i, sl->ape);
@@ -267,7 +267,6 @@ unsigned int sockroutine(acetables *g_ape)
 	struct sockaddr_in their_addr;
 
 	sl.ape = g_ape;
-	sl.tfd = &tfd;
 
 	add_periodical(VTICKS_IDLE_CHECK, 0, check_idle, &sl, g_ape);
 
