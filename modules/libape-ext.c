@@ -47,6 +47,13 @@ static unsigned int ext_send(callbackp *callbacki)
 		json_set_property_strZ(jlist, "msg", msg);
 		json_set_property_objZ(jlist, "from", get_json_object_user(fuser));
 		json_set_property_strZ(jlist, "to_uin", uin);
+		/*
+		 * TEMP
+		 * uin is vuin's true ape user for MaJia useage
+		 */
+		char *vuin = JGET_STR(callbacki->param, "vuin");
+		if (vuin) json_set_property_strZ(jlist, "to_vuin", vuin);
+		
 		RAW *newraw = forge_raw("EXT_SEND", jlist);
 		post_raw(newraw, tuser, callbacki->g_ape);
 		POSTRAW_DONE(newraw);

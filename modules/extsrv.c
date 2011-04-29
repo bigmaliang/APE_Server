@@ -285,10 +285,9 @@ static NEOERR* ext_process_driver(struct event_entry *e, struct queue_entry *q)
 	case REQ_CMD_CHAN_ATTEND:
 		err = ext_cmd_chanattend(q);
 		break;
-		/*
 	case REQ_CMD_CHAN_INFO:
 		err = ext_cmd_chaninfo(q);
-		break;*/
+		break;
 	case REQ_CMD_STATE:
 		err = ext_cmd_state(q);
 		break;
