@@ -31,27 +31,34 @@ static ace_plugin_infos infos_module = {
  */
 static unsigned int ext_send(callbackp *callbacki)
 {
-	char *uin, *msg;
+	char *fuin, *uin, *msg;
 	USERS *fuser = callbacki->call_user;
 	NEOERR *err;
+	char *vuin;
 
 	JNEED_STR(callbacki->param, "uin", uin, RETURN_BAD_PARAMS);
 	JNEED_STR(callbacki->param, "msg", msg, RETURN_BAD_PARAMS);
+	/*
+	 * TEMP
+	 * sender want to be sb else (vuin)
+	 */
+	fuin = JGET_STR(callbacki->param, "vuin");
 
-	char *fuin = GET_UIN_FROM_USER(fuser);
+	if (!fuin) fuin = GET_UIN_FROM_USER(fuser);
 	if (fuin && !strcmp(fuin, uin)) return (RETURN_NOTHING);
 	
 	USERS *tuser = GET_USER_FROM_APE(callbacki->g_ape, uin);
 	if (tuser) {
 		json_item *jlist = json_new_object();
 		json_set_property_strZ(jlist, "msg", msg);
-		json_set_property_objZ(jlist, "from", get_json_object_user(fuser));
+		json_set_property_strZ(jlist, "from", fuin);
 		json_set_property_strZ(jlist, "to_uin", uin);
 		/*
 		 * TEMP
-		 * uin is vuin's true ape user for MaJia useage
+		 * sender send msg to vitrual user, mostly passive (he don't know)
+		 * to_vuin is set on hook_ext_send()
 		 */
-		char *vuin = JGET_STR(callbacki->param, "vuin");
+		vuin = JGET_STR(callbacki->param->jchild.child, "to_vuin");
 		if (vuin) json_set_property_strZ(jlist, "to_vuin", vuin);
 		
 		RAW *newraw = forge_raw("EXT_SEND", jlist);
